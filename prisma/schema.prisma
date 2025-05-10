@@ -1,0 +1,139 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+ 
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Member {
+  id           Int     @id @default(autoincrement())
+  first_name   String
+  second_name  String
+  last_name    String
+  profession   String
+  title        String
+  job_business String
+  id_number    String  @unique
+  birth_date   DateTime
+  citizen      String
+  joined_date   DateTime @default(now())
+  end_date     DateTime
+  address      String
+  sex          Sex
+  phone_number String  @unique
+  // phone_number_2 String @unique @default("none")
+  document     String
+  remark String
+  status Status 
+  relative  Relative[]
+  Payment Payment[]
+  Balance Balance[]
+  Penalty Penalty[]
+  Contribution Contribution[]
+}
+
+model Relative{
+  id Int @id @default(autoincrement())
+  member_id Int 
+  first_name String
+  second_name String
+  last_name String
+  relation_type String
+  status RelativeStatus
+  member Member @relation(fields: [member_id],references: [id],onDelete: Cascade)
+}
+model Contribution {
+  id Int @id @default(autoincrement())
+  member_id      Int          
+  type_name String @unique
+  amount Decimal
+  start_date DateTime
+  end_date DateTime
+  member  Member        @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  payment Payment[]
+  Balance Balance[]
+  Penalty Penalty[]
+}
+
+model Payment {
+id Int @id @default(autoincrement())
+contribution_id Int
+member_id Int 
+payment_date DateTime @default(now())
+payment_month String
+paid_amount Decimal
+payment_method String
+document String
+contribution Contribution @relation(fields:[contribution_id],references: [id],onDelete: Cascade)
+member Member @relation(fields:[member_id],references: [id],onDelete: Cascade)
+created_at DateTime @default(now())
+}
+
+model Balance {
+  id                Int          @id @default(autoincrement())
+  member_id         Int
+  contribution_id   Int
+  amount            Decimal      @default(0)
+  updated_at        DateTime     @updatedAt
+
+  member            Member       @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  contribution      Contribution @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
+
+  @@unique([member_id, contribution_id]) 
+}
+
+model Penalty {
+  id               Int           @id @default(autoincrement())
+  member_id        Int
+  contribution_id  Int
+  member           Member        @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  contribution     Contribution  @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
+  reason           String
+  amount           Decimal
+  missed_months    MissedMonth[]
+  applied_at       DateTime      @default(now())
+  resolved_at      DateTime?
+}
+
+model MissedMonth {
+  id         Int      @id @default(autoincrement())
+  penalty_id Int
+  penalty    Penalty  @relation(fields: [penalty_id], references: [id], onDelete: Cascade)
+  month      String  
+}
+
+ enum Sex {
+  Female
+  Male
+ }
+ enum Status {
+  Active
+  Inactive
+ }
+ enum RelativeStatus {
+  Alive 
+  Sick 
+  Deceased
+ }
+ enum RelationType {
+  Mother
+  Father
+  Daughter
+  Son
+  Sister
+  Brother
+  Spouse_Mother
+  Spouse_Father
+  Spouse_Sister
+  Spouse_Brother
+  other
+ }
