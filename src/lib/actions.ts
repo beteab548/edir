@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   ClassSchema,
   ExamSchema,
+  MemberSchema,
   StudentSchema,
   SubjectSchema,
   TeacherSchema,
@@ -12,6 +13,96 @@ import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 
 type CurrentState = { success: boolean; error: boolean };
+
+export const createMember = async (
+  currentState: CurrentState,
+  data: MemberSchema
+) => {
+  try {
+    await prisma.member.create({
+      data: {
+        first_name: data.first_name,
+        second_name: data.second_name,
+        last_name: data.last_name,
+        profession: data.profession,
+        title: data.title,
+        job_business: data.job_business,
+        id_number: data.id_number,
+        birth_date: new Date(data.birth_date),
+        citizen: data.citizen,
+        joined_date: data.joined_date ? new Date(data.joined_date) : new Date(),
+       ...(data.end_date && { end_date: new Date(data.end_date) }),
+        phone_number: data.phone_number,
+        document: data.document,
+        address: data.address,
+        sex: data.sex,
+        status: data.status,
+        remark: data.remark ?? "",
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateMember = async (
+  currentState: CurrentState,
+  data: MemberSchema
+) => {
+  if (!data.id) return { success: false, error: true };
+
+  try {
+    await prisma.member.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        first_name: data.first_name,
+        second_name: data.second_name,
+        last_name: data.last_name,
+        profession: data.profession,
+        title: data.title,
+        job_business: data.job_business,
+        id_number: data.id_number,
+        birth_date: new Date(data.birth_date),
+        citizen: data.citizen,
+        joined_date: data.joined_date ? new Date(data.joined_date) : new Date(),
+        ...(data.end_date && { end_date: new Date(data.end_date) }),
+        phone_number: data.phone_number,
+        document: data.document,
+        address: data.address,
+        sex: data.sex,
+        status: data.status,
+        remark: data.remark,
+      },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
+
+export const deleteMember = async (
+  currentState: CurrentState,
+  data: FormData
+) => {
+  const id = parseInt(data.get("id") as string);
+  try {
+    await prisma.member.delete({
+      where: { id },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
 
 export const createSubject = async (
   currentState: CurrentState,
@@ -165,7 +256,7 @@ export const createTeacher = async (
         birthday: data.birthday,
         subjects: {
           connect: data.subjects?.map((subjectId: string) => ({
-            id: parseInt(subjectId),
+            id: parseInt(subjectId),c
           })),
         },
       },

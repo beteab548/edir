@@ -3,6 +3,7 @@
 import {
   deleteClass,
   deleteExam,
+  deleteMember,
   deleteStudent,
   deleteSubject,
   deleteTeacher,
@@ -16,12 +17,13 @@ import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
 
 const deleteActionMap = {
+  member: deleteMember,
   subject: deleteSubject,
   class: deleteClass,
   teacher: deleteTeacher,
   student: deleteStudent,
   exam: deleteExam,
-// TODO: OTHER DELETE ACTIONS
+  // TODO: OTHER DELETE ACTIONS
   parent: deleteSubject,
   lesson: deleteSubject,
   assignment: deleteSubject,
@@ -36,21 +38,24 @@ const deleteActionMap = {
 // import TeacherForm from "./forms/TeacherForm";
 // import StudentForm from "./forms/StudentForm";
 
-const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
+// const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
+//   loading: () => <h1>Loading...</h1>,
+// });
+const MemberForm = dynamic(() => import("./form/MemberForm"), {
   loading: () => <h1>Loading...</h1>,
 });
-const StudentForm = dynamic(() => import("./forms/StudentForm"), {
-  loading: () => <h1>Loading...</h1>,
-});
-const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
-  loading: () => <h1>Loading...</h1>,
-});
-const ClassForm = dynamic(() => import("./forms/ClassForm"), {
-  loading: () => <h1>Loading...</h1>,
-});
-const ExamForm = dynamic(() => import("./forms/ExamForm"), {
-  loading: () => <h1>Loading...</h1>,
-});
+// const StudentForm = dynamic(() => import("./forms/StudentForm"), {
+//   loading: () => <h1>Loading...</h1>,
+// });
+// const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
+//   loading: () => <h1>Loading...</h1>,
+// });
+// const ClassForm = dynamic(() => import("./forms/ClassForm"), {
+//   loading: () => <h1>Loading...</h1>,
+// });
+// const ExamForm = dynamic(() => import("./forms/ExamForm"), {
+//   loading: () => <h1>Loading...</h1>,
+// });
 // TODO: OTHER FORMS
 
 const forms: {
@@ -61,47 +66,50 @@ const forms: {
     relatedData?: any
   ) => JSX.Element;
 } = {
-  subject: (setOpen, type, data, relatedData) => (
-    <SubjectForm
-      type={type}
-      data={data}
-      setOpen={setOpen}
-      relatedData={relatedData}
-    />
+  member: (setOpen, type, data, relatedData) => (
+    <MemberForm type={type} data={data} setOpen={setOpen} />
   ),
-  class: (setOpen, type, data, relatedData) => (
-    <ClassForm
-      type={type}
-      data={data}
-      setOpen={setOpen}
-      relatedData={relatedData}
-    />
-  ),
-  teacher: (setOpen, type, data, relatedData) => (
-    <TeacherForm
-      type={type}
-      data={data}
-      setOpen={setOpen}
-      relatedData={relatedData}
-    />
-  ),
-  student: (setOpen, type, data, relatedData) => (
-    <StudentForm
-      type={type}
-      data={data}
-      setOpen={setOpen}
-      relatedData={relatedData}
-    />
-  ),
-  exam: (setOpen, type, data, relatedData) => (
-    <ExamForm
-      type={type}
-      data={data}
-      setOpen={setOpen}
-      relatedData={relatedData}
-    />
-    // TODO OTHER LIST ITEMS
-  ),
+  // subject: (setOpen, type, data, relatedData) => (
+  //   <SubjectForm
+  //     type={type}
+  //     data={data}
+  //     setOpen={setOpen}
+  //     relatedData={relatedData}
+  //   />
+  // ),
+  // class: (setOpen, type, data, relatedData) => (
+  //   <ClassForm
+  //     type={type}
+  //     data={data}
+  //     setOpen={setOpen}
+  //     relatedData={relatedData}
+  //   />
+  // ),
+  // teacher: (setOpen, type, data, relatedData) => (
+  //   <TeacherForm
+  //     type={type}
+  //     data={data}
+  //     setOpen={setOpen}
+  //     relatedData={relatedData}
+  //   />
+  // ),
+  // student: (setOpen, type, data, relatedData) => (
+  //   <StudentForm
+  //     type={type}
+  //     data={data}
+  //     setOpen={setOpen}
+  //     relatedData={relatedData}
+  //   />
+  // ),
+  // exam: (setOpen, type, data, relatedData) => (
+  //   <ExamForm
+  //     type={type}
+  //     data={data}
+  //     setOpen={setOpen}
+  //     relatedData={relatedData}
+  //   />
+  //   // TODO OTHER LIST ITEMS
+  // ),
 };
 
 const FormModal = ({
