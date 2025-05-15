@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Member" ALTER COLUMN "kebele" DROP NOT NULL,
+ALTER COLUMN "wereda" DROP NOT NULL,
+ALTER COLUMN "zone_or_district" DROP NOT NULL;

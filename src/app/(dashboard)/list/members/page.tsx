@@ -15,36 +15,27 @@ const MemberListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   const columns = [
-    {
-      header: "Info",
-      accessor: "info",
-    },
-    {
-      header: "ID Number",
-      accessor: "id_number",
-      className: "hidden md:table-cell",
-    },
-    {
-      header: "Phone",
-      accessor: "phone",
-      className: "hidden md:table-cell",
-    },
+    { header: "Full Name", accessor: "full_name" },
     {
       header: "Profession",
       accessor: "profession",
       className: "hidden md:table-cell",
     },
-    {
-      header: "Address",
-      accessor: "address",
-      className: "hidden md:table-cell",
-    },
-
-    {
-      header: "Actions",
-      accessor: "action",
-    },
+    { header: "Age", accessor: "age", className: "hidden md:table-cell" },
+    { header: "Phone", accessor: "phone", className: "hidden md:table-cell" },
+    { header: "Status", accessor: "status", className: "hidden md:table-cell" },
+    { header: "Actions", accessor: "action" },
   ];
+  const calculateAge = (birthDate: Date | null) => {
+    if (!birthDate) return "N/A";
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
 
   const renderRow = (item: Member) => (
     <tr
@@ -66,10 +57,10 @@ const MemberListPage = async ({
           <p className="text-xs text-gray-500">{item.profession}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell">{item.id_number}</td>
-      <td className="hidden md:table-cell">{item.phone_number}</td>
-      <td className="hidden md:table-cell">{item.profession}</td>
-      <td className="hidden md:table-cell">{item.address}</td>
+      <td className="hidden md:table-cell">{item.profession || "N/A"}</td>
+      <td className="hidden md:table-cell">{calculateAge(item.birth_date)}</td>
+      <td className="hidden md:table-cell">{item.phone_number || "N/A"}</td>
+      <td className="hidden md:table-cell">{item.status || "N/A"}</td>
       <td>
         <div className="flex items-center gap-2">
           <Link href={`/list/members/${item.id}`}>

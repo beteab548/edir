@@ -19,20 +19,22 @@ model Member {
   first_name   String
   second_name  String
   last_name    String
-  profession   String
-  title        String
-  job_business String
-  id_number    String  @unique
+  profession   String?
+  title        String?
+  job_business String?
+  id_number    String?  @unique
   birth_date   DateTime
   citizen      String
   joined_date   DateTime @default(now())
-  end_date     DateTime
-  address      String
+  end_date     DateTime?
+  wereda        String?        
+  zone_or_district String?     
+  kebele        String? 
   sex          Sex
   phone_number String  @unique
   // phone_number_2 String @unique @default("none")
-  document     String
-  remark String
+  document     String?
+  remark String?
   status Status 
   relative  Relative[]
   Payment Payment[]
@@ -111,14 +113,15 @@ model MissedMonth {
   month      String  
 }
 
- enum Sex {
-  Female
-  Male
- }
- enum Status {
+enum Sex {
+  Male   
+  Female 
+}
+
+enum Status {
   Active
   Inactive
- }
+}
  enum RelativeStatus {
   Alive 
   Sick 
