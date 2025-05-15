@@ -32,6 +32,9 @@ export const createMember = async (
         ...(data.end_date ? { end_date: new Date(data.end_date) } : {}),
 
         phone_number: data.phone_number,
+        wereda : data.wereda,
+        kebele : data.kebele,
+        zone_or_district : data.zone_or_district,
 
         ...(data.document ? { document: data.document } : {}),
 
@@ -79,6 +82,9 @@ export const updateMember = async (
         ...(data.end_date ? { end_date: new Date(data.end_date) } : {}),
 
         phone_number: data.phone_number,
+        wereda : data.wereda,
+        kebele : data.kebele,
+        zone_or_district : data.zone_or_district,
 
         ...(data.document ? { document: data.document } : {}),
 

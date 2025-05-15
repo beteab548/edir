@@ -44,10 +44,10 @@ const MemberForm = ({
   useEffect(() => {
     if (state.success) {
       toast(`Member has been ${type === "create" ? "created" : "updated"}!`);
-      setOpen(false);
       router.refresh();
+      setOpen(false);
     }
-  }, [state, router, type, setOpen]);
+  }, [state, type, setOpen]);
 
   return (
     <div>
@@ -95,7 +95,11 @@ const MemberForm = ({
               label="Birth Date"
               name="birth_date"
               type="date"
-              defaultValue={data?.birth_date?.split("T")[0]}
+              defaultValue={
+                data?.birth_date
+                  ? new Date(data.birth_date).toISOString().split("T")[0]
+                  : ""
+              }
               register={register}
               error={errors.birth_date}
             />
@@ -135,7 +139,11 @@ const MemberForm = ({
               label="Joined Date"
               name="joined_date"
               type="date"
-              defaultValue={data?.joined_date?.split("T")[0]}
+              defaultValue={
+                data?.joined_date
+                  ? new Date(data.joined_date).toISOString().split("T")[0]
+                  : ""
+              }
               register={register}
               error={errors.joined_date}
             />
@@ -143,7 +151,11 @@ const MemberForm = ({
               label="End Date"
               name="end_date"
               type="date"
-              defaultValue={data?.end_date?.split("T")[0]}
+              defaultValue={
+                data?.end_date
+                  ? new Date(data.end_date).toISOString().split("T")[0]
+                  : ""
+              }
               register={register}
               error={errors.end_date}
             />
