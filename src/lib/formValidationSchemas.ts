@@ -18,8 +18,7 @@ export const memberSchema = z.object({
   citizen: z.string().min(1, { message: "Citizenship is required!" }),
 
   joined_date: z.coerce.date().optional(),
-  end_date: z.coerce.date().optional(),
-
+  end_date: z.union([z.coerce.date(), z.literal("")]).optional(),
   wereda: z.string().optional(),
   zone_or_district: z.string().optional(),
   kebele: z.string().optional(),
