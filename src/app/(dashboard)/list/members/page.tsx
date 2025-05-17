@@ -57,14 +57,16 @@ const MemberListPage = async ({
           <p className="text-xs text-gray-500">{item.profession}</p>
         </div>
       </td>
-      <td className="hidden md:table-cell">{item.profession || "N/A"}</td>
+      <td className="hidden md:table-cell">{item.profession}</td>
       <td className="hidden md:table-cell">{calculateAge(item.birth_date)}</td>
-      <td className="hidden md:table-cell">{item.phone_number || "N/A"}</td>
-      <td className="hidden md:table-cell">{item.status || "N/A"}</td>
+      <td className="hidden md:table-cell">{item.phone_number}</td>
+      <td className="hidden md:table-cell">{item.status}</td>
       <td>
         <div className="flex items-center gap-2">
-          <FormContainer table="member" type="update" data={item} />
-          <FormContainer table="member" type="delete" id={item.id} />
+          <>
+            <FormContainer table="member" type="update" data={item} />
+            <FormContainer table="member" type="delete" id={item.id} />
+          </>
         </div>
       </td>
     </tr>

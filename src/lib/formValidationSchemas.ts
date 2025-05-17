@@ -2,7 +2,7 @@ import { z } from "zod";
 
 
 export const memberSchema = z.object({
-  id: z.number().optional(),
+  id: z.coerce.number().optional(),
 
   first_name: z.string().min(1, { message: "First name is required!" }),
   second_name: z.string().min(1, { message: "Second name is required!" }),
@@ -23,9 +23,7 @@ export const memberSchema = z.object({
   wereda: z.string().optional(),
   zone_or_district: z.string().optional(),
   kebele: z.string().optional(),
-
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),
-
   phone_number: z.string().min(1, { message: "Phone number is required!" }),
 
   document: z.string().optional(),

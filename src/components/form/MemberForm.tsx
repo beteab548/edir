@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { countryList } from "@/lib/countries";
 import InputField from "../InputField";
 import { Dispatch, SetStateAction, useEffect, useState } from "react";
 import { memberSchema, MemberSchema } from "@/lib/formValidationSchemas";
@@ -9,6 +10,7 @@ import { useFormState } from "react-dom";
 import { createMember, updateMember } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { FieldErrors } from "react-hook-form";
 
 const tabs = ["Member Info", "Address", "Relatives"];
 
@@ -47,7 +49,7 @@ const MemberForm = ({
       router.refresh();
       setOpen(false);
     }
-  }, [state, type, setOpen]);
+  }, [state, router, type, setOpen]);
 
   return (
     <div>
@@ -91,6 +93,7 @@ const MemberForm = ({
               register={register}
               error={errors.last_name}
             />
+
             <InputField
               label="Birth Date"
               name="birth_date"
@@ -103,6 +106,16 @@ const MemberForm = ({
               register={register}
               error={errors.birth_date}
             />
+            {data && (
+              <InputField
+                label="Id"
+                name="id"
+                defaultValue={data?.id}
+                register={register}
+                error={errors?.id}
+                hidden
+              />
+            )}
             <div className="flex flex-col gap-2 min-w-[200px]">
               <label className="text-xs text-gray-500">Sex</label>
               <select
@@ -142,7 +155,7 @@ const MemberForm = ({
               defaultValue={
                 data?.joined_date
                   ? new Date(data.joined_date).toISOString().split("T")[0]
-                  : ""
+                  : new Date().toISOString().split("T")[0] // 👈 Default to today's date
               }
               register={register}
               error={errors.joined_date}
@@ -183,13 +196,26 @@ const MemberForm = ({
               register={register}
               error={errors.id_number}
             />
-            <InputField
-              label="Citizen"
-              name="citizen"
-              defaultValue={data?.citizen}
-              register={register}
-              error={errors.citizen}
-            />
+            <div className="flex flex-col gap-2 min-w-[150px] max-w-[200px] flex-1">
+              <label className="text-xs text-gray-500">Citizen</label>
+              <select
+                {...register("citizen")}
+                defaultValue={data?.citizen || "Ethiopia"}
+                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+              >
+                <option value="">Select a country</option>
+                {countryList.map(({ code, name }) => (
+                  <option key={code} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+              {errors.citizen && (
+                <p className="text-xs text-red-400">
+                  {errors.citizen.message?.toString()}
+                </p>
+              )}
+            </div>
 
             <InputField
               label="Phone Number"
