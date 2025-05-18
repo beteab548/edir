@@ -87,7 +87,7 @@ export const updateMember = async (
         kebele : data.kebele,
         zone_or_district : data.zone_or_district,
 
-        // ...(data.document ? { document: data.document } : {}),
+        ...(data.document ? { document: data.document } : {}),
 
         sex: data.sex,
         status: data.status,

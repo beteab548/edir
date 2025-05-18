@@ -249,8 +249,11 @@ const MemberForm = ({
               <label className="text-xs text-gray-500">Document</label>
               <input
                 type="file"
-                {...register("document")}
-                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                {...register("document", {
+                  setValueAs: (v) => v?.[0] || undefined, // ✅ extract File object or undefined
+                })}
+                className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
               />
               {errors.document && (
                 <p className="text-xs text-red-400">
@@ -258,6 +261,7 @@ const MemberForm = ({
                 </p>
               )}
             </div> */}
+
             <div className="flex flex-col gap-2 w-full max-w-md">
               <label className="text-xs text-gray-500">Remark</label>
               <textarea
