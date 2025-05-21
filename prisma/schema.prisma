@@ -66,6 +66,17 @@ model Contribution {
   Penalty Penalty[]
 }
 
+model ContributionType {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique 
+  amount      Decimal  
+  is_active   Boolean  @default(true)
+  is_for_all Boolean  @default(false)
+  created_at  DateTime @default(now())
+  start_date DateTime? 
+  end_date DateTime?
+}
+
 model Payment {
 id Int @id @default(autoincrement())
 contribution_id Int

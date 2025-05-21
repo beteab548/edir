@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
+import { ContributionType } from "@prisma/client";
 
 type CurrentState = { success: boolean; error: boolean };
 
@@ -153,6 +154,30 @@ export const deleteMember = async (
   try {
     await prisma.member.delete({
       where: { id },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true };
+  }
+};
+
+export const updateContribution = async (
+  currentState: CurrentState,
+  data: ContributionType
+) => {
+const {amount,end_date,start_date,name,is_active,is_for_all}=data
+  try {
+    await prisma.contributionType.create({
+  data:{
+    amount,
+    end_date,
+    start_date,
+    name,
+    is_active,
+    is_for_all
+  }
     });
 
     return { success: true, error: false };

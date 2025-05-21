@@ -76,7 +76,7 @@ const MemberListPage = async ({
   const p = page ? parseInt(page) : 1;
 
   const query: Prisma.MemberWhereInput = {};
-
+console.log(query);
   if (queryParams.search) {
     query.first_name = { contains: queryParams.search, mode: "insensitive" };
   }

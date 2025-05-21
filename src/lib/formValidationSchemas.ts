@@ -28,8 +28,8 @@ export const memberSchema = z.object({
   status: z.enum(["Active", "Inactive"], { message: "Status is required!" }),
 });
 
-export type MemberSchema = z.infer<typeof memberSchema>;
 
+export type MemberSchema = z.infer<typeof memberSchema>;
 export const relativeSchema = z.object({
   id: z.number().optional(),
   // member_id: z.number({ required_error: "Member ID is required!" }),
@@ -58,11 +58,17 @@ export const relativeSchema = z.object({
     message: "Relative status is required!",
   }),
 });
-
-// ✅ Corrected version
 export const combinedSchema = z.object({
   member: memberSchema,
   relatives: z.array(relativeSchema).optional(),
 });
 export type CombinedSchema = z.infer<typeof combinedSchema>;
 export type RelativeSchema = z.infer<typeof relativeSchema>;
+
+export const ContributionSchema=z.object({
+  amount:z.number().min(1),
+  type_name:z.string(),
+  start_date:z.date(),
+  end_date:z.date()
+})
+export type ContributionType=z.infer<typeof ContributionSchema>

@@ -1,5 +1,4 @@
 "use client";
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { countryList } from "@/lib/countries";
@@ -211,7 +210,7 @@ console.log(relativeFormData);
               name="member.birth_date"
               type="date"
               register={register}
-              defaultValue={formatDate(data.birth_date)}
+              defaultValue={formatDate(data?.birth_date)}
               error={errors?.member?.birth_date}
             />
             {data && (
