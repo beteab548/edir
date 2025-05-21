@@ -1,47 +1,68 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import {MemberSchema} from "./formValidationSchemas";
+import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
-
 
 type CurrentState = { success: boolean; error: boolean };
 
 export const createMember = async (
   currentState: CurrentState,
-  data: MemberSchema
+  data: CombinedSchema
 ) => {
+  console.log("in create",data);
+
   try {
     await prisma.member.create({
       data: {
-        first_name: data.first_name,
-        second_name: data.second_name,
-        last_name: data.last_name,
+        first_name: data.member.first_name,
+        second_name: data.member.second_name,
+        last_name: data.member.last_name,
+        ...(data.member.profession
+          ? { profession: data.member.profession }
+          : {}),
+        ...(data.member.title ? { title: data.member.title } : {}),
+        ...(data.member.job_business
+          ? { job_business: data.member.job_business }
+          : {}),
+        ...(data.member.id_number
+          ? { id_number: data.member.id_number }
+          : {}),
 
-        ...(data.profession ? { profession: data.profession } : {}),
-        ...(data.title ? { title: data.title } : {}),
-        ...(data.job_business ? { job_business: data.job_business } : {}),
-        ...(data.id_number ? { id_number: data.id_number } : {}),
-
-        birth_date: new Date(data.birth_date),
-        citizen: data.citizen,
+        birth_date: new Date(data.member.birth_date),
+        citizen: data.member.citizen,
 
         // joined_date is required now
-       ...(data.joined_date ? { joined_date: new Date(data.joined_date) } : {}),
+        ...(data.member.joined_date
+          ? { joined_date: new Date(data.member.joined_date) }
+          : {}),
 
-        ...(data.end_date ? { end_date: new Date(data.end_date) } : {}),
+        ...(data.member.end_date
+          ? { end_date: new Date(data.member.end_date) }
+          : {}),
 
-        phone_number: data.phone_number,
-        wereda : data.wereda,
-        kebele : data.kebele,
-        zone_or_district : data.zone_or_district,
+        phone_number: data.member.phone_number,
+        wereda: data.member.wereda,
+        kebele: data.member.kebele,
+        zone_or_district: data.member.zone_or_district,
 
-        ...(data.document ? { document: data.document } : {}),
+        // ...(data.member.document
+        //   ? { document: data.member.document }
+        //   : {}),
 
-        sex: data.sex,
-        status: data.status,
+        sex: data.member.sex,
+        status: data.member.status,
 
-        remark: data.remark ?? "",
+        remark: data.member.remark ?? "",
+        relative: {
+          create: data.relatives?.map((relative: RelativeSchema) => ({
+            first_name: relative.first_name,
+            second_name: relative.second_name,
+            last_name: relative.last_name,
+            relation_type: relative.relation_type,
+            status: relative.status,
+          })),
+        },
       },
     });
 
@@ -54,55 +75,75 @@ export const createMember = async (
 
 export const updateMember = async (
   currentState: CurrentState,
-  data: MemberSchema
+  data: CombinedSchema
 ) => {
+  console.log("Update data:", data);
   
-  if (!data.id) return { success: false, error: true };
+  if (!data.member?.id) return { success: false, error: true };
+
+  // Normalize relatives to always be an array
 
   try {
-    await prisma.member.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        first_name: data.first_name,
-        second_name: data.second_name,
-        last_name: data.last_name,
+    await prisma.$transaction(async (prisma) => {
+      // First update the member
+      await prisma.member.update({
+        where: { id: data.member.id },
+        data: {
+          // Member fields
+          first_name: data.member.first_name,
+          second_name: data.member.second_name,
+          last_name: data.member.last_name,
+          profession: data.member.profession,
+          title: data.member.title,
+          job_business: data.member.job_business,
+          id_number: data.member.id_number,
+          birth_date: new Date(data.member.birth_date),
+          citizen: data.member.citizen,
+          ...(data.member.joined_date
+            ? { joined_date: new Date(data.member.joined_date) }
+            : {}),
+          end_date: data.member.end_date ? new Date(data.member.end_date) : null,
+          phone_number: data.member.phone_number,
+          wereda: data.member.wereda,
+          kebele: data.member.kebele,
+          zone_or_district: data.member.zone_or_district,
+          sex: data.member.sex,
+          status: data.member.status,
+          remark: data.member.remark ?? "",
+        }
+      });
 
-        ...(data.profession ? { profession: data.profession } : {}),
-        ...(data.title ? { title: data.title } : {}),
-        ...(data.job_business ? { job_business: data.job_business } : {}),
-        ...(data.id_number ? { id_number: data.id_number } : {}),
+      // Then handle relatives in a separate operation
+      if (Array.isArray(data.relatives) && data.relatives.length > 0) {
+        // First delete existing relatives
+        await prisma.relative.deleteMany({
+          where: { member_id: data.member.id }
+        });
 
-        birth_date: new Date(data.birth_date),
-        citizen: data.citizen,
-
-        // joined_date is required
-        ...(data.joined_date ? { joined_date: new Date(data.joined_date) } : {}),
-
-        ...(data.end_date ? { end_date: new Date(data.end_date) } : {}),
-
-        phone_number: data.phone_number,
-        wereda : data.wereda,
-        kebele : data.kebele,
-        zone_or_district : data.zone_or_district,
-
-        ...(data.document ? { document: data.document } : {}),
-
-        sex: data.sex,
-        status: data.status,
-
-        remark: data.remark ?? "",
-      },
+        // Then create new ones
+        await prisma.relative.createMany({
+          data: data.relatives.map(relative => ({
+            member_id: data.member.id as number,
+            first_name: relative.first_name,
+            second_name: relative.second_name,
+            last_name: relative.last_name,
+            relation_type: relative.relation_type,
+            status: relative.status,
+          }))
+        });
+      } else {
+        // No relatives provided, ensure none exist
+        await prisma.relative.deleteMany({
+          where: { member_id: data.member.id }
+        });
+      }
     });
-
     return { success: true, error: false };
   } catch (err) {
-    console.error(err);
+    console.error("Update error:", err);
     return { success: false, error: true };
   }
 };
-
 
 export const deleteMember = async (
   currentState: CurrentState,
@@ -120,5 +161,3 @@ export const deleteMember = async (
     return { success: false, error: true };
   }
 };
-
-

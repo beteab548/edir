@@ -8,7 +8,6 @@ export type FormContainerProps = {
   data?: any;
   id?: number | string;
 };
-
 const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
   let relatedData = {};
 
@@ -23,12 +22,10 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           select: { id: true, first_name: true, second_name: true },
         });
         break;
-
       default:
         break;
     }
   }
-
   return (
     <div className="">
       <FormModal
@@ -41,5 +38,4 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
     </div>
   );
 };
-
 export default FormContainer;

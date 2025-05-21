@@ -25,8 +25,8 @@ const forms: {
     relatedData?: any
   ) => JSX.Element;
 } = {
-  member: (setOpen, type, data, relatedData) => (
-    <MemberForm type={type} data={data} setOpen={setOpen} />
+  member: (setOpen, type, data) => (
+    <MemberForm type={type} data={data} setOpen={setOpen}  />
   ),
 };
 

@@ -86,10 +86,14 @@ const MemberListPage = async ({
       where: query,
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
+      include:{relative:true}
     }),
     prisma.member.count({ where: query }),
   ]);
-
+// console.log("data is",data);
+console.log("Initial query params:", searchParams);
+console.log("Calculated page:", p);
+console.log("Query filter:", query);
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -104,14 +108,16 @@ const MemberListPage = async ({
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-200">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-            {<FormContainer table="member" type="create" />}
+         <Link href="/list/addNewMember">
+    <button className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-200">
+      <Image src="/add.png" alt="Add" width={16} height={16} />
+    </button>
+  </Link>
           </div>
         </div>
       </div>
-
       {/* LIST */}
       <Table columns={columns} renderRow={renderRow} data={data} />
-
       {/* PAGINATION */}
       <Pagination page={p} count={count} />
     </div>
