@@ -14,8 +14,7 @@ export default async function ContributionPage() {
   return (
     <div className="min-h-screen bg-base-200 p-8 space-y-8">
       <ConfigureExistingContribution
-        contributionTypes={data}
-      />
+        contributionTypes={data} />
       {/* <CreateNewContribution /> */}
     </div>
   );

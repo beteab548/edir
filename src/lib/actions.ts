@@ -166,14 +166,15 @@ type ContributionType={
   amount:number
   start_date:Date
   end_date:Date
-
+  is_active:boolean
+  is_for_all:boolean
 }
 export const updateContribution = async (
   currentState: CurrentState,
   data: ContributionType
 ) => {
   console.log('action data is ', data);
-const {amount,end_date,start_date,type_name,id}=data
+const {amount,end_date,start_date,type_name,is_active,is_for_all,id}=data
   try {
     await prisma.contributionType.update({
       where: { id },
@@ -182,7 +183,8 @@ const {amount,end_date,start_date,type_name,id}=data
         end_date,
         start_date,
         name: type_name,
-      
+        is_active,
+        is_for_all,
       },
     });
     return { success: true, error: false };

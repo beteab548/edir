@@ -110,5 +110,7 @@ export const ContributionSchema = z.object({
       return date;
     })
   ]).nullable(),
+  is_for_all:z.boolean(),
+  is_active:z.boolean()
 });
 export type ContributionType=z.infer<typeof ContributionSchema>

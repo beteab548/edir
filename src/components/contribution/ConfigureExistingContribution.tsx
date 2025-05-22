@@ -1,6 +1,6 @@
 "use client";
 
-import { SubmitHandler, useFormState } from "react-hook-form";
+import { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -8,11 +8,18 @@ import {
   ContributionType as ContributionTypeSchema,
 } from "../../lib/formValidationSchemas";
 import InputField from "../InputField";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { toast } from "react-toastify";
-import { updateContribution } from "../../lib/actions"; // import CreateNewContribution from "./configure-new-contribution";
+import { updateContribution } from "../../lib/actions";
 import { useRouter } from "next/navigation";
+// import MemberSelectionModal from "./MemberSelectionModal"; // You'll need to create this
+
+type Member = {
+  id: number;
+  name: string;
+  // other member fields
+};
 
 type ContributionType = {
   id: number;
@@ -34,16 +41,23 @@ export default function ConfigureExistingContribution({
 }: ConfigureExistingContributionProps) {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
-  // const router = useRouter();
+  const [showMemberModal, setShowMemberModal] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
+  const router = useRouter();
+
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
     setValue,
-  } = useForm<z.input<typeof ContributionSchema>>({
+    watch,
+  } = useForm<z.input<typeof ContributionSchema> & { is_active: boolean; is_for_all: boolean }>({
     resolver: zodResolver(ContributionSchema),
   });
+
+  const isForAll = watch("is_for_all");
+
   const handleEdit = (contribution: ContributionType) => {
     setEditingId(contribution.id);
     reset({
@@ -52,36 +66,34 @@ export default function ConfigureExistingContribution({
       start_date: contribution.start_date?.toISOString().split("T")[0] || "",
       end_date: contribution.end_date?.toISOString().split("T")[0] || "",
     });
+    setValue("is_active", contribution.is_active);
+    setValue("is_for_all", contribution.is_for_all);
   };
-    const router = useRouter();
-  
-  const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (
-    data
-  ) => {
+
+  const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (data) => {
     if (!editingId) return;
     setLoading(true);
-    // Convert string dates to Date objects and ensure amount is number
-    // Fallback to current date if start_date or end_date is not provided, to satisfy type requirements
+
     const formData = {
       id: editingId,
       amount: Number(data.amount),
       type_name: data.type_name,
       start_date: data.start_date ? new Date(data.start_date) : new Date(),
       end_date: data.end_date ? new Date(data.end_date) : new Date(),
+      is_active: data.is_active,
+      is_for_all: data.is_for_all,
+      member_ids: data.is_for_all ? [] : selectedMembers, // Include selected members if not for all
     };
+
     try {
       const result = await updateContribution(
-        {
-          success: false,
-          error: false,
-        },
+        { success: false, error: false },
         formData
       );
-      console.log(result);
 
       if (result.success) {
-        router.refresh()
-        toast("contribution updated!");
+        router.refresh();
+        toast.success("Contribution updated!");
       } else {
         toast.error("Something went wrong");
       }
@@ -91,6 +103,11 @@ export default function ConfigureExistingContribution({
       setLoading(false);
       setEditingId(null);
     }
+  };
+
+  const handleMemberSelection = (selectedIds: number[]) => {
+    setSelectedMembers(selectedIds);
+    setShowMemberModal(false);
   };
 
   return (
@@ -115,14 +132,7 @@ export default function ConfigureExistingContribution({
                     error={errors.type_name}
                     defaultValue={contribution.name}
                   />
-                  <InputField
-                    label=""
-                    name="id"
-                    type="hidden"
-                    register={register}
-                    defaultValue={contribution.id.toString()}
-                    hidden
-                  />
+                  
                   <InputField
                     label="Amount"
                     name="amount"
@@ -133,11 +143,51 @@ export default function ConfigureExistingContribution({
                     inputProps={{
                       step: "0.01",
                       onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                        // Ensure numeric value is stored
                         setValue("amount", parseFloat(e.target.value) || 0);
                       },
                     }}
                   />
+
+                  <div className="form-control">
+                    <label className="label cursor-pointer">
+                      <span className="label-text">Active</span>
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary"
+                        {...register("is_active")}
+                        defaultChecked={contribution.is_active}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="form-control">
+                    <label className="label cursor-pointer">
+                      <span className="label-text">For All Members</span>
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-primary"
+                        {...register("is_for_all")}
+                        defaultChecked={contribution.is_for_all}
+                      />
+                    </label>
+                  </div>
+
+                  {!isForAll && (
+                    <div className="w-full">
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        onClick={() => setShowMemberModal(true)}
+                      >
+                        Select Members
+                      </button>
+                      {selectedMembers.length > 0 && (
+                        <span className="ml-2 text-sm">
+                          {selectedMembers.length} members selected
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   <InputField
                     label="Start Date"
@@ -163,13 +213,20 @@ export default function ConfigureExistingContribution({
                 </div>
 
                 <div className="flex gap-2">
-                  <button type="submit" className="btn btn-primary btn-sm">
-                    Save
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    disabled={loading}
+                  >
+                    {loading ? "Saving..." : "Save"}
                   </button>
                   <button
                     type="button"
                     className="btn btn-ghost btn-sm"
-                    onClick={() => setEditingId(null)}
+                    onClick={() => {
+                      setEditingId(null);
+                      setSelectedMembers([]);
+                    }}
                   >
                     Cancel
                   </button>
@@ -181,17 +238,10 @@ export default function ConfigureExistingContribution({
                   <h3 className="font-medium">{contribution.name}</h3>
                   <div className="text-sm text-gray-600">
                     <span>Amount: {contribution.amount}</span> |
-                    <span>
-                      {" "}
-                      Start:{" "}
-                      {contribution.start_date?.toLocaleDateString() || "N/A"}
-                    </span>{" "}
-                    |
-                    <span>
-                      {" "}
-                      End:{" "}
-                      {contribution.end_date?.toLocaleDateString() || "N/A"}
-                    </span>
+                    <span> Status: {contribution.is_active ? "Active" : "Inactive"}</span> |
+                    <span> Scope: {contribution.is_for_all ? "All Members" : "Selected Members"}</span> |
+                    <span> Start: {contribution.start_date?.toLocaleDateString() || "N/A"}</span> |
+                    <span> End: {contribution.end_date?.toLocaleDateString() || "N/A"}</span>
                   </div>
                 </div>
                 <button
@@ -205,6 +255,14 @@ export default function ConfigureExistingContribution({
           </div>
         ))}
       </div>
-    </div>
+
+       {/* <MemberSelectionModal
+        isOpen={showMemberModal}
+        onClose={() => setShowMemberModal(false)}
+        members={members}
+        initialSelected={selectedMembers}
+        onSave={handleMemberSelection}
+      /> */}
+    </div> 
   );
 }
