@@ -1,17 +1,20 @@
 import ConfigureExistingContribution from "./ConfigureExistingContribution";
-import { updateContribution } from "../../lib/actions"; // import CreateNewContribution from "./configure-new-contribution";
-export default function CombinedPage() {
+import prisma from "@/lib/prisma";
+
+export default async function ContributionPage() {
   async function fetchContributionTypes() {
-    const response = await fetch("/api/contribution/fetchTypes");
-    const { data } = await response.json();
-    return data;
+    const data = await prisma.contributionType.findMany();
+    const safeContributions = data.map(c => ({
+  ...c,
+  amount: c.amount.toNumber(), 
+}));
+    return safeContributions;
   }
-  const data = fetchContributionTypes();
+  const data = await fetchContributionTypes();
   return (
     <div className="min-h-screen bg-base-200 p-8 space-y-8">
       <ConfigureExistingContribution
         contributionTypes={data}
-        formAction={updateContribution}
       />
       {/* <CreateNewContribution /> */}
     </div>

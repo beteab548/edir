@@ -124,7 +124,7 @@ const Menu = async () => {
                       </div>
                       <Link
                             key={"contribution"}
-                            href={`/contribution/config-setting}`}
+                            href={`/contribution/`}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           >
                             {"Contribution setting"}

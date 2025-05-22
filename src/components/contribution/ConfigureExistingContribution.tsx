@@ -1,191 +1,209 @@
 "use client";
-import { useState, useEffect } from "react";
+
+import { SubmitHandler, useFormState } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useFormState, useFormStatus } from "react-dom";
+import {
+  ContributionSchema,
+  ContributionType as ContributionTypeSchema,
+} from "../../lib/formValidationSchemas";
 import InputField from "../InputField";
-import { ContributionSchema } from "../../lib/formValidationSchemas";
-import { ContributionType as ContributionSchemaType } from "../../lib/formValidationSchemas";
-import { ContributionType } from "@prisma/client";
+import { useEffect, useState } from "react";
+import { z } from "zod";
+import { toast } from "react-toastify";
+import { updateContribution } from "../../lib/actions"; // import CreateNewContribution from "./configure-new-contribution";
+import { useRouter } from "next/navigation";
+
+type ContributionType = {
+  id: number;
+  name: string;
+  amount: number;
+  is_active: boolean;
+  is_for_all: boolean;
+  created_at: Date;
+  start_date: Date | null;
+  end_date: Date | null;
+};
 
 type ConfigureExistingContributionProps = {
   contributionTypes: ContributionType[];
-  defaultType?: string;
-  formAction: (prevState: any, formData: ContributionType) => Promise<any>;
 };
-
-function SubmitButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      className="btn btn-primary min-w-[100px]"
-      disabled={pending}
-      aria-disabled={pending}
-    >
-      {pending ? <span className="loading loading-spinner"></span> : "Apply"}
-    </button>
-  );
-}
 
 export default function ConfigureExistingContribution({
   contributionTypes,
-  defaultType = Object.keys(contributionTypes)[0],
-  formAction,
 }: ConfigureExistingContributionProps) {
-  const [members, setMembers] = useState<number[]>([]);
-  const [selectAll, setSelectAll] = useState(false);
-  const [showMemberList, setShowMemberList] = useState<boolean>(false);
-  const [state, formActionWithState] = useFormState(formAction, {
-    error: null,
-    success: false,
-  });
-
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
+  // const router = useRouter();
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
-    watch,
     setValue,
-    control,
-  } = useForm<ContributionSchemaType>({
+  } = useForm<z.input<typeof ContributionSchema>>({
     resolver: zodResolver(ContributionSchema),
-    defaultValues: {
-      type_name: defaultType,
-      ...contributionTypes[defaultType],
-    },
   });
-
-  const typeName = watch("type_name");
-
-  // Update form fields when contribution type changes
-  useEffect(() => {
-    const contributionData = contributionTypes[typeName];
-    setValue("amount", contributionData.amount);
-    setValue("start_date", contributionData.start_date);
-    setValue("end_date", contributionData.end_date);
-  }, [typeName, setValue, contributionTypes]);
-
-  const getTheSelectedMembers = (
-    selectedMember: number[],
-    AllSelected: boolean
-  ) => {
-    setSelectAll(AllSelected);
-    setMembers(selectedMember);
+  const handleEdit = (contribution: ContributionType) => {
+    setEditingId(contribution.id);
+    reset({
+      amount: contribution.amount,
+      type_name: contribution.name,
+      start_date: contribution.start_date?.toISOString().split("T")[0] || "",
+      end_date: contribution.end_date?.toISOString().split("T")[0] || "",
+    });
   };
+    const router = useRouter();
+  
+  const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (
+    data
+  ) => {
+    if (!editingId) return;
+    setLoading(true);
+    // Convert string dates to Date objects and ensure amount is number
+    // Fallback to current date if start_date or end_date is not provided, to satisfy type requirements
+    const formData = {
+      id: editingId,
+      amount: Number(data.amount),
+      type_name: data.type_name,
+      start_date: data.start_date ? new Date(data.start_date) : new Date(),
+      end_date: data.end_date ? new Date(data.end_date) : new Date(),
+    };
+    try {
+      const result = await updateContribution(
+        {
+          success: false,
+          error: false,
+        },
+        formData
+      );
+      console.log(result);
 
-  const onSubmit = async (data: ContributionSchemaType) => {
-    const formData = new FormData();
-
-    // Append all form fields
-    formData.append("type_name", data.type_name);
-    formData.append("amount", data.amount.toString());
-    formData.append("start_date", data.start_date.toISOString());
-    formData.append("end_date", data.end_date.toISOString());
-
-    // Append members data
-    formData.append("members", JSON.stringify(members));
-    formData.append("selectAll", String(selectAll));
-
-    // Call the form action
-    await formActionWithState(formData);
+      if (result.success) {
+        router.refresh()
+        toast("contribution updated!");
+      } else {
+        toast.error("Something went wrong");
+      }
+    } catch (e) {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+      setEditingId(null);
+    }
   };
 
   return (
-    <div className="card bg-base-100 shadow-xl w-full">
-      <div className="card-body">
-        <h2 className="card-title text-2xl my-2">
-          Configure Existing Contribution Type
-        </h2>
+    <div className="bg-base-100 p-6 rounded-lg shadow-md">
+      <h2 className="text-xl font-semibold mb-6">
+        Configure Existing Contributions
+      </h2>
 
-        <div className="flex justify-between items-center mb-6">
-          <div className="form-control w-full max-w-xs">
-            <label className="label">
-              <span className="label-text">Select Contribution Type</span>
-            </label>
-            <select
-              className="select select-bordered"
-              {...register("type_name")}
-            >
-              {Object.keys(contributionTypes).map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
-            {errors.type_name && (
-              <span className="text-red-500 text-xs mt-1">
-                {errors.type_name.message}
-              </span>
+      <div className="space-y-6">
+        {contributionTypes.map((contribution) => (
+          <div
+            key={contribution.id}
+            className="border p-4 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            {editingId === contribution.id ? (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <div className="flex flex-wrap gap-4 items-end">
+                  <InputField
+                    label="Contribution Name"
+                    name="type_name"
+                    register={register}
+                    error={errors.type_name}
+                    defaultValue={contribution.name}
+                  />
+                  <InputField
+                    label=""
+                    name="id"
+                    type="hidden"
+                    register={register}
+                    defaultValue={contribution.id.toString()}
+                    hidden
+                  />
+                  <InputField
+                    label="Amount"
+                    name="amount"
+                    type="number"
+                    register={register}
+                    error={errors.amount}
+                    defaultValue={contribution.amount.toString()}
+                    inputProps={{
+                      step: "0.01",
+                      onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                        // Ensure numeric value is stored
+                        setValue("amount", parseFloat(e.target.value) || 0);
+                      },
+                    }}
+                  />
+
+                  <InputField
+                    label="Start Date"
+                    name="start_date"
+                    type="date"
+                    register={register}
+                    error={errors.start_date}
+                    defaultValue={
+                      contribution.start_date?.toISOString().split("T")[0] || ""
+                    }
+                  />
+
+                  <InputField
+                    label="End Date"
+                    name="end_date"
+                    type="date"
+                    register={register}
+                    error={errors.end_date}
+                    defaultValue={
+                      contribution.end_date?.toISOString().split("T")[0] || ""
+                    }
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <button type="submit" className="btn btn-primary btn-sm">
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setEditingId(null)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium">{contribution.name}</h3>
+                  <div className="text-sm text-gray-600">
+                    <span>Amount: {contribution.amount}</span> |
+                    <span>
+                      {" "}
+                      Start:{" "}
+                      {contribution.start_date?.toLocaleDateString() || "N/A"}
+                    </span>{" "}
+                    |
+                    <span>
+                      {" "}
+                      End:{" "}
+                      {contribution.end_date?.toLocaleDateString() || "N/A"}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleEdit(contribution)}
+                  className="btn btn-outline btn-sm"
+                >
+                  Edit
+                </button>
+              </div>
             )}
           </div>
-        </div>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="mb-8">
-          <div className="flex flex-wrap gap-4 items-end">
-            <InputField
-              label="Amount"
-              name="amount"
-              type="number"
-              register={register}
-              error={errors.amount}
-              inputProps={{
-                placeholder: "Enter amount",
-                step: "0.01",
-              }}
-            />
-
-            <InputField
-              label="Start Date"
-              name="start_date"
-              type="date"
-              register={register}
-              error={errors.start_date}
-              inputProps={{
-                max: watch("end_date")?.toISOString().split("T")[0],
-              }}
-            />
-
-            <InputField
-              label="End Date"
-              name="end_date"
-              type="date"
-              register={register}
-              error={errors.end_date}
-              inputProps={{
-                min: watch("start_date")?.toISOString().split("T")[0],
-              }}
-            />
-
-            <div className="flex flex-wrap gap-4 items-end">
-              <button
-                type="button"
-                className="btn btn-secondary min-w-[140px]"
-                onClick={() => setShowMemberList((prev) => !prev)}
-              >
-                Select Members
-              </button>
-            </div>
-
-            <SubmitButton />
-          </div>
-        </form>
-
-        {/* {showMemberList && (
-          <MembersList 
-            contributionPage={true} 
-            onSubmit={getTheSelectedMembers}
-          />
-        )} */}
-
-        {state?.error && (
-          <div className="text-red-500 text-sm mt-2">{state.error}</div>
-        )}
-        {state?.success && (
-          <div className="text-green-500 text-sm mt-2">
-            Contribution updated successfully!
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );

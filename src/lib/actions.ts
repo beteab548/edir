@@ -1,9 +1,7 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
-import { ContributionType } from "@prisma/client";
 
 type CurrentState = { success: boolean; error: boolean };
 
@@ -162,24 +160,31 @@ export const deleteMember = async (
     return { success: false, error: true };
   }
 };
+type ContributionType={
+  id:number
+  type_name:string
+  amount:number
+  start_date:Date
+  end_date:Date
 
+}
 export const updateContribution = async (
   currentState: CurrentState,
   data: ContributionType
 ) => {
-const {amount,end_date,start_date,name,is_active,is_for_all}=data
+  console.log('action data is ', data);
+const {amount,end_date,start_date,type_name,id}=data
   try {
-    await prisma.contributionType.create({
-  data:{
-    amount,
-    end_date,
-    start_date,
-    name,
-    is_active,
-    is_for_all
-  }
+    await prisma.contributionType.update({
+      where: { id },
+      data: {
+        amount,
+        end_date,
+        start_date,
+        name: type_name,
+      
+      },
     });
-
     return { success: true, error: false };
   } catch (err) {
     console.error(err);

@@ -65,10 +65,50 @@ export const combinedSchema = z.object({
 export type CombinedSchema = z.infer<typeof combinedSchema>;
 export type RelativeSchema = z.infer<typeof relativeSchema>;
 
-export const ContributionSchema=z.object({
-  amount:z.number().min(1),
-  type_name:z.string(),
-  start_date:z.date(),
-  end_date:z.date()
-})
+export const ContributionSchema = z.object({
+  amount: z.union([
+    z.number(),
+    z.string().transform((val, ctx) => {
+      const parsed = parseFloat(val);
+      if (isNaN(parsed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Not a valid number",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    })
+  ]),
+  type_name: z.string().min(1, "Contribution name is required"),
+  start_date: z.union([
+    z.date(),
+    z.string().transform((val, ctx) => {
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Not a valid date",
+        });
+        return z.NEVER;
+      }
+      return date;
+    })
+  ]),
+  end_date: z.union([
+    z.date(),
+    z.string().transform((val, ctx) => {
+      if (!val) return null; // Handle empty dates
+      const date = new Date(val);
+      if (isNaN(date.getTime())) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Not a valid date",
+        });
+        return z.NEVER;
+      }
+      return date;
+    })
+  ]).nullable(),
+});
 export type ContributionType=z.infer<typeof ContributionSchema>

@@ -1,3 +1,5 @@
+import ContributionPage from "@/components/contribution/contributionPage";
+
 export default function Contribution(){
-    return <h1>hey</h1>
+    return <ContributionPage/>
 }
