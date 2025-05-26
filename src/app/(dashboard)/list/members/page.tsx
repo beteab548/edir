@@ -38,10 +38,7 @@ const MemberListPage = async ({
   };
 
   const renderRow = (item: Member) => (
-    <tr
-      key={item.id}
-      className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-lamaPurpleLight"
-    >
+    <>
       <td className="flex items-center gap-4 p-4">
         <Image
           src="/noAvatar.png"
@@ -63,20 +60,18 @@ const MemberListPage = async ({
       <td className="hidden md:table-cell">{item.status}</td>
       <td>
         <div className="flex items-center gap-2">
-          <>
-            <FormContainer table="member" type="update" data={item} />
-            <FormContainer table="member" type="delete" id={item.id} />
-          </>
+          <FormContainer table="member" type="update" data={item} />
+          <FormContainer table="member" type="delete" id={item.id} />
         </div>
       </td>
-    </tr>
+    </>
   );
 
   const { page, ...queryParams } = searchParams;
   const p = page ? parseInt(page) : 1;
 
   const query: Prisma.MemberWhereInput = {};
-console.log(query);
+  console.log(query);
   if (queryParams.search) {
     query.first_name = { contains: queryParams.search, mode: "insensitive" };
   }
@@ -86,14 +81,14 @@ console.log(query);
       where: query,
       take: ITEM_PER_PAGE,
       skip: ITEM_PER_PAGE * (p - 1),
-      include:{relative:true}
+      include: { relative: true },
     }),
     prisma.member.count({ where: query }),
   ]);
-// console.log("data is",data);
-console.log("Initial query params:", searchParams);
-console.log("Calculated page:", p);
-console.log("Query filter:", query);
+  // console.log("data is",data);
+  console.log("Initial query params:", searchParams);
+  console.log("Calculated page:", p);
+  console.log("Query filter:", query);
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
       {/* TOP */}
@@ -108,11 +103,11 @@ console.log("Query filter:", query);
             <button className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-200">
               <Image src="/sort.png" alt="" width={14} height={14} />
             </button>
-         <Link href="/list/addNewMember">
-    <button className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-200">
-      <Image src="/add.png" alt="Add" width={16} height={16} />
-    </button>
-  </Link>
+            <Link href="/list/addNewMember">
+              <button className="w-8 h-8 flex items-center justify-center rounded-full bg-yellow-200">
+                <Image src="/add.png" alt="Add" width={16} height={16} />
+              </button>
+            </Link>
           </div>
         </div>
       </div>

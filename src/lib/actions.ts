@@ -1,5 +1,6 @@
 "use server";
 
+import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 
@@ -160,36 +161,168 @@ export const deleteMember = async (
     return { success: false, error: true };
   }
 };
-type ContributionType={
-  id:number
-  type_name:string
-  amount:number
-  start_date:Date
-  end_date:Date
-  is_active:boolean
-  is_for_all:boolean
-}
+// type ContributionType={
+//   id:number
+//   type_name:string
+//   amount:number
+//   start_date:Date
+//   end_date:Date
+//   is_active:boolean
+//   is_for_all:boolean
+// }
 export const updateContribution = async (
   currentState: CurrentState,
-  data: ContributionType
+  data: {
+    id: number;
+    amount: number;
+    type_name: string;
+    start_date: Date | null;
+    end_date: Date | null;
+    is_active: boolean;
+    is_for_all: boolean;
+    member_ids?: number[]; 
+  }
 ) => {
-  console.log('action data is ', data);
-const {amount,end_date,start_date,type_name,is_active,is_for_all,id}=data
   try {
-    await prisma.contributionType.update({
-      where: { id },
+    // 1. Get current contribution type
+    const currentType = await prisma.contributionType.findUnique({
+      where: { id: data.id },
+    });
+
+    if (!currentType) {
+      throw new Error("Contribution type not found");
+    }
+
+    // 2. Get all related contributions (using type_name)
+    const currentContributions = await prisma.contribution.findMany({
+      where: { type_name: currentType.name },
+      select: { member_id: true, id: true }
+    });
+
+    // 3. Update the contribution type
+    const updatedType = await prisma.contributionType.update({
+      where: { id: data.id },
       data: {
-        amount,
-        end_date,
-        start_date,
-        name: type_name,
-        is_active,
-        is_for_all,
+        amount: data.amount,
+        name: data.type_name,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        is_active: data.is_active,
+        is_for_all: data.is_for_all,
       },
     });
+
+    // 4. Prepare transaction operations
+    const transactionOps = [];
+
+    // 5. Handle amount/name changes for existing contributions
+    const amountChanged = currentType.amount !== Decimal(data.amount);
+    const typeNameChanged = currentType.name !== data.type_name;
+    
+    if (amountChanged || typeNameChanged) {
+      transactionOps.push(
+        prisma.contribution.updateMany({
+          where: { type_name: currentType.name },
+          data: {
+            amount: updatedType.amount,
+            ...(typeNameChanged && { 
+              type_name: updatedType.name,
+            }),
+          },
+        })
+      );
+    }
+
+    // 6. Handle member assignments
+    if (data.is_for_all) {
+      // Get all active members not currently linked
+      const missingMembers = await prisma.member.findMany({
+        where: {
+          status: "Active",
+          id: {
+            notIn: currentContributions.map(c => c.member_id)
+          }
+        },
+        select: { id: true }
+      });
+
+      if (missingMembers.length > 0) {
+        transactionOps.push(
+          prisma.contribution.createMany({
+            data: missingMembers.map(member => ({
+              member_id: member.id,
+              type_name: updatedType.name,
+              amount: updatedType.amount,
+              start_date: updatedType.start_date || new Date(),
+              end_date: updatedType.end_date || new Date(),
+            }))
+          })
+        );
+      }
+    } else {
+      // Handle specific member selection
+      if (!data.member_ids || data.member_ids.length === 0) {
+        throw new Error("At least one member must be selected");
+      }
+
+      // Find members to remove (members in current but not in new selection)
+      const membersToRemove = currentContributions
+        .filter(c => !data.member_ids!.includes(c.member_id))
+        .map(c => c.member_id);
+
+      if (membersToRemove.length > 0) {
+        transactionOps.push(
+          prisma.contribution.deleteMany({
+            where: {
+              type_name: updatedType.name,
+              member_id: { in: membersToRemove }
+            }
+          })
+        );
+      }
+
+      // Find members to add (members in new selection but not in current)
+      const existingMemberIds = currentContributions.map(c => c.member_id);
+      const membersToAdd = data.member_ids
+        .filter(id => !existingMemberIds.includes(id));
+
+      if (membersToAdd.length > 0) {
+        // First check if these members already have this contribution type
+        const existingContributionsForNewMembers = await prisma.contribution.findMany({
+          where: {
+            member_id: { in: membersToAdd },
+            type_name: updatedType.name
+          },
+          select: { member_id: true }
+        });
+
+        const membersAlreadyHaveContribution = existingContributionsForNewMembers.map(c => c.member_id);
+        const trulyNewMembers = membersToAdd.filter(id => !membersAlreadyHaveContribution.includes(id));
+
+        if (trulyNewMembers.length > 0) {
+          transactionOps.push(
+            prisma.contribution.createMany({
+              data: trulyNewMembers.map(member_id => ({
+                member_id,
+                type_name: updatedType.name,
+                amount: updatedType.amount,
+                start_date: updatedType.start_date || new Date(),
+                end_date: updatedType.end_date || new Date(),
+              }))
+            })
+          );
+        }
+      }
+    }
+
+    // 7. Execute as single transaction
+    if (transactionOps.length > 0) {
+      await prisma.$transaction(transactionOps);
+    }
+
     return { success: true, error: false };
   } catch (err) {
-    console.error(err);
+    console.error("Contribution update failed:", err);
     return { success: false, error: true };
   }
 };

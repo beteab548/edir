@@ -56,7 +56,7 @@ model Relative{
 model Contribution {
   id Int @id @default(autoincrement())
   member_id      Int          
-  type_name String @unique
+  type_name String 
   amount Decimal
   start_date DateTime
   end_date DateTime

@@ -4,14 +4,11 @@ import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "Edir System DashBoard",
   description: "Next.js Edir Management System",
 };
-
 export default function RootLayout({
   children,
 }: Readonly<{
