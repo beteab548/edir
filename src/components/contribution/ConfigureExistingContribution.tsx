@@ -1,4 +1,3 @@
-// components/ConfigureExistingContribution.tsx
 "use client";
 
 import { SubmitHandler } from "react-hook-form";
@@ -6,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ContributionSchema } from "../../lib/formValidationSchemas";
 import InputField from "../InputField";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "react-toastify";
 import { updateContribution } from "../../lib/actions";
@@ -38,7 +37,11 @@ export default function ConfigureExistingContribution({
   const [loading, setLoading] = useState(false);
   const [showMemberSelection, setShowMemberSelection] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
+  const [existingMemberIds, setExistingMemberIds] = useState<number[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isForAllLocal, setIsForAllLocal] = useState(false);
   const router = useRouter();
+
   const {
     register,
     handleSubmit,
@@ -49,10 +52,13 @@ export default function ConfigureExistingContribution({
   } = useForm<z.input<typeof ContributionSchema>>({
     resolver: zodResolver(ContributionSchema),
   });
-  const isForAll = watch("is_for_all");
+
+  const watchIsForAll = watch("is_for_all");
+
   const handleEdit = (contribution: ContributionType) => {
     setEditingId(contribution.id);
-    setSelectedMemberIds([]); // Reset selected members when editing a new contribution
+    setIsForAllLocal(contribution.is_for_all);
+    setSelectedMemberIds([]);
     reset({
       amount: contribution.amount,
       type_name: contribution.name,
@@ -62,10 +68,13 @@ export default function ConfigureExistingContribution({
       is_for_all: contribution.is_for_all,
     });
   };
-  const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (data) => {
+
+  const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (
+    data
+  ) => {
     if (!editingId) return;
     setLoading(true);
-// console.log(selectedMemberIds);
+    
     const formData = {
       id: editingId,
       amount: Number(data.amount),
@@ -76,7 +85,7 @@ export default function ConfigureExistingContribution({
       is_for_all: data.is_for_all,
       member_ids: data.is_for_all ? [] : selectedMemberIds,
     };
-console.log(formData);
+
     try {
       const result = await updateContribution(
         { success: false, error: false },
@@ -97,14 +106,40 @@ console.log(formData);
     }
   };
 
+  useEffect(() => {
+    const fetchExistingMembers = async () => {
+      try {
+        setIsLoading(true);
+        if (editingId === null) return;
+
+        const response = await fetch(`/api/contributions/members/search?id=${editingId}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch existing members");
+        }
+        const memberIds = await response.json();
+        setExistingMemberIds(memberIds);
+        setSelectedMemberIds(memberIds);
+      } catch (err) {
+        console.error("Error:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchExistingMembers();
+  }, [editingId]);
+
   return (
     <div className="bg-base-100 p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-6">Configure Existing Contributions</h2>
-      
+      <h2 className="text-xl font-semibold mb-6">
+        Configure Existing Contributions
+      </h2>
+
       {showMemberSelection ? (
         <SelectableMembersList
           members={members}
           initialSelected={selectedMemberIds}
+          isLoadingExisting={isLoading}
           onSaveSelection={(ids) => {
             setSelectedMemberIds(ids);
             setShowMemberSelection(false);
@@ -114,8 +149,8 @@ console.log(formData);
       ) : (
         <div className="space-y-6">
           {contributionTypes.map((contribution) => (
-            <div 
-              key={contribution.id} 
+            <div
+              key={contribution.id}
               className="border p-4 rounded-lg hover:bg-gray-50 transition-colors"
             >
               {editingId === contribution.id ? (
@@ -128,7 +163,7 @@ console.log(formData);
                       error={errors.type_name}
                       defaultValue={contribution.name}
                     />
-                    
+
                     <InputField
                       label="Amount"
                       name="amount"
@@ -162,13 +197,19 @@ console.log(formData);
                         <input
                           type="checkbox"
                           className="toggle toggle-primary"
-                          {...register("is_for_all")}
-                          defaultChecked={contribution.is_for_all}
+                          checked={isForAllLocal}
+                          onChange={(e) => {
+                            setIsForAllLocal(e.target.checked);
+                            setValue("is_for_all", e.target.checked);
+                            if (e.target.checked) {
+                              setSelectedMemberIds([]);
+                            }
+                          }}
                         />
                       </label>
                     </div>
 
-                    {!isForAll && (
+                    {!isForAllLocal && (
                       <div className="w-full">
                         <button
                           type="button"
@@ -189,7 +230,8 @@ console.log(formData);
                       register={register}
                       error={errors.start_date}
                       defaultValue={
-                        contribution.start_date?.toISOString().split("T")[0] || ""
+                        contribution.start_date?.toISOString().split("T")[0] ||
+                        ""
                       }
                     />
 
@@ -227,11 +269,31 @@ console.log(formData);
                   <div>
                     <h3 className="font-medium">{contribution.name}</h3>
                     <div className="text-sm text-gray-600">
-                      <span>Amount: {contribution.amount}</span> | 
-                      <span> Status: {contribution.is_active ? "Active" : "Inactive"}</span> | 
-                      <span> Scope: {contribution.is_for_all ? "All Members" : "Selected Members"}</span> | 
-                      <span> Start: {contribution.start_date?.toLocaleDateString() || "N/A"}</span> | 
-                      <span> End: {contribution.end_date?.toLocaleDateString() || "N/A"}</span>
+                      <span>Amount: {contribution.amount}</span> |
+                      <span>
+                        {" "}
+                        Status: {contribution.is_active ? "Active" : "Inactive"}
+                      </span>{" "}
+                      |
+                      <span>
+                        {" "}
+                        Scope:{" "}
+                        {contribution.is_for_all
+                          ? "All Members"
+                          : "Selected Members"}
+                      </span>{" "}
+                      |
+                      <span>
+                        {" "}
+                        Start:{" "}
+                        {contribution.start_date?.toLocaleDateString() || "N/A"}
+                      </span>{" "}
+                      |
+                      <span>
+                        {" "}
+                        End:{" "}
+                        {contribution.end_date?.toLocaleDateString() || "N/A"}
+                      </span>
                     </div>
                   </div>
                   <button

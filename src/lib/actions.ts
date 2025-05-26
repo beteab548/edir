@@ -184,6 +184,7 @@ export const updateContribution = async (
   }
 ) => {
   try {
+    console.log(data);
     // 1. Get current contribution type
     const currentType = await prisma.contributionType.findUnique({
       where: { id: data.id },
