@@ -8,7 +8,7 @@ import InputField from "../InputField";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "react-toastify";
-import { updateContribution } from "../../lib/actions";
+import { deleteContributionType, updateContribution } from "../../lib/actions";
 import { useRouter } from "next/navigation";
 import SelectableMembersList from "../SelectableMembersList";
 import { Member } from "@prisma/client";
@@ -40,6 +40,8 @@ export default function ConfigureExistingContribution({
   const [existingMemberIds, setExistingMemberIds] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isForAllLocal, setIsForAllLocal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [toDelete, setToDelete] = useState<ContributionType | null>(null);
   const router = useRouter();
 
   const {
@@ -74,7 +76,7 @@ export default function ConfigureExistingContribution({
   ) => {
     if (!editingId) return;
     setLoading(true);
-    
+
     const formData = {
       id: editingId,
       amount: Number(data.amount),
@@ -106,13 +108,33 @@ export default function ConfigureExistingContribution({
     }
   };
 
+  const handleDelete = async () => {
+    if (!toDelete) return;
+    try {
+      const result = await deleteContributionType(toDelete.id);
+      if (result.success) {
+        toast.success("Contribution type deleted!");
+        router.refresh();
+      } else {
+        toast.error("Failed to delete contribution type");
+      }
+    } catch (err) {
+      toast.error("Something went wrong");
+    } finally {
+      setShowDeleteModal(false);
+      setToDelete(null);
+    }
+  };
+
   useEffect(() => {
     const fetchExistingMembers = async () => {
       try {
         setIsLoading(true);
         if (editingId === null) return;
 
-        const response = await fetch(`/api/contributions/members/search?id=${editingId}`);
+        const response = await fetch(
+          `/api/contributions/members/search?id=${editingId}`
+        );
         if (!response.ok) {
           throw new Error("Failed to fetch existing members");
         }
@@ -134,6 +156,35 @@ export default function ConfigureExistingContribution({
       <h2 className="text-xl font-semibold mb-6">
         Configure Existing Contributions
       </h2>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && toDelete && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg p-6 shadow-lg max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-4 text-center">
+              Permanently remove "{toDelete.name}"?
+            </h3>
+            <p className="mb-6 text-center text-gray-600">
+              This will permanently remove the "{toDelete.name}" contribution
+              type and cannot be undone.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="btn btn-ghost"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setToDelete(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button className="btn btn-error" onClick={handleDelete}>
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showMemberSelection ? (
         <SelectableMembersList
@@ -287,12 +338,23 @@ export default function ConfigureExistingContribution({
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleEdit(contribution)}
-                    className="btn btn-outline btn-sm"
-                  >
-                    Edit
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(contribution)}
+                      className="btn btn-outline btn-sm"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowDeleteModal(true);
+                        setToDelete(contribution);
+                      }}
+                      className="btn btn-error btn-sm"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

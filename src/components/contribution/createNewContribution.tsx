@@ -17,6 +17,7 @@ const ContributionTypeSchema = z.object({
   start_date: z.string().min(1, "Start date is required"),
   end_date: z.string().min(1, "End date is required"),
   is_for_all: z.boolean(),
+  is_active: z.boolean(),
   member_ids: z.array(z.number()).optional(),
 });
 
@@ -41,10 +42,13 @@ const router=useRouter()
     resolver: zodResolver(ContributionTypeSchema),
     defaultValues: {
       is_for_all: true,
+      is_active: true,
       member_ids: [],
     },
   });
   const isForAll = watch("is_for_all");
+  const isACtive = watch("is_active");
+
   const onSubmit = async (data: ContributionTypeForm) => {
     try {
       const payload = {
@@ -130,6 +134,20 @@ const router=useRouter()
                 onChange={(e) => {
                   setValue("is_for_all", e.target.checked);
                   if (e.target.checked) setSelectedMemberIds([]);
+                }}
+              />
+            </label>
+          </div>
+          <div className="form-control">
+            <label className="label cursor-pointer gap-2">
+              <span className="label-text">Active</span>
+              <input
+                type="checkbox"
+                className="toggle toggle-primary"
+                {...register("is_active")}
+                checked={isACtive}
+                onChange={(e) => {
+                  setValue("is_active", e.target.checked);
                 }}
               />
             </label>

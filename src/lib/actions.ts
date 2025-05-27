@@ -5,7 +5,6 @@ import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 
 type CurrentState = { success: boolean; error: boolean };
-
 export const createMember = async (
   currentState: CurrentState,
   data: CombinedSchema
@@ -15,7 +14,6 @@ export const createMember = async (
   try {
     await prisma.member.create({
       data: {
-        member_type: data.member.member_type,
         first_name: data.member.first_name,
         second_name: data.member.second_name,
         last_name: data.member.last_name,
@@ -43,11 +41,10 @@ export const createMember = async (
         wereda: data.member.wereda,
         kebele: data.member.kebele,
         zone_or_district: data.member.zone_or_district,
-
+        member_type: data.member.member_type,
         // ...(data.member.document
         //   ? { document: data.member.document }
         //   : {}),
-
         sex: data.member.sex,
         status: data.member.status,
 
@@ -63,6 +60,39 @@ export const createMember = async (
         },
       },
     });
+    if (data.member.member_type === "New") {
+      // Get all active contribution types that are for all members
+      const activeContributionTypes = await prisma.contributionType.findMany({
+        where: {
+          is_active: true,
+          is_for_all: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          amount: true,
+          start_date: true,
+          end_date: true,
+        },
+      });
+      //now create contributions for the new member
+      const contributionsData = activeContributionTypes
+        .filter(() => typeof data.member.id === "number")
+        .map((type) => ({
+          contribution_type_id: type.id, // Assuming you have an ID for the contribution type
+          member_id: data.member.id as number,
+          type_name: type.name,
+          amount: type.amount,
+          start_date: type.start_date || new Date(),
+          end_date: type.end_date || new Date(),
+        }));
+      // Create contributions for the new member
+      if (contributionsData.length > 0) {
+        await prisma.contribution.createMany({
+          data: contributionsData,
+        });
+      }
+    }
     return { success: true, error: false };
   } catch (err) {
     console.error(err);
@@ -121,6 +151,7 @@ export const updateMember = async (
             is_for_all: true,
           },
           select: {
+            id: true,
             name: true,
             amount: true,
             start_date: true,
@@ -131,6 +162,7 @@ export const updateMember = async (
         const contributionsData = activeContributionTypes
           .filter(() => typeof data.member.id === "number")
           .map((type) => ({
+            contribution_type_id: type.id, // Assuming you have an ID for the contribution type
             member_id: data.member.id as number,
             type_name: type.name,
             amount: type.amount,
@@ -215,7 +247,7 @@ export const updateContribution = async (
   }
 ) => {
   try {
-    console.log(data);
+    console.log("data send for update are", data);
     // 1. Get current contribution type
     const currentType = await prisma.contributionType.findUnique({
       where: { id: data.id },
@@ -282,6 +314,7 @@ export const updateContribution = async (
         transactionOps.push(
           prisma.contribution.createMany({
             data: missingMembers.map((member) => ({
+              contribution_type_id: currentType.id,
               member_id: member.id,
               type_name: updatedType.name,
               amount: updatedType.amount,
@@ -340,6 +373,7 @@ export const updateContribution = async (
           transactionOps.push(
             prisma.contribution.createMany({
               data: trulyNewMembers.map((member_id) => ({
+                contribution_type_id: updatedType.id,
                 member_id,
                 type_name: updatedType.name,
                 amount: updatedType.amount,
@@ -371,8 +405,11 @@ export const createContributionType = async (data: {
   end_date: Date | string;
   is_for_all: boolean;
   member_ids?: number[];
+  is_active?: boolean;
 }) => {
   try {
+    console.log(data);
+
     // 1. Create the contribution type
     const contributionType = await prisma.contributionType.create({
       data: {
@@ -380,12 +417,13 @@ export const createContributionType = async (data: {
         amount: data.amount,
         start_date: new Date(data.start_date),
         end_date: new Date(data.end_date),
-        is_active: true,
+        is_active: data.is_active ?? true,
         is_for_all: data.is_for_all,
       },
     });
     // 2. If is_for_all, assign to all active members; else, assign to selected members
     let memberIds: number[] = [];
+
     if (data.is_for_all) {
       const activeMembers = await prisma.member.findMany({
         where: { status: "Active" },
@@ -395,10 +433,12 @@ export const createContributionType = async (data: {
     } else if (data.member_ids && data.member_ids.length > 0) {
       memberIds = data.member_ids;
     }
+
     // 3. Create contributions for each member
     if (memberIds.length > 0) {
       await prisma.contribution.createMany({
         data: memberIds.map((member_id) => ({
+          contribution_type_id: contributionType.id,
           member_id,
           type_name: contributionType.name,
           amount: contributionType.amount,
@@ -411,5 +451,15 @@ export const createContributionType = async (data: {
   } catch (err) {
     console.error("Create contribution type failed:", err);
     return { success: false, error: true };
+  }
+};
+
+export const deleteContributionType = async (id: number) => {
+  try {
+    await prisma.contributionType.delete({ where: { id } });
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false };
   }
 };

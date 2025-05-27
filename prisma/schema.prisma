@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/.prisma/client"
 }
 
 
@@ -56,27 +55,30 @@ model Relative{
   member Member @relation(fields: [member_id],references: [id],onDelete: Cascade)
 }
 model Contribution {
-  id Int @id @default(autoincrement())
-  member_id      Int          
-  type_name String 
-  amount Decimal
-  start_date DateTime
-  end_date DateTime
-  member  Member        @relation(fields: [member_id], references: [id], onDelete: Cascade)
-  payment Payment[]
-  Balance Balance[]
-  Penalty Penalty[]
+  id                 Int       @id @default(autoincrement())
+  member_id          Int
+  contribution_type_id Int     
+  type_name          String
+  amount             Decimal
+  start_date         DateTime
+  end_date           DateTime
+  member             Member    @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  contributionType   ContributionType @relation(fields: [contribution_type_id], references: [id], onDelete: Cascade)
+  payment            Payment[]
+  Balance            Balance[]
+  Penalty            Penalty[]
 }
-
 model ContributionType {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique 
-  amount      Decimal  
-  is_active   Boolean  @default(true)
-  is_for_all Boolean  @default(false)
-  created_at  DateTime @default(now())
-  start_date DateTime? 
-  end_date DateTime?
+  id          Int           @id @default(autoincrement())
+  name        String        @unique
+  amount      Decimal
+  is_active   Boolean       @default(true)
+  is_for_all  Boolean       @default(false)
+  created_at  DateTime      @default(now())
+  start_date  DateTime?
+  end_date    DateTime?
+
+  contributions Contribution[] // NEW: Back relation
 }
 
 model Payment {

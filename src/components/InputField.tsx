@@ -8,6 +8,8 @@ interface InputFieldProps {
   register: UseFormRegister<any>;
   error?: FieldError;
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+defaultValue?: string | number;
+hidden?: boolean;
 }
 
 export default function InputField({
@@ -17,6 +19,8 @@ export default function InputField({
   register,
   error,
   inputProps = {},
+  defaultValue = "",
+  hidden = false,
 }: InputFieldProps) {
   return (
     <div className="flex flex-col w-48">
@@ -26,8 +30,10 @@ export default function InputField({
       <input
         id={name}
         type={type}
+        hidden={hidden}
         {...register(name)}
         {...inputProps}
+        defaultValue={defaultValue}
         className={`input input-bordered w-full ${
           error ? "input-error" : ""
         }`}
