@@ -12,7 +12,7 @@ export const createMember = async (
   console.log("in create", data);
 
   try {
-    await prisma.member.create({
+  const createdMember=  await prisma.member.create({
       data: {
         first_name: data.member.first_name,
         second_name: data.member.second_name,
@@ -60,7 +60,8 @@ export const createMember = async (
         },
       },
     });
-    if (data.member.member_type === "New") {
+    if (createdMember.member_type === "New") {
+      console.log('member is new');
       // Get all active contribution types that are for all members
       const activeContributionTypes = await prisma.contributionType.findMany({
         where: {
@@ -77,10 +78,9 @@ export const createMember = async (
       });
       //now create contributions for the new member
       const contributionsData = activeContributionTypes
-        .filter(() => typeof data.member.id === "number")
         .map((type) => ({
           contribution_type_id: type.id, // Assuming you have an ID for the contribution type
-          member_id: data.member.id as number,
+          member_id: createdMember.id,
           type_name: type.name,
           amount: type.amount,
           start_date: type.start_date || new Date(),
