@@ -1,40 +1,38 @@
-import { FieldError } from "react-hook-form";
+// components/InputField.tsx
+import { FieldError, UseFormRegister } from "react-hook-form";
 
-type InputFieldProps = {
+interface InputFieldProps {
   label: string;
-  type?: string;
-  register: any;
   name: string;
-  defaultValue?: string;
+  type?: string;
+  register: UseFormRegister<any>;
   error?: FieldError;
-  hidden?: boolean;
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
-};
+}
 
-const InputField = ({
+export default function InputField({
   label,
+  name,
   type = "text",
   register,
-  name,
-  defaultValue,
   error,
-  hidden,
-  inputProps,
-}: InputFieldProps) => {
+  inputProps = {},
+}: InputFieldProps) {
   return (
-    <div className={hidden ? "hidden" : "flex flex-col gap-2 w-full md:w-1/4"}>
-      <label className="text-xs text-gray-500">{label}</label>
+    <div className="flex flex-col w-48">
+      <label htmlFor={name} className="mb-1 font-medium">
+        {label}
+      </label>
       <input
+        id={name}
         type={type}
         {...register(name)}
-        className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
         {...inputProps}
-        defaultValue={defaultValue}
+        className={`input input-bordered w-full ${
+          error ? "input-error" : ""
+        }`}
       />
-      {error?.message && (
-        <p className="text-xs text-red-400">{error.message.toString()}</p>
-      )}
+      {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
     </div>
   );
-};
-export default InputField;
+}

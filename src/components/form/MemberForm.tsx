@@ -15,7 +15,7 @@ const tabs = ["Member Info", "Address", "Relatives"];
 const MemberForm = ({
   type,
   data,
-  setOpen
+  setOpen,
 }: {
   type: "create" | "update";
   data?: any;
@@ -60,11 +60,10 @@ const MemberForm = ({
   console.log(type);
   useEffect(() => {
     if (data) {
-
       setRelatives(data.relative || []);
     }
   }, [data, reset]);
-console.log(relativeFormData);
+  console.log(relativeFormData);
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
@@ -83,9 +82,9 @@ console.log(relativeFormData);
     if (state.success) {
       toast(`Member has been ${type === "create" ? "created" : "updated"}!`);
       router.push("/list/members");
-      if(type==="update"){
-       router.refresh();
-      setOpen(false);
+      if (type === "update") {
+        router.refresh();
+        setOpen(false);
       }
     }
     if (state.error) toast.error("Something went wrong");
@@ -287,10 +286,27 @@ console.log(relativeFormData);
                 </p>
               )}
             </div>
+
+            {/* New select input for New/Existing */}
+            <div className="flex flex-col gap-2 min-w-[200px]">
+              <label className="text-xs text-gray-500">Member Type</label>
+              <select
+                {...register("member.member_type")}
+                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                defaultValue={data?.member_type || "New"}
+              >
+                <option value="New">New</option>
+                <option value="Existing">Existing</option>
+              </select>
+              {errors.member?.member_type && (
+                <p className="text-xs text-red-400">
+                  {errors.member?.member_type?.message?.toString()}
+                </p>
+              )}
+            </div>
           </div>
         )}
-<div className={tabIndex === 1 ? "" : "hidden"}>
-       
+        <div className={tabIndex === 1 ? "" : "hidden"}>
           <div className="flex justify-between flex-wrap gap-4">
             <InputField
               label="ID Number"
@@ -363,7 +379,6 @@ console.log(relativeFormData);
               )}
             </div>
           </div>
-     
         </div>
         {tabIndex === 2 && (
           <div className="w-full relative">

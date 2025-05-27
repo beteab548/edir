@@ -161,7 +161,6 @@ export default function ConfigureExistingContribution({
                       name="type_name"
                       register={register}
                       error={errors.type_name}
-                      defaultValue={contribution.name}
                     />
 
                     <InputField
@@ -170,7 +169,6 @@ export default function ConfigureExistingContribution({
                       type="number"
                       register={register}
                       error={errors.amount}
-                      defaultValue={contribution.amount.toString()}
                       inputProps={{
                         step: "0.01",
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -229,10 +227,6 @@ export default function ConfigureExistingContribution({
                       type="date"
                       register={register}
                       error={errors.start_date}
-                      defaultValue={
-                        contribution.start_date?.toISOString().split("T")[0] ||
-                        ""
-                      }
                     />
 
                     <InputField
@@ -241,9 +235,6 @@ export default function ConfigureExistingContribution({
                       type="date"
                       register={register}
                       error={errors.end_date}
-                      defaultValue={
-                        contribution.end_date?.toISOString().split("T")[0] || ""
-                      }
                     />
                   </div>
 

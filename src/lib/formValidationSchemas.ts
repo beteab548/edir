@@ -26,6 +26,7 @@ export const memberSchema = z.object({
   remark: z.string().optional(),
 
   status: z.enum(["Active", "Inactive"], { message: "Status is required!" }),
+  member_type: z.enum(["New", "Existing"], { message: "member status is required!" }),
 });
 
 

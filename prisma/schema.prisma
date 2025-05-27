@@ -6,8 +6,9 @@
 
 generator client {
   provider = "prisma-client-js"
- 
+  output   = "./node_modules/.prisma/client"
 }
+
 
 datasource db {
   provider = "postgresql"
@@ -32,6 +33,7 @@ model Member {
   kebele        String? 
   sex          Sex
   phone_number String  @unique
+  member_type MemberType 
   // phone_number_2 String @unique @default("none")
   document     String?
   remark String?
@@ -150,4 +152,8 @@ enum Status {
   Spouse_Sister
   Spouse_Brother
   other
+ }
+enum MemberType {
+  New 
+  Existing
  }
