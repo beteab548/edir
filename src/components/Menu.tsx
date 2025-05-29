@@ -115,7 +115,7 @@ const Menu = async () => {
                         {contributionTypes.map((type) => (
                           <Link
                             key={type.id}
-                            href={`/contribution/${type.id}`}
+                            href={`/contribution/${type.name}`}
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           >
                             {type.name}
