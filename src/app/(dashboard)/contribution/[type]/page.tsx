@@ -16,7 +16,7 @@ export default async function ContributionPage({ params }: PageProps) {
   const types = await prisma.contributionType.findUnique({
     where: { name: updatedType ?? undefined },
   });
-  console.log("current contribution type is ",types);
+  console.log("current contribution type is ", types);
   if (type) {
     const members = await prisma.member.findMany({
       where: {
@@ -25,18 +25,23 @@ export default async function ContributionPage({ params }: PageProps) {
             type_name: types?.name,
           },
         },
-        status:"Active"
+        status: "Active",
       },
       include: {
         Contribution: true,
       },
     });
-    if(!types){
-          throw new Error("Contribution type not found");
+    if (!types) {
+      throw new Error("Contribution type not found");
     }
-  return (
-    <div className="contribution-page">
-      <ContributionTemplate ContributionType={types} members={members}/>
-    </div>
-  );
-}}
+    const updatedTypes = { ...types, amount: Number(types.amount) };
+    return (
+      <div className="contribution-page">
+        <ContributionTemplate
+          ContributionType={updatedTypes}
+          members={members}
+        />
+      </div>
+    );
+  }
+}
