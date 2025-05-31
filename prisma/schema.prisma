@@ -54,6 +54,7 @@ model Relative{
   status RelativeStatus
   member Member @relation(fields: [member_id],references: [id],onDelete: Cascade)
 }
+
 model Contribution {
   id                 Int       @id @default(autoincrement())
   member_id          Int
@@ -64,10 +65,12 @@ model Contribution {
   end_date           DateTime
   member             Member    @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contributionType   ContributionType @relation(fields: [contribution_type_id], references: [id], onDelete: Cascade)
+  @@unique([member_id, contribution_type_id])
   payment            Payment[]
   Balance            Balance[]
   Penalty            Penalty[]
 }
+
 model ContributionType {
   id          Int           @id @default(autoincrement())
   name        String        @unique
@@ -77,7 +80,7 @@ model ContributionType {
   created_at  DateTime      @default(now())
   start_date  DateTime?
   end_date    DateTime?
-
+//add period for one time paymnet like registration fixed amount for fixed period
   contributions Contribution[] // NEW: Back relation
 }
 
@@ -120,6 +123,15 @@ model Penalty {
   applied_at       DateTime      @default(now())
   resolved_at      DateTime?
 }
+// to track each month's expected payment
+// model ContributionSchedule {
+//   id              Int       @id @default(autoincrement())
+//   contribution_id Int
+//   member_id       Int
+//   month           String     // "2025-01"
+//   is_paid         Boolean    @default(false)
+//   paid_at         DateTime?
+// }
 
 model MissedMonth {
   id         Int      @id @default(autoincrement())

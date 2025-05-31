@@ -1,7 +1,7 @@
 // app/contribution/[type]/page.tsx
 
 import prisma from "@/lib/prisma";
-import ContributionTemplate from "../../../../components/payment/paymnetTemplate";
+import ContributionTemplate from "../../../../components/payment/paymentTemplate";
 type PageProps = {
   params: Promise<{
     type: string;

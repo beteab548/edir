@@ -3,6 +3,7 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
+import { Prisma } from "@prisma/client";
 
 type CurrentState = { success: boolean; error: boolean };
 export const createMember = async (
@@ -12,7 +13,7 @@ export const createMember = async (
   console.log("in create", data);
 
   try {
-  const createdMember=  await prisma.member.create({
+    const createdMember = await prisma.member.create({
       data: {
         first_name: data.member.first_name,
         second_name: data.member.second_name,
@@ -61,7 +62,7 @@ export const createMember = async (
       },
     });
     if (createdMember.member_type === "New") {
-      console.log('member is new');
+      console.log("member is new");
       // Get all active contribution types that are for all members
       const activeContributionTypes = await prisma.contributionType.findMany({
         where: {
@@ -77,15 +78,14 @@ export const createMember = async (
         },
       });
       //now create contributions for the new member
-      const contributionsData = activeContributionTypes
-        .map((type) => ({
-          contribution_type_id: type.id, // Assuming you have an ID for the contribution type
-          member_id: createdMember.id,
-          type_name: type.name,
-          amount: type.amount,
-          start_date: type.start_date || new Date(),
-          end_date: type.end_date || new Date(),
-        }));
+      const contributionsData = activeContributionTypes.map((type) => ({
+        contribution_type_id: type.id, // Assuming you have an ID for the contribution type
+        member_id: createdMember.id,
+        type_name: type.name,
+        amount: type.amount,
+        start_date: new Date(),
+        end_date: type.end_date || new Date(),
+      }));
       // Create contributions for the new member
       if (contributionsData.length > 0) {
         await prisma.contribution.createMany({
@@ -460,6 +460,59 @@ export const deleteContributionType = async (id: number) => {
     return { success: true };
   } catch (err) {
     console.error(err);
+    return { success: false };
+  }
+};
+type Payment = {
+  paid_amount: Prisma.Decimal;
+  payment_date: Date;
+  contribution_id: string;
+  contribution_type: string;
+  member_id: number;
+  payment_method: string;
+  payment_month: string;
+  receipt: string;
+};
+
+export const createPaymentAction = async (
+  currentState: CurrentState,
+  data: Payment
+) => {
+  try {
+    //check if that contribution type exists
+    const currentContributionId = Number(data.contribution_id);
+    const currentMemberId = Number(data.member_id);
+    const contributionExists = await prisma.contributionType.findUnique({
+      where: { id: currentContributionId },
+    });
+    if (!contributionExists) {
+      return { success: false, message: "Contribution Type Doesn't Exist!" };
+    }
+    //check if that member exists
+    const MemberExists = await prisma.member.findUnique({
+      where: { id: currentMemberId },
+    });
+    if (!MemberExists) {
+      return { success: false, message: "Member Doesn't Exist!" };
+    }
+    //check if that contribution exists for that member
+    const currentMemberContribution = await prisma.contribution.findUnique({
+      where: {
+        member_id_contribution_type_id: {
+          member_id: currentMemberId,
+          contribution_type_id: currentContributionId,
+        },
+      },
+    });
+    //check if penality 
+    if (!currentMemberContribution) {
+      return { success: false, message: "Contribution Doesn't Exist!" };
+    }
+
+    //
+    return { success: true };
+  } catch (err) {
+    // console.error(err);
     return { success: false };
   }
 };

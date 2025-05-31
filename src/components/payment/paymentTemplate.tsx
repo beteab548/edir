@@ -5,32 +5,12 @@ import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import SelectField from "../SelectField";
-
-const paymentFormSchema = z.object({
-  contribution_id: z.string(),
-  contribution_type: z.string(),
-  member_id: z.number().min(1, "Member is required"),
-  payment_method: z.string().min(1, "Payment method is required"),
-  payment_month: z.string().min(1, "Payment month is required"),
-  receipt: z.string().min(1, "Receipt is required"),
-  paid_amount: z.string(),
-  payment_date: z.string(),
-});
-
-type PaymentFormSchema = {
-  contribution_id: string;
-  contribution_type: string;
-  member_id: number;
-  payment_method: string;
-  payment_month: string;
-  receipt: string;
-  paid_amount: string;
-  payment_date: string;
-};
+import { toast } from "react-toastify";
+import { createPaymentAction } from "@/lib/actions";
+import { paymentFormSchema,PaymentFormSchemaType } from "@/lib/formValidationSchemas";
 type ContributionType = {
   id: number;
   amount: number;
@@ -63,7 +43,7 @@ export default function ContributionTemplate({
     setValue,
     reset,
     formState: { errors },
-  } = useForm<PaymentFormSchema>({
+  } = useForm<PaymentFormSchemaType>({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
       payment_method: "Bank",
@@ -71,6 +51,7 @@ export default function ContributionTemplate({
       payment_date: new Date().toISOString().split("T")[0],
     },
   });
+
   useEffect(() => {
     if (selectedContributionTypeFormat?.amount) {
       setValue(
@@ -104,7 +85,7 @@ export default function ContributionTemplate({
     setSearchResults([]);
     setValue("member_id", member.id);
   };
-  const onSubmit = async (data: PaymentFormSchema) => {
+  const onSubmit = async (data: PaymentFormSchemaType) => {
     try {
       const transformedData = {
         ...data,
@@ -112,16 +93,15 @@ export default function ContributionTemplate({
         payment_date: new Date(data.payment_date),
       };
       console.log("✅ Transformed Data to Submit:", transformedData);
-      const res = await fetch("/api/contribution/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(transformedData),
-      });
-      if (!res.ok) throw new Error("Failed to submit contribution");
-      const result = await res.json();
-      console.log("✅ Contribution Saved:", result);
+      const res = await createPaymentAction(
+        { success: false, error: false },
+        transformedData
+      );
+   
+      if (!res.success) {
+        return toast.error("failed to create paymnet!");
+      }
+      toast.success("payment created!");
       reset();
       setShowAddModal(false);
       router.refresh();
@@ -256,12 +236,13 @@ export default function ContributionTemplate({
                         required: true,
                       }}
                     />
-                    <InputField
-                      label="contribution_id"
-                      name="contribution_id"
-                      type="number"
-                      hidden={true}
-                      register={register}
+                    <input
+                      type="hidden"
+                      {...register("contribution_id")}
+                      value={
+                        selectedContributionTypeFormat?.id ||
+                        ContributionType.id
+                      }
                     />
                     <InputField
                       label="Contribution Type"
