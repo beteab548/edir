@@ -4,6 +4,8 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { Prisma } from "@prisma/client";
+import { applyCatchUpPayment } from "./services/paymentService";
+import { ContributionMode } from "@prisma/client"; // Assuming you have this enum defined
 
 type CurrentState = { success: boolean; error: boolean };
 export const createMember = async (
@@ -244,11 +246,14 @@ export const updateContribution = async (
     is_active: boolean;
     is_for_all: boolean;
     member_ids?: number[];
+    mode: "Recurring" | "OneTimeWindow";
+    penalty_amount: number;
+    period_months?: number | null;
   }
 ) => {
   try {
     console.log("data send for update are", data);
-    // 1. Get current contribution type
+
     const currentType = await prisma.contributionType.findUnique({
       where: { id: data.id },
     });
@@ -257,13 +262,11 @@ export const updateContribution = async (
       throw new Error("Contribution type not found");
     }
 
-    // 2. Get all related contributions (using type_name)
     const currentContributions = await prisma.contribution.findMany({
       where: { type_name: currentType.name },
       select: { member_id: true, id: true },
     });
 
-    // 3. Update the contribution type
     const updatedType = await prisma.contributionType.update({
       where: { id: data.id },
       data: {
@@ -273,13 +276,14 @@ export const updateContribution = async (
         end_date: data.end_date,
         is_active: data.is_active,
         is_for_all: data.is_for_all,
+        mode: data.mode,
+        penalty_amount: data.penalty_amount,
+        period_months: data.mode === "OneTimeWindow" ? data.period_months : null,
       },
     });
 
-    // 4. Prepare transaction operations
     const transactionOps = [];
 
-    // 5. Handle amount/name changes for existing contributions
     const amountChanged = currentType.amount !== Decimal(data.amount);
     const typeNameChanged = currentType.name !== data.type_name;
 
@@ -297,9 +301,7 @@ export const updateContribution = async (
       );
     }
 
-    // 6. Handle member assignments
     if (data.is_for_all) {
-      // Get all active members not currently linked
       const missingMembers = await prisma.member.findMany({
         where: {
           status: "Active",
@@ -325,12 +327,10 @@ export const updateContribution = async (
         );
       }
     } else {
-      // Handle specific member selection
       if (!data.member_ids || data.member_ids.length === 0) {
         throw new Error("At least one member must be selected");
       }
 
-      // Find members to remove (members in current but not in new selection)
       const membersToRemove = currentContributions
         .filter((c) => !data.member_ids!.includes(c.member_id))
         .map((c) => c.member_id);
@@ -346,14 +346,12 @@ export const updateContribution = async (
         );
       }
 
-      // Find members to add (members in new selection but not in current)
       const existingMemberIds = currentContributions.map((c) => c.member_id);
       const membersToAdd = data.member_ids.filter(
         (id) => !existingMemberIds.includes(id)
       );
 
       if (membersToAdd.length > 0) {
-        // First check if these members already have this contribution type
         const existingContributionsForNewMembers =
           await prisma.contribution.findMany({
             where: {
@@ -386,7 +384,6 @@ export const updateContribution = async (
       }
     }
 
-    // 7. Execute as single transaction
     if (transactionOps.length > 0) {
       await prisma.$transaction(transactionOps);
     }
@@ -398,30 +395,52 @@ export const updateContribution = async (
   }
 };
 
+
+
 export const createContributionType = async (data: {
   name: string;
   amount: number;
-  start_date: Date | string;
-  end_date: Date | string;
+  penalty_amount: number;
+  start_date: Date | undefined;
+  end_date: Date | undefined;
+  period_months: number | undefined;
   is_for_all: boolean;
   member_ids?: number[];
   is_active?: boolean;
+  mode: ContributionMode;
 }) => {
   try {
-    console.log(data);
+    let startDate: Date;
+    let endDate: Date;
 
-    // 1. Create the contribution type
+    if (data.mode === "OneTimeWindow" && data.period_months !== undefined) {
+      startDate = new Date();
+      endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + data.period_months);
+      endDate.setDate(0); 
+    } else if (data.mode === "Recurring") {
+      if (!data.start_date || !data.end_date) {
+        throw new Error("Recurring mode requires start and end dates.");
+      }
+      startDate = new Date(data.start_date);
+      endDate = new Date(data.end_date);
+    } else {
+      throw new Error("Invalid configuration for contribution period.");
+    }
+
     const contributionType = await prisma.contributionType.create({
       data: {
         name: data.name,
         amount: data.amount,
-        start_date: new Date(data.start_date),
-        end_date: new Date(data.end_date),
+        penalty_amount: data.penalty_amount,
         is_active: data.is_active ?? true,
         is_for_all: data.is_for_all,
+        start_date: startDate,
+        end_date: endDate,
+        mode: data.mode,
+        period_months: data.mode === "OneTimeWindow" ? data.period_months : null,
       },
     });
-    // 2. If is_for_all, assign to all active members; else, assign to selected members
     let memberIds: number[] = [];
 
     if (data.is_for_all) {
@@ -430,11 +449,10 @@ export const createContributionType = async (data: {
         select: { id: true },
       });
       memberIds = activeMembers.map((m) => m.id);
-    } else if (data.member_ids && data.member_ids.length > 0) {
+    } else if (data.member_ids?.length) {
       memberIds = data.member_ids;
     }
 
-    // 3. Create contributions for each member
     if (memberIds.length > 0) {
       await prisma.contribution.createMany({
         data: memberIds.map((member_id) => ({
@@ -442,11 +460,12 @@ export const createContributionType = async (data: {
           member_id,
           type_name: contributionType.name,
           amount: contributionType.amount,
-          start_date: contributionType.start_date ?? new Date(),
-          end_date: contributionType.end_date ?? new Date(),
+          start_date: contributionType.start_date!,
+          end_date: contributionType.end_date!,
         })),
       });
     }
+
     return { success: true, error: false };
   } catch (err) {
     console.error("Create contribution type failed:", err);
@@ -482,6 +501,10 @@ export const createPaymentAction = async (
     //check if that contribution type exists
     const currentContributionId = Number(data.contribution_id);
     const currentMemberId = Number(data.member_id);
+    const paymentMonth = data.payment_month;
+    const paymentAmount = data.paid_amount;
+    const paymentReceipt = data.receipt;
+
     const contributionExists = await prisma.contributionType.findUnique({
       where: { id: currentContributionId },
     });
@@ -504,11 +527,16 @@ export const createPaymentAction = async (
         },
       },
     });
-    //check if penality 
+    // applyCatchUpPayment(
+    //   currentMemberId,
+    //   currentContributionId,
+    //   paymentAmount,
+    //   paymentMonth,
+    //   paymentReceipt
+    // );
     if (!currentMemberContribution) {
       return { success: false, message: "Contribution Doesn't Exist!" };
     }
-
     //
     return { success: true };
   } catch (err) {

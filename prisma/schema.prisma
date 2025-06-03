@@ -72,16 +72,18 @@ model Contribution {
 }
 
 model ContributionType {
-  id          Int           @id @default(autoincrement())
-  name        String        @unique
-  amount      Decimal
-  is_active   Boolean       @default(true)
-  is_for_all  Boolean       @default(false)
-  created_at  DateTime      @default(now())
-  start_date  DateTime?
-  end_date    DateTime?
-//add period for one time paymnet like registration fixed amount for fixed period
-  contributions Contribution[] // NEW: Back relation
+  id             Int           @id @default(autoincrement())
+  name           String        @unique
+  amount         Decimal
+  penalty_amount Decimal?      @default(0) //this should be required chnage later
+  is_active      Boolean       @default(true)
+  is_for_all     Boolean       @default(false)
+  created_at     DateTime      @default(now())
+  start_date     DateTime?
+  end_date       DateTime?
+  mode           ContributionMode @default(OneTimeWindow) 
+  period_months  Int?            
+  contributions  Contribution[]
 }
 
 model Payment {
@@ -124,22 +126,22 @@ model Penalty {
   resolved_at      DateTime?
 }
 // to track each month's expected payment
-// model ContributionSchedule {
-//   id              Int       @id @default(autoincrement())
-//   contribution_id Int
-//   member_id       Int
-//   month           String     // "2025-01"
-//   is_paid         Boolean    @default(false)
-//   paid_at         DateTime?
-// }
+model ContributionSchedule {
+  id              Int       @id @default(autoincrement())
+  contribution_id Int
+  member_id       Int
+  month           DateTime  
+  paid_amount     Decimal   
+  is_paid         Boolean    @default(false)
+  paid_at         DateTime?
+}
 
 model MissedMonth {
   id         Int      @id @default(autoincrement())
   penalty_id Int
   penalty    Penalty  @relation(fields: [penalty_id], references: [id], onDelete: Cascade)
-  month      String  
+  month      DateTime  
 }
-
 enum Sex {
   Male   
   Female 
@@ -171,3 +173,7 @@ enum MemberType {
   New 
   Existing
  }
+enum ContributionMode {
+  Recurring 
+  OneTimeWindow        
+}

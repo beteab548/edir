@@ -1,7 +1,9 @@
+// app/components/Menu.tsx
 import prisma from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
+import ContributionDropdown from "./ContributionDropdown"; // <-- client component
 
 const fetchTypes = async () => {
   const data = await prisma.contributionType.findMany();
@@ -29,7 +31,7 @@ const menuItems = [
         label: "Contribtuion",
         href: "/contribution",
         visible: ["admin"],
-        hasDropdown: true, 
+        hasDropdown: true,
       },
       {
         icon: "/report.png",
@@ -37,30 +39,7 @@ const menuItems = [
         href: "/list/reportss",
         visible: ["admin"],
       },
-      {
-        icon: "/attendance.png",
-        label: "Attendance",
-        href: "/list/attendance",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/calendar.png",
-        label: "Events",
-        href: "/list/events",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/message.png",
-        label: "Messages",
-        href: "/list/messages",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
-      {
-        icon: "/announcement.png",
-        label: "Announcements",
-        href: "/list/announcements",
-        visible: ["admin", "teacher", "student", "parent"],
-      },
+      // ... more items
     ],
   },
   {
@@ -85,7 +64,7 @@ const menuItems = [
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
-  }, 
+  },
 ];
 
 const Menu = async () => {
@@ -104,36 +83,15 @@ const Menu = async () => {
             if (item.visible.includes(role)) {
               if (item.hasDropdown && item.label === "Contribtuion") {
                 return (
-                  <div key={item.label} className="relative group">
-                    <button className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight w-full">
-                      <Image src={item.icon} alt="" width={20} height={20} />
-                      <span className="hidden lg:block">{item.label}</span>
-                    </button>
-                    {/* Dropdown content */}
-                    <div className="hidden lg:group-hover:block absolute left-full top-0 ml-1 w-48 bg-white shadow-lg rounded-md z-10">
-                      <div className="py-1">
-                        {contributionTypes.map((type) => (
-                          <Link
-                            key={type.id}
-                            href={`/contribution/${type.name}`}
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            {type.name}
-                          </Link>
-                        ))}
-                      </div>
-                      <Link
-                            key={"contribution"}
-                            href={`/contribution/`}
-                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            {"Contribution setting"}
-                          </Link>
-                    </div>
-                  </div>
+                  <ContributionDropdown
+                    key={item.label}
+                    icon={item.icon}
+                    label={item.label}
+                    contributionTypes={contributionTypes}
+                  />
                 );
               }
-              
+
               return (
                 <Link
                   href={item.href}

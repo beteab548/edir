@@ -79,7 +79,7 @@ export const ContributionSchema = z.object({
         return z.NEVER;
       }
       return parsed;
-    })
+    }),
   ]),
   type_name: z.string().min(1, "Contribution name is required"),
   start_date: z.union([
@@ -94,12 +94,12 @@ export const ContributionSchema = z.object({
         return z.NEVER;
       }
       return date;
-    })
+    }),
   ]),
   end_date: z.union([
     z.date(),
     z.string().transform((val, ctx) => {
-      if (!val) return null; // Handle empty dates
+      if (!val) return null;
       const date = new Date(val);
       if (isNaN(date.getTime())) {
         ctx.addIssue({
@@ -109,11 +109,56 @@ export const ContributionSchema = z.object({
         return z.NEVER;
       }
       return date;
-    })
+    }),
   ]).nullable(),
-  is_for_all:z.boolean(),
-  is_active:z.boolean()
-});
+  is_for_all: z.boolean(),
+  is_active: z.boolean(),
+
+  // ✅ New fields
+  mode: z.enum(["Recurring", "OneTimeWindow"]),
+  penalty_amount: z.union([
+    z.number(),
+    z.string().transform((val, ctx) => {
+      const parsed = parseFloat(val);
+      if (isNaN(parsed)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Not a valid penalty amount",
+        });
+        return z.NEVER;
+      }
+      return parsed;
+    }),
+  ]),
+  period_months: z
+    .union([
+      z.number().int().positive(),
+      z
+        .string()
+        .transform((val, ctx) => {
+          if (!val) return undefined;
+          const parsed = parseInt(val);
+          if (isNaN(parsed) || parsed < 1) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Must be a positive integer",
+            });
+            return z.NEVER;
+          }
+          return parsed;
+        }),
+    ])
+    .optional()
+    .nullable(),
+}).refine(
+  (data) =>
+    data.mode === "Recurring" || (data.mode === "OneTimeWindow" && data.period_months),
+  {
+    message: "Period months is required for OneTimeWindow mode",
+    path: ["period_months"],
+  }
+);
+
 export type ContributionType=z.infer<typeof ContributionSchema>
 export const paymentFormSchema = z.object({
   contribution_id: z.string(),
@@ -136,3 +181,30 @@ export type PaymentFormSchemaType = {
   paid_amount: string;
   payment_date: string;
 };
+export const ContributionTypeSchema = z
+  .object({
+    name: z.string().min(1, "Name is required"),
+    amount: z.number().min(0.01, "Amount must be positive"),
+    mode: z.enum(["Recurring", "OneTimeWindow"]),
+    start_date: z.string().optional(),
+    end_date: z.string().optional(),
+    penalty_amount: z.number().min(0, "Penalty must be 0 or more"),
+    period_months: z.number().optional(),
+    is_for_all: z.boolean(),
+    is_active: z.boolean(),
+    member_ids: z.array(z.number()).optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.mode === "Recurring") {
+        return data.start_date && data.end_date;
+      } else if (data.mode === "OneTimeWindow") {
+        return typeof data.period_months === "number" && data.period_months > 0;
+      }
+      return true;
+    },
+    {
+      path: ["mode"],
+      message: "Invalid configuration based on mode",
+    }
+  );

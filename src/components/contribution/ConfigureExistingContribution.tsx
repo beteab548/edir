@@ -22,6 +22,9 @@ type ContributionType = {
   created_at: Date;
   start_date: Date | null;
   end_date: Date | null;
+  mode: "Recurring" | "OneTimeWindow";
+  penalty_amount: number;
+  period_months: number | null;
 };
 
 type ConfigureExistingContributionProps = {
@@ -56,6 +59,7 @@ export default function ConfigureExistingContribution({
   });
 
   const watchIsForAll = watch("is_for_all");
+  const watchMode = watch("mode");
 
   const handleEdit = (contribution: ContributionType) => {
     setEditingId(contribution.id);
@@ -68,6 +72,9 @@ export default function ConfigureExistingContribution({
       end_date: contribution.end_date?.toISOString().split("T")[0] || "",
       is_active: contribution.is_active,
       is_for_all: contribution.is_for_all,
+      mode: contribution.mode || "Recurring",
+      penalty_amount: contribution.penalty_amount ?? 0,
+      period_months: contribution.period_months ?? undefined,
     });
   };
 
@@ -86,6 +93,9 @@ export default function ConfigureExistingContribution({
       is_active: data.is_active,
       is_for_all: data.is_for_all,
       member_ids: data.is_for_all ? [] : selectedMemberIds,
+      mode: data.mode,
+      penalty_amount: Number(data.penalty_amount),
+      period_months: data.mode === "OneTimeWindow" ? Number(data.period_months) : null,
     };
 
     try {
@@ -228,6 +238,77 @@ export default function ConfigureExistingContribution({
                       }}
                     />
 
+                    <InputField
+                      label="Penalty Amount"
+                      name="penalty_amount"
+                      type="number"
+                      register={register}
+                      error={errors.penalty_amount}
+                      inputProps={{
+                        step: "0.01",
+                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                          setValue("penalty_amount", parseFloat(e.target.value) || 0);
+                        },
+                      }}
+                    />
+
+                    <div className="form-control w-48">
+                      <label className="label">
+                        <span className="label-text">Mode</span>
+                      </label>
+                      <select
+                        {...register("mode")}
+                        className="select select-bordered"
+                        onChange={(e) => {
+                          setValue("mode", e.target.value as "Recurring" | "OneTimeWindow");
+                        }}
+                        defaultValue={contribution.mode || "Recurring"}
+                      >
+                        <option value="Recurring">Recurring</option>
+                        <option value="OneTimeWindow">One-Time Window</option>
+                      </select>
+                      {errors.mode && (
+                        <p className="text-error text-sm">{errors.mode.message}</p>
+                      )}
+                    </div>
+
+                    {watchMode === "OneTimeWindow" && (
+                      <InputField
+                        label="Period Months"
+                        name="period_months"
+                        type="number"
+                        register={register}
+                        error={errors.period_months}
+                        inputProps={{
+                          min: 1,
+                          step: "1",
+                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                            setValue("period_months", parseInt(e.target.value) || 1);
+                          },
+                        }}
+                      />
+                    )}
+
+                    {watchMode === "Recurring" && (
+                      <>
+                        <InputField
+                          label="Start Date"
+                          name="start_date"
+                          type="date"
+                          register={register}
+                          error={errors.start_date}
+                        />
+
+                        <InputField
+                          label="End Date"
+                          name="end_date"
+                          type="date"
+                          register={register}
+                          error={errors.end_date}
+                        />
+                      </>
+                    )}
+
                     <div className="form-control">
                       <label className="label cursor-pointer gap-2">
                         <span className="label-text">Active</span>
@@ -271,22 +352,6 @@ export default function ConfigureExistingContribution({
                         </button>
                       </div>
                     )}
-
-                    <InputField
-                      label="Start Date"
-                      name="start_date"
-                      type="date"
-                      register={register}
-                      error={errors.start_date}
-                    />
-
-                    <InputField
-                      label="End Date"
-                      name="end_date"
-                      type="date"
-                      register={register}
-                      error={errors.end_date}
-                    />
                   </div>
 
                   <div className="flex gap-2">
@@ -310,32 +375,21 @@ export default function ConfigureExistingContribution({
                 <div className="flex justify-between items-center">
                   <div>
                     <h3 className="font-medium">{contribution.name}</h3>
-                    <div className="text-sm text-gray-600">
-                      <span>Amount: {contribution.amount}</span> |
+                    <div className="text-sm text-gray-600 space-x-2">
+                      <span>Amount: {contribution.amount}</span>|
+                      <span>Status: {contribution.is_active ? "Active" : "Inactive"}</span>|
+                      <span>Scope: {contribution.is_for_all ? "All Members" : "Selected Members"}</span>|
+                      <span>Mode: {contribution.mode}</span>|
+                      <span>Penalty: {contribution.penalty_amount}</span>|
                       <span>
-                        {" "}
-                        Status: {contribution.is_active ? "Active" : "Inactive"}
-                      </span>{" "}
-                      |
+                        Start: {contribution.start_date?.toLocaleDateString() || "N/A"}
+                      </span>|
                       <span>
-                        {" "}
-                        Scope:{" "}
-                        {contribution.is_for_all
-                          ? "All Members"
-                          : "Selected Members"}
-                      </span>{" "}
-                      |
-                      <span>
-                        {" "}
-                        Start:{" "}
-                        {contribution.start_date?.toLocaleDateString() || "N/A"}
-                      </span>{" "}
-                      |
-                      <span>
-                        {" "}
-                        End:{" "}
-                        {contribution.end_date?.toLocaleDateString() || "N/A"}
-                      </span>
+                        End: {contribution.end_date?.toLocaleDateString() || "N/A"}
+                      </span>|
+                      {contribution.mode === "OneTimeWindow" && (
+                        <span>Period Months: {contribution.period_months ?? "N/A"}</span>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-2">
