@@ -7,6 +7,7 @@ function normalizeToMonthStart(date: Date): Date {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
 }
 
+// Generates dates normalized to month start (for Recurring and OpenEndedRecurring)
 function generateMonthlyDates(start: Date, end: Date): Date[] {
   const dates: Date[] = [];
   let current = normalizeToMonthStart(start);
@@ -20,9 +21,10 @@ function generateMonthlyDates(start: Date, end: Date): Date[] {
   return dates;
 }
 
-function generateExactMonthlyDates(start: Date, periodMonths: number): Date[] {
+// New: Generate monthly dates preserving exact day (for OneTimeWindow)
+function generateMonthlyDatesPreserveDay(start: Date, monthsCount: number): Date[] {
   const dates: Date[] = [];
-  for (let i = 0; i < periodMonths; i++) {
+  for (let i = 0; i < monthsCount; i++) {
     dates.push(addMonths(start, i));
   }
   return dates;
@@ -61,23 +63,17 @@ export async function generateContributionSchedulesForAllActiveMembers() {
       const { contributionType } = contribution;
       if (!contributionType.is_active) continue;
 
-      const rawStartDate =
-        contribution.start_date ?? contributionType.start_date;
-      if (!rawStartDate) continue;
+      if (!contributionType) continue;
 
-      let months: Date[] = [];
+      if (contributionType.mode === "OneTimeWindow") {
+        // Use exact member join date as start
+        const startDate = contribution.start_date ?? contributionType.start_date;
+        if (!startDate || !contributionType.period_months) continue;
 
-      if (contributionType.mode === "Recurring") {
-        if (!contributionType.end_date) continue;
-        const startDate = normalizeToMonthStart(rawStartDate);
-        const endDate = normalizeToMonthStart(contributionType.end_date);
-        months = generateMonthlyDates(startDate, endDate);
-      } else if (contributionType.mode === "OneTimeWindow") {
-        if (!contributionType.period_months) continue;
-
-        const startDate = rawStartDate;
-        const monthsCount = contributionType.period_months;
-        months = generateExactMonthlyDates(startDate, monthsCount);
+        const months = generateMonthlyDatesPreserveDay(
+          startDate,
+          contributionType.period_months
+        );
 
         const contributionAmount = Number(contributionType.amount);
         if (contributionAmount <= 0) continue;
@@ -111,7 +107,67 @@ export async function generateContributionSchedulesForAllActiveMembers() {
 
         if (missingMonths.length > 0) {
           const key = `${member.id}-${contribution.id}`;
-          const totalAmount = monthlyAmount * missingMonths.length;
+
+          // Only add full amount once, if schedules didn't exist before
+          const isFirstTime = existingSchedules.length === 0;
+          const totalAmount = isFirstTime ? contributionAmount : 0;
+
+          if (totalAmount > 0) {
+            if (balanceUpdatesMap.has(key)) {
+              balanceUpdatesMap.get(key)!.amount += totalAmount;
+            } else {
+              balanceUpdatesMap.set(key, {
+                member_id: member.id,
+                contribution_id: contribution.id,
+                amount: totalAmount,
+              });
+            }
+          }
+        }
+
+        continue;
+      }
+
+      // For Recurring and OpenEndedRecurring
+      let startDate = contributionType.start_date ?? contribution.start_date;
+      if (!startDate) continue;
+
+      if (contributionType.mode === "Recurring") {
+        if (!contributionType.end_date) continue;
+        const months = generateMonthlyDates(startDate, contributionType.end_date);
+
+        const existingSchedules = await prisma.contributionSchedule.findMany({
+          where: {
+            member_id: member.id,
+            contribution_id: contribution.id,
+            month: { in: months },
+          },
+          select: { month: true },
+        });
+
+        const existingMonthsSet = new Set(
+          existingSchedules.map((s) => s.month.toISOString())
+        );
+        const missingMonths = months.filter(
+          (m) => !existingMonthsSet.has(m.toISOString())
+        );
+
+        const contributionAmount = Number(contributionType.amount);
+        if (contributionAmount <= 0) continue;
+
+        for (const month of missingMonths) {
+          allNewSchedules.push({
+            member_id: member.id,
+            contribution_id: contribution.id,
+            month,
+            paid_amount: 0,
+            is_paid: false,
+          });
+        }
+
+        if (missingMonths.length > 0) {
+          const key = `${member.id}-${contribution.id}`;
+          const totalAmount = contributionAmount * missingMonths.length;
           if (balanceUpdatesMap.has(key)) {
             balanceUpdatesMap.get(key)!.amount += totalAmount;
           } else {
@@ -122,55 +178,58 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             });
           }
         }
-
         continue;
-      } else if (contributionType.mode === "OpenEndedRecurring") {
-        const recurringStart = normalizeToMonthStart(rawStartDate);
-        months = generateMonthlyDates(recurringStart, oneYearFromNow);
       }
 
-      if (months.length === 0) continue;
+      if (contributionType.mode === "OpenEndedRecurring") {
+        // Use contribution start date if present, else type start date
+        const recurringStart = contribution.start_date ?? startDate;
+        const months = generateMonthlyDates(
+          recurringStart,
+          oneYearFromNow
+        );
 
-      const existingSchedules = await prisma.contributionSchedule.findMany({
-        where: {
-          member_id: member.id,
-          contribution_id: contribution.id,
-          month: { in: months },
-        },
-        select: { month: true },
-      });
-
-      const existingMonthsSet = new Set(
-        existingSchedules.map((s) => s.month.toISOString())
-      );
-      const missingMonths = months.filter(
-        (m) => !existingMonthsSet.has(m.toISOString())
-      );
-
-      const contributionAmount = Number(contributionType.amount);
-      if (contributionAmount <= 0) continue;
-
-      for (const month of missingMonths) {
-        allNewSchedules.push({
-          member_id: member.id,
-          contribution_id: contribution.id,
-          month,
-          paid_amount: 0,
-          is_paid: false,
-        });
-      }
-
-      if (missingMonths.length > 0) {
-        const key = `${member.id}-${contribution.id}`;
-        const totalAmount = contributionAmount * missingMonths.length;
-        if (balanceUpdatesMap.has(key)) {
-          balanceUpdatesMap.get(key)!.amount += totalAmount;
-        } else {
-          balanceUpdatesMap.set(key, {
+        const existingSchedules = await prisma.contributionSchedule.findMany({
+          where: {
             member_id: member.id,
             contribution_id: contribution.id,
-            amount: totalAmount,
+            month: { in: months },
+          },
+          select: { month: true },
+        });
+
+        const existingMonthsSet = new Set(
+          existingSchedules.map((s) => s.month.toISOString())
+        );
+        const missingMonths = months.filter(
+          (m) => !existingMonthsSet.has(m.toISOString())
+        );
+
+        const contributionAmount = Number(contributionType.amount);
+        if (contributionAmount <= 0) continue;
+
+        for (const month of missingMonths) {
+          allNewSchedules.push({
+            member_id: member.id,
+            contribution_id: contribution.id,
+            month,
+            paid_amount: 0,
+            is_paid: false,
           });
+        }
+
+        if (missingMonths.length > 0) {
+          const key = `${member.id}-${contribution.id}`;
+          const totalAmount = contributionAmount * missingMonths.length;
+          if (balanceUpdatesMap.has(key)) {
+            balanceUpdatesMap.get(key)!.amount += totalAmount;
+          } else {
+            balanceUpdatesMap.set(key, {
+              member_id: member.id,
+              contribution_id: contribution.id,
+              amount: totalAmount,
+            });
+          }
         }
       }
     }
@@ -203,8 +262,11 @@ export async function generateContributionSchedulesForAllActiveMembers() {
     });
   }
 
-  const today = new Date();
+  // Penalty logic
+  // const today = new Date();
 
+const today = addMonths(new Date(), 1);
+console.log(today);
   const unpaidSchedules = await prisma.contributionSchedule.findMany({
     where: {
       is_paid: false,
@@ -257,9 +319,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             member_id: schedule.member_id,
             contribution_id: schedule.contribution_id,
             contribution_schedule_id: schedule.id,
-            reason: `Missed payment for ${schedule.month
-              .toISOString()
-              .slice(0, 7)}`,
+            reason: `Missed payment for ${schedule.month.toISOString().slice(0, 7)}`,
             amount: penaltyAmount,
             missed_month: schedule.month,
             is_paid: false,
@@ -279,9 +339,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             member_id: schedule.member_id,
             contribution_id: schedule.contribution_id,
             contribution_schedule_id: schedule.id,
-            reason: `Missed payment for ${schedule.month
-              .toISOString()
-              .slice(0, 7)}`,
+            reason: `Missed payment for ${schedule.month.toISOString().slice(0, 7)}`,
             amount: penaltyAmount,
             missed_month: schedule.month,
             is_paid: false,
