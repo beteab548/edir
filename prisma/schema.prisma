@@ -69,6 +69,7 @@ model Contribution {
   payment            Payment[]
   Balance            Balance[]
   Penalty            Penalty[]
+  ContributionSchedule ContributionSchedule[]
 }
 
 model ContributionType {
@@ -114,18 +115,23 @@ model Balance {
 }
 
 model Penalty {
-  id               Int           @id @default(autoincrement())
-  member_id        Int
-  contribution_id  Int
-  member           Member        @relation(fields: [member_id], references: [id], onDelete: Cascade)
-  contribution     Contribution  @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
-  reason           String
-  amount           Decimal
-  missed_months    MissedMonth[]
-  applied_at       DateTime      @default(now())
-  resolved_at      DateTime?
+  id                      Int                  @id @default(autoincrement())
+  member_id               Int
+  contribution_id         Int
+  contribution_schedule_id Int                  // new foreign key
+
+  member                 Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  contribution           Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
+  contributionSchedule   ContributionSchedule  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
+
+  reason                 String
+  amount                 Decimal
+  missed_month           DateTime
+  is_paid                Boolean
+  applied_at             DateTime             @default(now())
+  resolved_at            DateTime?
 }
-// to track each month's expected payment
+
 model ContributionSchedule {
   id              Int       @id @default(autoincrement())
   contribution_id Int
@@ -134,14 +140,13 @@ model ContributionSchedule {
   paid_amount     Decimal   
   is_paid         Boolean    @default(false)
   paid_at         DateTime?
+  penalties       Penalty[]  
+  contribution    Contribution  @relation(fields: [contribution_id], references: [id],onDelete: Cascade)
 }
 
-model MissedMonth {
-  id         Int      @id @default(autoincrement())
-  penalty_id Int
-  penalty    Penalty  @relation(fields: [penalty_id], references: [id], onDelete: Cascade)
-  month      DateTime  
-}
+
+
+
 enum Sex {
   Male   
   Female 
