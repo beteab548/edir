@@ -52,9 +52,15 @@ export default function CreateNewContribution({
         member_ids: data.is_for_all ? [] : selectedMemberIds,
         mode,
         start_date:
-          data.mode === "Recurring" ? new Date(data.start_date!) : undefined,
+          data.mode === "Recurring" || data.mode === "OpenEndedRecurring"
+            ? new Date(data.start_date!)
+            : undefined,
         end_date:
-          data.mode === "Recurring" ? new Date(data.end_date!) : undefined,
+          data.mode === "Recurring"
+            ? new Date(data.end_date!)
+            : data.mode === "OpenEndedRecurring"
+            ? null
+            : undefined,
         period_months:
           data.mode === "OneTimeWindow"
             ? Number(data.period_months)
@@ -140,6 +146,9 @@ export default function CreateNewContribution({
               defaultValue="Recurring"
             >
               <option value="Recurring">Recurring</option>
+              <option value="OpenEndedRecurring">
+                Open Ended Recurring (No End Date)
+              </option>
               <option value="OneTimeWindow">One-Time (Fixed Months)</option>
             </select>
           </div>
@@ -153,6 +162,7 @@ export default function CreateNewContribution({
                 register={register}
                 error={errors.start_date}
               />
+
               <InputField
                 label="End Date"
                 name="end_date"
@@ -162,7 +172,15 @@ export default function CreateNewContribution({
               />
             </>
           )}
-
+          {mode === "OpenEndedRecurring" && (
+            <InputField
+              label="Start Date"
+              name="start_date"
+              type="date"
+              register={register}
+              error={errors.start_date}
+            />
+          )}
           {mode === "OneTimeWindow" && (
             <InputField
               label="Number of Months"
@@ -221,6 +239,15 @@ export default function CreateNewContribution({
                   : "Select Members"}
               </button>
             </div>
+          )}
+          {selectedMemberIds.length > 0 && (
+            <ul className="text-sm mt-2">
+              {members
+                .filter((m) => selectedMemberIds.includes(m.id))
+                .map((m) => (
+                  <li key={m.id}>{m.first_name}</li>
+                ))}
+            </ul>
           )}
 
           <button

@@ -66,98 +66,115 @@ export const combinedSchema = z.object({
 export type CombinedSchema = z.infer<typeof combinedSchema>;
 export type RelativeSchema = z.infer<typeof relativeSchema>;
 
-export const ContributionSchema = z.object({
-  amount: z.union([
-    z.number(),
-    z.string().transform((val, ctx) => {
-      const parsed = parseFloat(val);
-      if (isNaN(parsed)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Not a valid number",
-        });
-        return z.NEVER;
-      }
-      return parsed;
-    }),
-  ]),
-  type_name: z.string().min(1, "Contribution name is required"),
-  start_date: z.union([
-    z.date(),
-    z.string().transform((val, ctx) => {
-      const date = new Date(val);
-      if (isNaN(date.getTime())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Not a valid date",
-        });
-        return z.NEVER;
-      }
-      return date;
-    }),
-  ]),
-  end_date: z.union([
-    z.date(),
-    z.string().transform((val, ctx) => {
-      if (!val) return null;
-      const date = new Date(val);
-      if (isNaN(date.getTime())) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Not a valid date",
-        });
-        return z.NEVER;
-      }
-      return date;
-    }),
-  ]).nullable(),
-  is_for_all: z.boolean(),
-  is_active: z.boolean(),
-
-  // ✅ New fields
-  mode: z.enum(["Recurring", "OneTimeWindow"]),
-  penalty_amount: z.union([
-    z.number(),
-    z.string().transform((val, ctx) => {
-      const parsed = parseFloat(val);
-      if (isNaN(parsed)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Not a valid penalty amount",
-        });
-        return z.NEVER;
-      }
-      return parsed;
-    }),
-  ]),
-  period_months: z
-    .union([
-      z.number().int().positive(),
-      z
-        .string()
-        .transform((val, ctx) => {
-          if (!val) return undefined;
-          const parsed = parseInt(val);
-          if (isNaN(parsed) || parsed < 1) {
+export const ContributionSchema = z
+  .object({
+    amount: z.union([
+      z.number(),
+      z.string().transform((val, ctx) => {
+        const parsed = parseFloat(val);
+        if (isNaN(parsed)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Not a valid number",
+          });
+          return z.NEVER;
+        }
+        return parsed;
+      }),
+    ]),
+    type_name: z.string().min(1, "Contribution name is required"),
+    start_date: z.union([
+      z.date(),
+      z.string().transform((val, ctx) => {
+        const date = new Date(val);
+        if (isNaN(date.getTime())) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Not a valid date",
+          });
+          return z.NEVER;
+        }
+        return date;
+      }),
+    ]),
+    end_date: z
+      .union([
+        z.date(),
+        z.string().transform((val, ctx) => {
+          if (!val) return null;
+          const date = new Date(val);
+          if (isNaN(date.getTime())) {
             ctx.addIssue({
               code: z.ZodIssueCode.custom,
-              message: "Must be a positive integer",
+              message: "Not a valid date",
             });
             return z.NEVER;
           }
-          return parsed;
+          return date;
         }),
-    ])
-    .optional()
-    .nullable(),
-}).refine(
-  (data) =>
-    data.mode === "Recurring" || (data.mode === "OneTimeWindow" && data.period_months),
-  {
-    message: "Period months is required for OneTimeWindow mode",
-    path: ["period_months"],
-  }
-);
+      ])
+      .nullable(),
+    is_for_all: z.boolean(),
+    is_active: z.boolean(),
+    mode: z.enum(["Recurring", "OneTimeWindow", "OpenEndedRecurring"]),
+    penalty_amount: z.union([
+      z.number(),
+      z.string().transform((val, ctx) => {
+        const parsed = parseFloat(val);
+        if (isNaN(parsed)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Not a valid penalty amount",
+          });
+          return z.NEVER;
+        }
+        return parsed;
+      }),
+    ]),
+    period_months: z
+      .union([
+        z.number().int().positive(),
+        z
+          .string()
+          .transform((val, ctx) => {
+            if (!val) return undefined;
+            const parsed = parseInt(val);
+            if (isNaN(parsed) || parsed < 1) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Must be a positive integer",
+              });
+              return z.NEVER;
+            }
+            return parsed;
+          }),
+      ])
+      .optional()
+      .nullable(),
+  })
+  // Require period_months when mode is OneTimeWindow
+  .refine(
+    (data) =>
+      data.mode === "Recurring" || (data.mode === "OneTimeWindow" && data.period_months),
+    {
+      message: "Period months is required for OneTimeWindow mode",
+      path: ["period_months"],
+    }
+  )
+  // Require end_date when mode is Recurring
+  .refine(
+    (data) => {
+      if (data.mode === "Recurring") {
+        return data.end_date instanceof Date && !isNaN(data.end_date.getTime());
+      }
+      return true;
+    },
+    {
+      message: "End date is required for Recurring mode",
+      path: ["end_date"],
+    }
+  );
+
 
 export type ContributionType=z.infer<typeof ContributionSchema>
 export const paymentFormSchema = z.object({
@@ -181,30 +198,60 @@ export type PaymentFormSchemaType = {
   paid_amount: string;
   payment_date: string;
 };
+
 export const ContributionTypeSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
     amount: z.number().min(0.01, "Amount must be positive"),
-    mode: z.enum(["Recurring", "OneTimeWindow"]),
+    mode: z.enum(["Recurring", "OneTimeWindow", "OpenEndedRecurring"]),
     start_date: z.string().optional(),
     end_date: z.string().optional(),
-    penalty_amount: z.number().min(0, "Penalty must be 0 or more"),
     period_months: z.number().optional(),
+    penalty_amount: z.number().min(0, "Penalty must be 0 or more"),
     is_for_all: z.boolean(),
     is_active: z.boolean(),
     member_ids: z.array(z.number()).optional(),
   })
-  .refine(
-    (data) => {
-      if (data.mode === "Recurring") {
-        return data.start_date && data.end_date;
-      } else if (data.mode === "OneTimeWindow") {
-        return typeof data.period_months === "number" && data.period_months > 0;
+  .superRefine((data, ctx) => {
+    if (data.mode === "Recurring") {
+      if (!data.start_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Start date is required for Recurring mode",
+          path: ["start_date"],
+        });
       }
-      return true;
-    },
-    {
-      path: ["mode"],
-      message: "Invalid configuration based on mode",
+      if (!data.end_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "End date is required for Recurring mode",
+          path: ["end_date"],
+        });
+      }
+    } else if (data.mode === "OneTimeWindow") {
+      if (typeof data.period_months !== "number" || data.period_months <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Period months must be a positive number for OneTimeWindow mode",
+          path: ["period_months"],
+        });
+      }
+    } else if (data.mode === "OpenEndedRecurring") {
+      if (!data.start_date) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Start date is required for OpenEndedRecurring mode",
+          path: ["start_date"],
+        });
+      }
+      // Explicitly clear period_months for OpenEndedRecurring
+      data.period_months = undefined;
     }
-  );
+  })
+  .transform((data) => {
+    if (data.mode === "OpenEndedRecurring") {
+      const { end_date, period_months, ...rest } = data;
+      return { ...rest };
+    }
+    return data;
+  });

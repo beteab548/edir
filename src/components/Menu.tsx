@@ -39,7 +39,6 @@ const menuItems = [
         href: "/list/reportss",
         visible: ["admin"],
       },
-      // ... more items
     ],
   },
   {

@@ -26,7 +26,7 @@ export async function updateContributionAndSync({
 
     // Determine number of months for schedule based on contributionType.mode and period_months
     const months =
-      updatedContribution.contributionType.mode === 'OneTime' &&
+      updatedContribution.contributionType.mode === 'OneTimeWindow' &&
       updatedContribution.contributionType.period_months
         ? updatedContribution.contributionType.period_months
         : 1;

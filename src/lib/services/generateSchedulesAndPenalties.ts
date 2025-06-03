@@ -1,89 +1,63 @@
-// scripts/generateSchedulesAndPenalties.ts
-import  prisma  from '@/lib/prisma';
-import { addMonths, isBefore, startOfMonth } from 'date-fns';
+import { PrismaClient } from '@prisma/client'
+import { addMonths, differenceInCalendarMonths, startOfMonth } from 'date-fns'
+
+const prisma = new PrismaClient()
 
 export async function generateContributionSchedules() {
-  const members = await prisma.member.findMany();
-  const contributions = await prisma.contribution.findMany({
-    include: { contributionType: true },
-  });
+  const activeMembers = await prisma.member.findMany({
+    where: { status: 'Active' },
+    include: {
+      Contribution: {
+        include: {
+          contributionType: true
+        }
+      }
+    }
+  })
 
-  for (const member of members) {
-    for (const contribution of contributions) {
-      const existingSchedules = await prisma.contributionSchedule.findMany({
-        where: {
-          member_id: member.id,
-          contribution_id: contribution.id,
-        },
-        orderBy: { month: 'asc' },
-      });
+  const scheduleData = []
 
-      const startMonth = startOfMonth(contribution.start_date);
-      const monthsToGenerate = contribution.contributionType.duration_months;
+  for (const member of activeMembers) {
+    for (const contribution of member.Contribution) {
+      const { contributionType } = contribution
 
-      for (let i = 0; i < monthsToGenerate; i++) {
-        const month = addMonths(startMonth, i);
-        const alreadyExists = existingSchedules.some(sched => sched.month.getTime() === month.getTime());
+      if (!contributionType.is_active) continue
+      if (!contribution.start_date || !contribution.end_date) continue
 
-        if (!alreadyExists) {
-          await prisma.contributionSchedule.create({
-            data: {
-              member_id: member.id,
-              contribution_id: contribution.id,
-              month,
-              is_paid: false,
-              paid_amount: 0,
-            },
-          });
+      const start = startOfMonth(contribution.start_date)
+      const end = startOfMonth(contribution.end_date)
+
+      const totalMonths = differenceInCalendarMonths(end, start) + 1
+      if (totalMonths <= 0) continue
+
+      for (let i = 0; i < totalMonths; i++) {
+        const scheduleMonth = addMonths(start, i)
+
+        const existing = await prisma.contributionSchedule.findFirst({
+          where: {
+            member_id: member.id,
+            contribution_id: contribution.id,
+            month: scheduleMonth,
+          }
+        })
+
+        if (!existing) {
+          scheduleData.push({
+            contribution_id: contribution.id,
+            member_id: member.id,
+            month: scheduleMonth,
+            paid_amount: 0,
+            is_paid: false,
+          })
         }
       }
     }
   }
-}
 
-export async function applyPenaltiesForMissedPayments() {
-  const today = new Date();
-  const unpaidSchedules = await prisma.contributionSchedule.findMany({
-    where: {
-      is_paid: false,
-      month: { lt: startOfMonth(today) },
-    },
-    include: {
-      contribution: { include: { contributionType: true } },
-    },
-  });
-
-  for (const schedule of unpaidSchedules) {
-    const existingPenalty = await prisma.penalty.findFirst({
-      where: {
-        member_id: schedule.member_id,
-        contribution_id: schedule.contribution_id,
-        resolved_at: null,
-        missed_months: {
-          some: {
-            month: schedule.month,
-          },
-        },
-      },
-    });
-
-    if (!existingPenalty) {
-      const penalty = await prisma.penalty.create({
-        data: {
-          member_id: schedule.member_id,
-          contribution_id: schedule.contribution_id,
-          amount: schedule.contribution.contributionType.penalty_amount,
-          applied_at: today,
-          resolved_at: null,
-        },
-      });
-
-      await prisma.penaltyMonth.create({
-        data: {
-          penalty_id: penalty.id,
-          month: schedule.month,
-        },
-      });
-    }
+  if (scheduleData.length > 0) {
+    await prisma.contributionSchedule.createMany({ data: scheduleData })
+    console.log(`✅ Created ${scheduleData.length} contribution schedules.`)
+  } else {
+    console.log('📭 No new contribution schedules to create.')
   }
 }

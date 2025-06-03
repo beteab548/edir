@@ -246,7 +246,7 @@ export const updateContribution = async (
     is_active: boolean;
     is_for_all: boolean;
     member_ids?: number[];
-    mode: "Recurring" | "OneTimeWindow";
+    mode: "Recurring" | "OneTimeWindow"|"OpenEndedRecurring";
     penalty_amount: number;
     period_months?: number | null;
   }
@@ -397,37 +397,46 @@ export const updateContribution = async (
 
 
 
+
 export const createContributionType = async (data: {
   name: string;
   amount: number;
   penalty_amount: number;
   start_date: Date | undefined;
-  end_date: Date | undefined;
+  end_date: Date | null | undefined;
   period_months: number | undefined;
   is_for_all: boolean;
   member_ids?: number[];
   is_active?: boolean;
   mode: ContributionMode;
 }) => {
+  console.log(data);
   try {
     let startDate: Date;
-    let endDate: Date;
+    let endDate: Date | null = null;
 
     if (data.mode === "OneTimeWindow" && data.period_months !== undefined) {
       startDate = new Date();
       endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + data.period_months);
-      endDate.setDate(0); 
+      endDate.setDate(0); // Set to the last day of the target month
     } else if (data.mode === "Recurring") {
       if (!data.start_date || !data.end_date) {
         throw new Error("Recurring mode requires start and end dates.");
       }
       startDate = new Date(data.start_date);
       endDate = new Date(data.end_date);
+    } else if (data.mode === "OpenEndedRecurring") {
+      if (!data.start_date) {
+        throw new Error("OpenEndedRecurring mode requires a start date.");
+      }
+      startDate = new Date(data.start_date);
+      endDate = null; // No end date for open-ended
     } else {
       throw new Error("Invalid configuration for contribution period.");
     }
 
+    // Create the contribution type
     const contributionType = await prisma.contributionType.create({
       data: {
         name: data.name,
@@ -441,6 +450,7 @@ export const createContributionType = async (data: {
         period_months: data.mode === "OneTimeWindow" ? data.period_months : null,
       },
     });
+
     let memberIds: number[] = [];
 
     if (data.is_for_all) {
@@ -461,7 +471,7 @@ export const createContributionType = async (data: {
           type_name: contributionType.name,
           amount: contributionType.amount,
           start_date: contributionType.start_date!,
-          end_date: contributionType.end_date!,
+          end_date: contributionType.end_date, 
         })),
       });
     }
@@ -472,6 +482,7 @@ export const createContributionType = async (data: {
     return { success: false, error: true };
   }
 };
+
 
 export const deleteContributionType = async (id: number) => {
   try {

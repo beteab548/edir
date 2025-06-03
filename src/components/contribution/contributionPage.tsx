@@ -8,7 +8,8 @@ export default async function ContributionPage() {
     ...c,
     amount: c.amount.toNumber(),
   }));
-
+const contributions=await prisma.contribution.findMany()
+console.log(contributions);
   return (
     <ContributionClientWrapper
       members={members}

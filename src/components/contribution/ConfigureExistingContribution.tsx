@@ -22,7 +22,7 @@ type ContributionType = {
   created_at: Date;
   start_date: Date | null;
   end_date: Date | null;
-  mode: "Recurring" | "OneTimeWindow";
+  mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
   penalty_amount: number;
   period_months: number | null;
 };
@@ -81,21 +81,25 @@ export default function ConfigureExistingContribution({
   const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (
     data
   ) => {
+    console.log(data);
     if (!editingId) return;
     setLoading(true);
-
     const formData = {
       id: editingId,
       amount: Number(data.amount),
       type_name: data.type_name,
       start_date: data.start_date ? new Date(data.start_date) : new Date(),
-      end_date: data.end_date ? new Date(data.end_date) : new Date(),
+      end_date:
+        data.mode === "Recurring" && data.end_date
+          ? new Date(data.end_date)
+          : null,
       is_active: data.is_active,
       is_for_all: data.is_for_all,
       member_ids: data.is_for_all ? [] : selectedMemberIds,
       mode: data.mode,
       penalty_amount: Number(data.penalty_amount),
-      period_months: data.mode === "OneTimeWindow" ? Number(data.period_months) : null,
+      period_months:
+        data.mode === "OneTimeWindow" ? Number(data.period_months) : null,
     };
 
     try {
@@ -135,6 +139,18 @@ export default function ConfigureExistingContribution({
       setToDelete(null);
     }
   };
+  const onError = (formErrors: typeof errors) => {
+    console.error("Validation errors:", formErrors);
+  };
+
+useEffect(() => {
+  if (watchMode === "OpenEndedRecurring") {
+    setValue("end_date", "");
+    setValue("period_months", undefined); // Explicitly clear period_months
+  } else if (watchMode === "OneTimeWindow") {
+    setValue("end_date", "");
+  }
+}, [watchMode, setValue]);
 
   useEffect(() => {
     const fetchExistingMembers = async () => {
@@ -160,6 +176,7 @@ export default function ConfigureExistingContribution({
 
     fetchExistingMembers();
   }, [editingId]);
+  console.log("Watch mode:", watchMode);
 
   return (
     <div className="bg-base-100 p-6 rounded-lg shadow-md">
@@ -215,7 +232,10 @@ export default function ConfigureExistingContribution({
               className="border p-4 rounded-lg hover:bg-gray-50 transition-colors"
             >
               {editingId === contribution.id ? (
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <form
+                  onSubmit={handleSubmit(onSubmit, onError)}
+                  className="space-y-4"
+                >
                   <div className="flex flex-wrap gap-4 items-end">
                     <InputField
                       label="Contribution Name"
@@ -247,7 +267,10 @@ export default function ConfigureExistingContribution({
                       inputProps={{
                         step: "0.01",
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          setValue("penalty_amount", parseFloat(e.target.value) || 0);
+                          setValue(
+                            "penalty_amount",
+                            parseFloat(e.target.value) || 0
+                          );
                         },
                       }}
                     />
@@ -257,18 +280,20 @@ export default function ConfigureExistingContribution({
                         <span className="label-text">Mode</span>
                       </label>
                       <select
+                        key={contribution.id}
                         {...register("mode")}
                         className="select select-bordered"
-                        onChange={(e) => {
-                          setValue("mode", e.target.value as "Recurring" | "OneTimeWindow");
-                        }}
-                        defaultValue={contribution.mode || "Recurring"}
                       >
                         <option value="Recurring">Recurring</option>
+                        <option value="OpenEndedRecurring">
+                          Open-Ended Recurring
+                        </option>
                         <option value="OneTimeWindow">One-Time Window</option>
                       </select>
                       {errors.mode && (
-                        <p className="text-error text-sm">{errors.mode.message}</p>
+                        <p className="text-error text-sm">
+                          {errors.mode.message}
+                        </p>
                       )}
                     </div>
 
@@ -282,14 +307,20 @@ export default function ConfigureExistingContribution({
                         inputProps={{
                           min: 1,
                           step: "1",
-                          onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                            setValue("period_months", parseInt(e.target.value) || 1);
+                          onChange: (
+                            e: React.ChangeEvent<HTMLInputElement>
+                          ) => {
+                            setValue(
+                              "period_months",
+                              parseInt(e.target.value) || 1
+                            );
                           },
                         }}
                       />
                     )}
 
-                    {watchMode === "Recurring" && (
+                    {(watchMode === "Recurring" ||
+                      watchMode === "OpenEndedRecurring") && (
                       <>
                         <InputField
                           label="Start Date"
@@ -298,14 +329,15 @@ export default function ConfigureExistingContribution({
                           register={register}
                           error={errors.start_date}
                         />
-
-                        <InputField
-                          label="End Date"
-                          name="end_date"
-                          type="date"
-                          register={register}
-                          error={errors.end_date}
-                        />
+                        {watchMode === "Recurring" && (
+                          <InputField
+                            label="End Date"
+                            name="end_date"
+                            type="date"
+                            register={register}
+                            error={errors.end_date}
+                          />
+                        )}
                       </>
                     )}
 
@@ -377,18 +409,32 @@ export default function ConfigureExistingContribution({
                     <h3 className="font-medium">{contribution.name}</h3>
                     <div className="text-sm text-gray-600 space-x-2">
                       <span>Amount: {contribution.amount}</span>|
-                      <span>Status: {contribution.is_active ? "Active" : "Inactive"}</span>|
-                      <span>Scope: {contribution.is_for_all ? "All Members" : "Selected Members"}</span>|
-                      <span>Mode: {contribution.mode}</span>|
+                      <span>
+                        Status: {contribution.is_active ? "Active" : "Inactive"}
+                      </span>
+                      |
+                      <span>
+                        Scope:{" "}
+                        {contribution.is_for_all
+                          ? "All Members"
+                          : "Selected Members"}
+                      </span>
+                      |<span>Mode: {contribution.mode}</span>|
                       <span>Penalty: {contribution.penalty_amount}</span>|
                       <span>
-                        Start: {contribution.start_date?.toLocaleDateString() || "N/A"}
-                      </span>|
+                        Start:{" "}
+                        {contribution.start_date?.toLocaleDateString() || "N/A"}
+                      </span>
+                      |
                       <span>
-                        End: {contribution.end_date?.toLocaleDateString() || "N/A"}
-                      </span>|
+                        End:{" "}
+                        {contribution.end_date?.toLocaleDateString() || "N/A"}
+                      </span>
+                      |
                       {contribution.mode === "OneTimeWindow" && (
-                        <span>Period Months: {contribution.period_months ?? "N/A"}</span>
+                        <span>
+                          Period Months: {contribution.period_months ?? "N/A"}
+                        </span>
                       )}
                     </div>
                   </div>

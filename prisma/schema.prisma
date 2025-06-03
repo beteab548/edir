@@ -62,7 +62,7 @@ model Contribution {
   type_name          String
   amount             Decimal
   start_date         DateTime
-  end_date           DateTime
+  end_date           DateTime?
   member             Member    @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contributionType   ContributionType @relation(fields: [contribution_type_id], references: [id], onDelete: Cascade)
   @@unique([member_id, contribution_type_id])
@@ -176,4 +176,5 @@ enum MemberType {
 enum ContributionMode {
   Recurring 
   OneTimeWindow        
+  OpenEndedRecurring
 }
