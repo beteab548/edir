@@ -107,33 +107,31 @@ export const updateMember = async (
   data: CombinedSchema
 ) => {
   console.log("Update data:", data);
-
   if (!data.member?.id) return { success: false, error: true };
-
-  // Normalize relatives to always be an array
 
   try {
     await prisma.$transaction(async (prisma) => {
-      // First update the member
+      // 1. Update the member
       await prisma.member.update({
         where: { id: data.member.id },
         data: {
-          // Member fields
           first_name: data.member.first_name,
           second_name: data.member.second_name,
           last_name: data.member.last_name,
-          profession: data.member.profession,
-          title: data.member.title,
-          job_business: data.member.job_business,
-          id_number: data.member.id_number,
+          ...(data.member.profession && { profession: data.member.profession }),
+          ...(data.member.title && { title: data.member.title }),
+          ...(data.member.job_business && {
+            job_business: data.member.job_business,
+          }),
+          ...(data.member.id_number && { id_number: data.member.id_number }),
           birth_date: new Date(data.member.birth_date),
           citizen: data.member.citizen,
-          ...(data.member.joined_date
-            ? { joined_date: new Date(data.member.joined_date) }
-            : {}),
-          end_date: data.member.end_date
-            ? new Date(data.member.end_date)
-            : null,
+          ...(data.member.joined_date && {
+            joined_date: new Date(data.member.joined_date),
+          }),
+          ...(data.member.end_date && {
+            end_date: new Date(data.member.end_date),
+          }),
           phone_number: data.member.phone_number,
           wereda: data.member.wereda,
           kebele: data.member.kebele,
@@ -144,48 +142,49 @@ export const updateMember = async (
           member_type: data.member.member_type,
         },
       });
-      // i want to check if the member_staus is new and then add the member to the conttribution table those contributionType that are active and for all
+
+      // 2. Add contributions only if member_type is New and no contributions exist
       if (data.member.member_type === "New") {
-        // Get all active contribution types that are for all members
-        const activeContributionTypes = await prisma.contributionType.findMany({
-          where: {
-            is_active: true,
-            is_for_all: true,
-          },
-          select: {
-            id: true,
-            name: true,
-            amount: true,
-            start_date: true,
-            end_date: true,
-          },
+        const existingContributions = await prisma.contribution.findFirst({
+          where: { member_id: data.member.id },
         });
-        //now create contributions for the new member
-        const contributionsData = activeContributionTypes
-          .filter(() => typeof data.member.id === "number")
-          .map((type) => ({
-            contribution_type_id: type.id, // Assuming you have an ID for the contribution type
+
+        if (!existingContributions) {
+          const activeContributionTypes = await prisma.contributionType.findMany({
+            where: {
+              is_active: true,
+              is_for_all: true,
+            },
+            select: {
+              id: true,
+              name: true,
+              amount: true,
+              start_date: true,
+              end_date: true,
+            },
+          });
+
+          const contributionsData = activeContributionTypes.map((type) => ({
+            contribution_type_id: type.id,
             member_id: data.member.id as number,
             type_name: type.name,
             amount: type.amount,
             start_date: type.start_date || new Date(),
             end_date: type.end_date || new Date(),
           }));
-        // Create contributions for the new member
-        if (contributionsData.length > 0) {
-          await prisma.contribution.createMany({
-            data: contributionsData,
-          });
+
+          if (contributionsData.length > 0) {
+            await prisma.contribution.createMany({ data: contributionsData });
+          }
         }
       }
-      // Then handle relatives in a separate operation
-      if (Array.isArray(data.relatives) && data.relatives.length > 0) {
-        // First delete existing relatives
-        await prisma.relative.deleteMany({
-          where: { member_id: data.member.id },
-        });
 
-        // Then create new ones
+      // 3. Handle relatives
+      await prisma.relative.deleteMany({
+        where: { member_id: data.member.id },
+      });
+
+      if (Array.isArray(data.relatives) && data.relatives.length > 0) {
         await prisma.relative.createMany({
           data: data.relatives.map((relative) => ({
             member_id: data.member.id as number,
@@ -196,19 +195,16 @@ export const updateMember = async (
             status: relative.status,
           })),
         });
-      } else {
-        // No relatives provided, ensure none exist
-        await prisma.relative.deleteMany({
-          where: { member_id: data.member.id },
-        });
       }
     });
+
     return { success: true, error: false };
   } catch (err) {
     console.error("Update error:", err);
     return { success: false, error: true };
   }
 };
+
 
 export const deleteMember = async (
   currentState: CurrentState,

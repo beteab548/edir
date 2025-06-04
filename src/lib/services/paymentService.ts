@@ -72,7 +72,7 @@ export async function applyCatchUpPayment({
       if (!contribution) {
         throw new NotFoundError(`Contribution ${contributionId} not found`);
       }
-console.log('contribution type is', contribution.type_name);
+      console.log("contribution type is", contribution.type_name);
       const schedules = await tx.contributionSchedule.findMany({
         where: {
           member_id: memberId,
@@ -86,138 +86,130 @@ console.log('contribution type is', contribution.type_name);
         throw new PaymentProcessingError("No unpaid schedules found");
       }
 
-      let remaining = new Decimal(paidAmount);
-      const payments = [];
+      // ... (previous code remains the same until the schedule processing part)
 
-      for (const sched of schedules) {
-        const monthlyAmount = contribution.amount;
+// ... (previous code remains the same until the schedule processing part)
 
-        try {
-          const penalty = await tx.penalty.findFirst({
-            where: {
-              member_id: memberId,
-              contribution_id: contribution.id,
-              resolved_at: null,
-              contributionSchedule: {
-                month: sched.month,
-              },
-            },
-          });
+let remaining = new Decimal(paidAmount);
+const payments = [];
 
-          const penaltyAmount = penalty ? penalty.amount : new Decimal(0);
+// Calculate equal monthly amount for oneTimeWindow
+const monthlyAmount = contribution.contributionType.mode === 'OneTimeWindow'
+  ? contribution.amount.dividedBy(schedules.length)
+  : contribution.amount;
 
-          if (penalty && remaining.greaterThanOrEqualTo(penaltyAmount)) {
-            await tx.payment.create({
-              data: {
-                contribution_id: contribution.id,
-                member_id: memberId,
-                payment_date: new Date(),
-                payment_type:"penalty",
-                payment_month: sched.month.toISOString().slice(0, 7),
-                paid_amount: penaltyAmount,
-                payment_method: paymentMethod,
-                document: documentReference,
-              },
-            });
+for (const sched of schedules) {
+  if (remaining.lte(0)) break;
 
-            await tx.penalty.update({
-              where: { id: penalty.id },
-              data: { resolved_at: new Date(), is_paid: true },
-            });
+  try {
+    // 1. Process penalty first if exists
+    const penalty = await tx.penalty.findFirst({
+      where: {
+        member_id: memberId,
+        contribution_id: contribution.id,
+        resolved_at: null,
+        contributionSchedule: {
+          month: sched.month,
+        },
+      },
+    });
+    
+    const penaltyAmount = penalty ? penalty.amount : new Decimal(0);
+    if (penalty && remaining.greaterThanOrEqualTo(penaltyAmount)) {
+      await tx.payment.create({
+        data: {
+          contribution_id: contribution.id,
+          member_id: memberId,
+          payment_date: new Date(),
+          payment_type: "penalty",
+          payment_month: sched.month.toISOString().slice(0, 7),
+          paid_amount: penaltyAmount,
+          payment_method: paymentMethod,
+          document: documentReference,
+        },
+      });
+      await tx.penalty.update({
+        where: { id: penalty.id },
+        data: { resolved_at: new Date(), is_paid: true },
+      });
 
-            remaining = remaining.minus(penaltyAmount);
-            payments.push({
-              month: sched.month,
-              paid: penaltyAmount.toNumber(),
-              type: "penalty",
-            });
-          }
+      remaining = remaining.minus(penaltyAmount);
+      payments.push({
+        month: sched.month,
+        paid: penaltyAmount.toNumber(),
+        type: "penalty",
+      });
+    }
 
-          // ---- Updated Contribution Payment Logic ----
-          const currentPaidAmount = sched.paid_amount ?? new Decimal(0);
-          const unpaidAmount = monthlyAmount.minus(currentPaidAmount);
+    // 2. Calculate how much we can pay for this month's contribution
+    const currentPaidAmount = sched.paid_amount ?? new Decimal(0);
+    const unpaidAmount = monthlyAmount.minus(currentPaidAmount);
+    
+    if (unpaidAmount.lte(0)) continue; // month is already fully paid
 
-          if (unpaidAmount.lte(0)) continue; // already paid
+    if (remaining.greaterThan(0)) {
+      const amountToPay = Decimal.min(remaining, unpaidAmount);
+      
+      await tx.payment.create({
+        data: {
+          contribution_id: contribution.id,
+          member_id: memberId,
+          payment_date: new Date(),
+          payment_type: contribution.type_name,
+          payment_month: sched.month.toISOString().slice(0, 7),
+          paid_amount: amountToPay,
+          payment_method: paymentMethod,
+          document: documentReference,
+        },
+      });
 
-          if (remaining.greaterThanOrEqualTo(unpaidAmount)) {
-            // Full or top-up to full
-            await tx.payment.create({
-              data: {
-                contribution_id: contribution.id,
-                member_id: memberId,
-                payment_date: new Date(),
-                payment_type:contribution.type_name,
-                payment_month: sched.month.toISOString().slice(0, 7),
-                paid_amount: unpaidAmount,
-                payment_method: paymentMethod,
-                document: documentReference,
-              },
-            });
+      const newPaidAmount = currentPaidAmount.plus(amountToPay);
+      const fullyPaid = newPaidAmount.greaterThanOrEqualTo(monthlyAmount);
 
-            await tx.contributionSchedule.update({
-              where: { id: sched.id },
-              data: {
-                is_paid: true,
-                paid_at: new Date(),
-                paid_amount: currentPaidAmount.plus(unpaidAmount),
-              },
-            });
+      await tx.contributionSchedule.update({
+        where: { id: sched.id },
+        data: {
+          paid_amount: newPaidAmount,
+          ...(fullyPaid && {
+            is_paid: true,
+            paid_at: new Date(),
+          }),
+        },
+      });
 
-            payments.push({
-              month: sched.month,
-              paid: unpaidAmount.toNumber(),
-              type: currentPaidAmount.gt(0)
-                ? "contribution_partial_to_full"
-                : "contribution_full",
-            });
+      payments.push({
+        month: sched.month,
+        paid: amountToPay.toNumber(),
+        type: fullyPaid 
+          ? (currentPaidAmount.gt(0) ? "contribution_partial_to_full" : "contribution_full")
+          : "contribution_partial",
+      });
 
-            remaining = remaining.minus(unpaidAmount);
-          } else if (remaining.greaterThan(0)) {
-            // Partial
-            const newPaidAmount = currentPaidAmount.plus(remaining);
-            const fullyPaid = newPaidAmount.greaterThanOrEqualTo(monthlyAmount);
+      remaining = remaining.minus(amountToPay);
+    }
+  } catch (error) {
+    throw new PaymentProcessingError(
+      `Failed to process ${sched.month.toISOString()}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+  }
+}
 
-            await tx.payment.create({
-              data: {
-                contribution_id: contribution.id,
-                member_id: memberId,
-                payment_date: new Date(),
-                payment_type:contribution.type_name,
-                payment_month: sched.month.toISOString().slice(0, 7),
-                paid_amount: remaining,
-                payment_method: paymentMethod,
-                document: documentReference,
-              },
-            });
+// Handle any remaining amount (could be overpayment)
+if (remaining.gt(0)) {
+  // You can either:
+  // 1. Create a credit balance for the member
+  // 2. Create new future schedules
+  // 3. Return as unallocated (current approach)
+  payments.push({
+    month: new Date(),
+    paid: remaining.toNumber(),
+    type: "unallocated",
+  });
+}
 
-            await tx.contributionSchedule.update({
-              where: { id: sched.id },
-              data: {
-                paid_amount: newPaidAmount,
-                ...(fullyPaid && {
-                  is_paid: true,
-                  paid_at: new Date(),
-                }),
-              },
-            });
-
-            payments.push({
-              month: sched.month,
-              paid: remaining.toNumber(),
-              type: "contribution_partial",
-            });
-
-            remaining = new Decimal(0);
-            break;
-          }
-        } catch (error) {
-          throw new PaymentProcessingError(
-            `Failed to process ${sched.month.toISOString()}: ${
-              error instanceof Error ? error.message : String(error)
-            }`
-          );
-        }
-      }
+// ... (rest of the code remains the same)
 
       // Update balance
       try {

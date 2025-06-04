@@ -23,7 +23,7 @@ const MemberForm = ({
 }) => {
   const formatDate = (dateStr?: string) =>
     dateStr ? new Date(dateStr).toISOString().split("T")[0] : "";
-  console.log(data);
+  
   const [relatives, setRelatives] = useState<any[]>(data?.relatives || []);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(
@@ -49,7 +49,6 @@ const MemberForm = ({
     formState: { errors, isSubmitting },
   } = useForm<CombinedSchema>({
     resolver: zodResolver(combinedSchema),
-    // defaultValues,
   });
 
   const [tabIndex, setTabIndex] = useState(0);
@@ -57,13 +56,13 @@ const MemberForm = ({
     type === "create" ? createMember : updateMember,
     { success: false, error: false }
   );
-  console.log(type);
+
   useEffect(() => {
     if (data) {
       setRelatives(data.relative || []);
     }
   }, [data, reset]);
-  console.log(relativeFormData);
+
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
@@ -162,26 +161,30 @@ const MemberForm = ({
     setConfirmDeleteIndex(null);
     deleteDialogRef.current?.close();
   };
+
   return (
-    <div>
-      <div className="flex gap-4 border-b mb-4">
-        {tabs.map((tab, index) => (
-          <button
-            key={tab}
-            className={`pb-2 ml-6 ${
-              tabIndex === index
-                ? "border-b-2 border-blue-500 font-medium"
-                : "text-gray-500"
-            }`}
-            onClick={() => setTabIndex(index)}
-          >
-            {tab}
-          </button>
-        ))}
+    <div className="max-h-[80vh] overflow-y-auto">
+      <div className="sticky top-0 bg-white pt-4 pb-2 z-10">
+        <div className="flex gap-4 border-b">
+          {tabs.map((tab, index) => (
+            <button
+              key={tab}
+              className={`pb-2 px-4 transition-colors text-sm font-medium ${
+                tabIndex === index
+                  ? "border-b-2 border-blue-500 text-blue-600"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+              onClick={() => setTabIndex(index)}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
       </div>
-      <form className="flex flex-col gap-6 m-10" onSubmit={onSubmit}>
+
+      <form className="flex flex-col p-6" onSubmit={onSubmit}>
         {tabIndex === 0 && (
-          <div className="flex justify-between flex-wrap gap-4 ">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <InputField
               label="First Name"
               name="member.first_name"
@@ -203,7 +206,6 @@ const MemberForm = ({
               error={errors?.member?.last_name}
               defaultValue={data?.last_name}
             />
-
             <InputField
               label="Birth Date"
               name="member.birth_date"
@@ -212,21 +214,12 @@ const MemberForm = ({
               defaultValue={formatDate(data?.birth_date)}
               error={errors?.member?.birth_date}
             />
-            {data && (
-              <InputField
-                label="Id"
-                name="member.id"
-                register={register}
-                error={errors?.member?.id}
-                hidden
-                defaultValue={data?.id}
-              />
-            )}
-            <div className="flex flex-col gap-2 min-w-[200px]">
-              <label className="text-xs text-gray-500">Sex</label>
+          
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Sex</label>
               <select
                 {...register("member.sex")}
-                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                 defaultValue={data?.sex}
               >
                 <option value="Male">Male</option>
@@ -270,44 +263,53 @@ const MemberForm = ({
               error={errors.member?.end_date}
               defaultValue={data?.first_name}
             />
-            <div className="flex flex-col gap-2 min-w-[200px]">
-              <label className="text-xs text-gray-500">Status</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Status</label>
               <select
                 {...register("member.status")}
-                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                 defaultValue={data?.first_name}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
               </select>
               {errors.member?.status && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-red-500 mt-1">
                   {errors.member?.status?.message?.toString()}
                 </p>
               )}
             </div>
-
-            {/* New select input for New/Existing */}
-            <div className="flex flex-col gap-2 min-w-[200px]">
-              <label className="text-xs text-gray-500">Member Type</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Member Type</label>
               <select
                 {...register("member.member_type")}
-                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                 defaultValue={data?.member_type || "New"}
               >
                 <option value="New">New</option>
                 <option value="Existing">Existing</option>
               </select>
               {errors.member?.member_type && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-red-500 mt-1">
                   {errors.member?.member_type?.message?.toString()}
                 </p>
               )}
             </div>
+              {data && (
+              <InputField
+                label=""
+                name="member.id"
+                register={register}
+                error={errors?.member?.id}
+                hidden={true}
+                defaultValue={data?.id}
+              />
+            )}
           </div>
+          
         )}
-        <div className={tabIndex === 1 ? "" : "hidden"}>
-          <div className="flex justify-between flex-wrap gap-4">
+  <div className={tabIndex === 1 ? "" : "hidden"}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField
               label="ID Number"
               name="member.id_number"
@@ -315,11 +317,11 @@ const MemberForm = ({
               error={errors.member?.id_number}
               defaultValue={data?.id_number}
             />
-            <div className="flex flex-col gap-2 min-w-[150px] max-w-[200px] flex-1">
-              <label className="text-xs text-gray-500">Citizen</label>
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Citizen</label>
               <select
                 {...register("member.citizen")}
-                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                 defaultValue={data?.citizen}
               >
                 <option value="">Select a country</option>
@@ -330,12 +332,11 @@ const MemberForm = ({
                 ))}
               </select>
               {errors.member?.citizen && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-red-500 mt-1">
                   {errors.member?.citizen?.message?.toString()}
                 </p>
               )}
             </div>
-
             <InputField
               label="Phone Number"
               name="member.phone_number"
@@ -364,97 +365,103 @@ const MemberForm = ({
               error={errors.member?.kebele}
               defaultValue={data?.kebele}
             />
-            <div className="flex flex-col gap-2 w-full max-w-md">
-              <label className="text-xs text-gray-500">Remark</label>
+            <div className="md:col-span-2 flex flex-col gap-1">
+              <label className="text-sm font-medium text-gray-700">Remark</label>
               <textarea
                 {...register("member.remark")}
-                rows={4}
-                className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm"
+                rows={3}
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                 defaultValue={data?.remark}
               />
               {errors.member?.remark && (
-                <p className="text-xs text-red-400">
+                <p className="text-xs text-red-500 mt-1">
                   {errors.member?.remark?.message?.toString()}
                 </p>
               )}
             </div>
           </div>
-        </div>
+          </div>
+        
+
         {tabIndex === 2 && (
           <div className="w-full relative">
             <button
               type="button"
               onClick={() => openRelativesDialog()}
-              className="absolute top-4 right-4 px-4 py-2 bg-blue-600 text-white rounded"
+              className="absolute top-0 right-0 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
             >
               Add Relative
             </button>
 
-            <table className="table w-full border border-base-300 mt-16">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>First Name</th>
-                  <th>Second Name</th>
-                  <th>Last Name</th>
-                  <th>Relation</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {relatives.map((relative, index) => (
-                  <tr key={index}>
-                    <td>{index + 1}</td>
-                    <td>{relative.first_name}</td>
-                    <td>{relative.second_name}</td>
-                    <td>{relative.last_name}</td>
-                    <td>{relative.relation_type}</td>
-                    <td>{relative.status}</td>
-                    <td className="flex gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-info"
-                        onClick={() => openRelativesDialog(index)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-error"
-                        onClick={() => openDeleteDialog(index)}
-                      >
-                        Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {relatives.length === 0 && (
+            <div className="mt-12 overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan={7} className="text-center py-4">
-                      No relatives added yet
-                    </td>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Second Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relation</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {relatives.map((relative, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{relative.first_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{relative.second_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{relative.last_name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{relative.relation_type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{relative.status}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className="text-blue-600 hover:text-blue-900"
+                            onClick={() => openRelativesDialog(index)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            className="text-red-600 hover:text-red-900"
+                            onClick={() => openDeleteDialog(index)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {relatives.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                        No relatives added yet
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* Add/Edit Relative Dialog */}
             <dialog
               ref={relativesDialogRef}
-              className="modal backdrop:bg-black/50 rounded-lg max-w-full min-w-[800px] w-full"
+              className="modal backdrop:bg-black/50 rounded-lg shadow-xl"
             >
-              <div className="modal-box w-full">
-                <h2 className="text-xl font-semibold mb-4">
+              <div className="modal-box max-w-md">
+                <h2 className="text-lg font-semibold mb-4">
                   {editIndex !== null ? "Edit Relative" : "Add New Relative"}
                 </h2>
 
-                <div className="flex flex-col gap-6 w-full">
-                  <div className="flex gap-6">
-                    <div className="flex flex-col w-1/3">
-                      <label htmlFor="first_name">First name</label>
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">First name</label>
                       <input
-                        className="input input-bordered w-full"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                         type="text"
                         name="first_name"
                         value={relativeFormData.first_name}
@@ -462,10 +469,10 @@ const MemberForm = ({
                         placeholder="First name"
                       />
                     </div>
-                    <div className="flex flex-col w-1/3">
-                      <label htmlFor="second_name">Second name</label>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">Second name</label>
                       <input
-                        className="input input-bordered w-full"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                         type="text"
                         name="second_name"
                         value={relativeFormData.second_name}
@@ -473,10 +480,10 @@ const MemberForm = ({
                         placeholder="Second name"
                       />
                     </div>
-                    <div className="flex flex-col w-1/3">
-                      <label htmlFor="last_name">Last name</label>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">Last name</label>
                       <input
-                        className="input input-bordered w-full"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                         type="text"
                         name="last_name"
                         value={relativeFormData.last_name}
@@ -486,42 +493,34 @@ const MemberForm = ({
                     </div>
                   </div>
 
-                  <div className="flex gap-6">
-                    <div className="flex flex-col w-1/2">
-                      <label htmlFor="relation_type">Relation</label>
+                  <div className="grid grid-cols-1 gap-4">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">Relation</label>
                       <select
                         name="relation_type"
                         value={relativeFormData.relation_type}
                         onChange={handleRelativeChange}
-                        className="select select-bordered w-full"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="" disabled>
-                          Select relation
-                        </option>
-                        <option>mother</option>
-                        <option>father</option>
-                        <option>sister</option>
-                        <option>brother</option>
-                        <option>son</option>
-                        <option>daughter</option>
-                        <option>spouse</option>
-                        <option>spouse-brother</option>
-                        <option>spouse-sister</option>
-                        <option>spouse-mother</option>
-                        <option>spouse-father</option>
+                        <option value="" disabled>Select relation</option>
+                        <option>Mother</option>
+                        <option>Father</option>
+                        <option>Sister</option>
+                        <option>Brother</option>
+                        <option>Son</option>
+                        <option>Daughter</option>
+                        <option>Spouse</option>
                       </select>
                     </div>
-                    <div className="flex flex-col w-1/2">
-                      <label htmlFor="status">Status</label>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">Status</label>
                       <select
                         name="status"
                         value={relativeFormData.status}
                         onChange={handleRelativeChange}
-                        className="select select-bordered w-full"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="" disabled>
-                          Select status
-                        </option>
+                        <option value="" disabled>Select status</option>
                         <option>Alive</option>
                         <option>Deceased</option>
                         <option>Sick</option>
@@ -532,19 +531,19 @@ const MemberForm = ({
 
                 <div className="mt-6 flex justify-end gap-2">
                   {relativeError && (
-                    <p className="text-red-500">{relativeError}</p>
+                    <p className="text-red-500 text-sm">{relativeError}</p>
                   )}
                   <button
                     type="button"
                     onClick={closeRelativesDialog}
-                    className="btn btn-ghost"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={saveRelative}
-                    className="btn btn-primary"
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   >
                     Save
                   </button>
@@ -560,11 +559,15 @@ const MemberForm = ({
                   Are you sure you want to delete this relative?
                 </p>
                 <div className="modal-action">
-                  <button className="btn" onClick={cancelDelete} type="button">
+                  <button 
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    onClick={cancelDelete} 
+                    type="button"
+                  >
                     Cancel
                   </button>
                   <button
-                    className="btn btn-error"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
                     onClick={confirmDelete}
                     type="button"
                   >
@@ -575,22 +578,26 @@ const MemberForm = ({
             </dialog>
           </div>
         )}
-        {state.error && (
-          <span className="text-red-500">Something went wrong!</span>
-        )}
-        <button
-          className="bg-blue-500 text-white py-2 px-4 rounded-md mt-4 w-fit self-end"
-          disabled={isSubmitting}
-          type="submit"
-        >
-          {isSubmitting
-            ? "submitting"
-            : type === "create"
-            ? "Create"
-            : "Update"}
-        </button>
+
+        <div className="mt-6 flex justify-end border-t pt-4">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+          >
+            Cancel
+          </button>
+          <button
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            disabled={isSubmitting}
+            type="submit"
+          >
+            {isSubmitting ? "Processing..." : type === "create" ? "Create Member" : "Update Member"}
+          </button>
+        </div>
       </form>
     </div>
   );
 };
+
 export default MemberForm;
