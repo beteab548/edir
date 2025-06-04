@@ -32,6 +32,7 @@ export default async function ContributionPage({ params }: PageProps) {
       },
     });
     if (!types) {
+      //redirect to not found url
       throw new Error("Contribution type not found");
     }
     const updatedTypes = { ...types, amount: Number(types.amount) };

@@ -45,9 +45,12 @@ export const createMember = async (
         kebele: data.member.kebele,
         zone_or_district: data.member.zone_or_district,
         member_type: data.member.member_type,
-        // ...(data.member.document
-        //   ? { document: data.member.document }
-        //   : {}),
+        ...(data.member.document
+          ? { document: data.member.document }
+          : {}),
+        ...(data.member.image_url
+          ? { image_url: data.member.image_url }
+          : {}),
         sex: data.member.sex,
         status: data.member.status,
 

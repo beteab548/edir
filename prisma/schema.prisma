@@ -34,6 +34,7 @@ model Member {
   phone_number String  @unique
   member_type MemberType 
   // phone_number_2 String @unique @default("none")
+  image_url String?
   document     String?
   remark String?
   status Status 

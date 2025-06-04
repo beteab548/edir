@@ -9,6 +9,8 @@ import { useFormState } from "react-dom";
 import { createMember, updateMember } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import UploadFile from "../upload/page";
+import Image from "next/image";
 
 const tabs = ["Member Info", "Address", "Relatives"];
 
@@ -23,7 +25,7 @@ const MemberForm = ({
 }) => {
   const formatDate = (dateStr?: string) =>
     dateStr ? new Date(dateStr).toISOString().split("T")[0] : "";
-  
+
   const [relatives, setRelatives] = useState<any[]>(data?.relatives || []);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(
@@ -50,6 +52,7 @@ const MemberForm = ({
   } = useForm<CombinedSchema>({
     resolver: zodResolver(combinedSchema),
   });
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
 
   const [tabIndex, setTabIndex] = useState(0);
   const [state, formAction] = useFormState(
@@ -62,11 +65,17 @@ const MemberForm = ({
       setRelatives(data.relative || []);
     }
   }, [data, reset]);
-
+  const getImageUrl = (url: string) => {
+    console.log("Image uploaded to:", url);
+    setImageUrl(url);
+  };
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
-        member: formData.member,
+        member: {
+          ...formData.member,
+          image_url: imageUrl ?? undefined,
+        },
         relatives: relatives,
       };
       formAction(submissionData);
@@ -214,7 +223,7 @@ const MemberForm = ({
               defaultValue={formatDate(data?.birth_date)}
               error={errors?.member?.birth_date}
             />
-          
+
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Sex</label>
               <select
@@ -264,7 +273,9 @@ const MemberForm = ({
               defaultValue={data?.first_name}
             />
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Status</label>
+              <label className="text-sm font-medium text-gray-700">
+                Status
+              </label>
               <select
                 {...register("member.status")}
                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
@@ -280,7 +291,9 @@ const MemberForm = ({
               )}
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Member Type</label>
+              <label className="text-sm font-medium text-gray-700">
+                Member Type
+              </label>
               <select
                 {...register("member.member_type")}
                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
@@ -295,7 +308,7 @@ const MemberForm = ({
                 </p>
               )}
             </div>
-              {data && (
+            {data && (
               <InputField
                 label=""
                 name="member.id"
@@ -306,9 +319,8 @@ const MemberForm = ({
               />
             )}
           </div>
-          
         )}
-  <div className={tabIndex === 1 ? "" : "hidden"}>
+        <div className={tabIndex === 1 ? "" : "hidden"}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField
               label="ID Number"
@@ -318,7 +330,9 @@ const MemberForm = ({
               defaultValue={data?.id_number}
             />
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Citizen</label>
+              <label className="text-sm font-medium text-gray-700">
+                Citizen
+              </label>
               <select
                 {...register("member.citizen")}
                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
@@ -365,8 +379,29 @@ const MemberForm = ({
               error={errors.member?.kebele}
               defaultValue={data?.kebele}
             />
+
+            {/* Image preview if imageUrl exists */}
+            {data?.image_url && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Current Profile Image
+                </label>
+                <Image
+                  width={200}
+                  height={200}
+                  src={data?.image_url ?? "profile image"}
+                  alt="Profile preview"
+                  className="mt-2 h-32 w-32 object-cover rounded-full border"
+                />
+              </div>
+            )}
+
+            {/* Upload file component - pass getImageUrl to update imageUrl */}
+            <UploadFile text="profile" getImageUrl={getImageUrl} />
             <div className="md:col-span-2 flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Remark</label>
+              <label className="text-sm font-medium text-gray-700">
+                Remark
+              </label>
               <textarea
                 {...register("member.remark")}
                 rows={3}
@@ -380,9 +415,7 @@ const MemberForm = ({
               )}
             </div>
           </div>
-          </div>
-        
-
+        </div>
         {tabIndex === 2 && (
           <div className="w-full relative">
             <button
@@ -397,24 +430,50 @@ const MemberForm = ({
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">No</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">First Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Second Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Name</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Relation</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      No
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      First Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Second Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Last Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Relation
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {relatives.map((relative, index) => (
                     <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{index + 1}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{relative.first_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{relative.second_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{relative.last_name}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{relative.relation_type}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{relative.status}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {index + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {relative.first_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {relative.second_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {relative.last_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {relative.relation_type}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {relative.status}
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex gap-2">
                           <button
@@ -437,7 +496,10 @@ const MemberForm = ({
                   ))}
                   {relatives.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">
+                      <td
+                        colSpan={7}
+                        className="px-6 py-4 text-center text-sm text-gray-500"
+                      >
                         No relatives added yet
                       </td>
                     </tr>
@@ -459,7 +521,9 @@ const MemberForm = ({
                 <div className="flex flex-col gap-4">
                   <div className="grid grid-cols-1 gap-4">
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">First name</label>
+                      <label className="text-sm font-medium text-gray-700">
+                        First name
+                      </label>
                       <input
                         className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                         type="text"
@@ -470,7 +534,9 @@ const MemberForm = ({
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Second name</label>
+                      <label className="text-sm font-medium text-gray-700">
+                        Second name
+                      </label>
                       <input
                         className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                         type="text"
@@ -481,7 +547,9 @@ const MemberForm = ({
                       />
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Last name</label>
+                      <label className="text-sm font-medium text-gray-700">
+                        Last name
+                      </label>
                       <input
                         className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                         type="text"
@@ -495,14 +563,18 @@ const MemberForm = ({
 
                   <div className="grid grid-cols-1 gap-4">
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Relation</label>
+                      <label className="text-sm font-medium text-gray-700">
+                        Relation
+                      </label>
                       <select
                         name="relation_type"
                         value={relativeFormData.relation_type}
                         onChange={handleRelativeChange}
                         className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="" disabled>Select relation</option>
+                        <option value="" disabled>
+                          Select relation
+                        </option>
                         <option>Mother</option>
                         <option>Father</option>
                         <option>Sister</option>
@@ -513,14 +585,18 @@ const MemberForm = ({
                       </select>
                     </div>
                     <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Status</label>
+                      <label className="text-sm font-medium text-gray-700">
+                        Status
+                      </label>
                       <select
                         name="status"
                         value={relativeFormData.status}
                         onChange={handleRelativeChange}
                         className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="" disabled>Select status</option>
+                        <option value="" disabled>
+                          Select status
+                        </option>
                         <option>Alive</option>
                         <option>Deceased</option>
                         <option>Sick</option>
@@ -559,9 +635,9 @@ const MemberForm = ({
                   Are you sure you want to delete this relative?
                 </p>
                 <div className="modal-action">
-                  <button 
+                  <button
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                    onClick={cancelDelete} 
+                    onClick={cancelDelete}
                     type="button"
                   >
                     Cancel
@@ -592,7 +668,11 @@ const MemberForm = ({
             disabled={isSubmitting}
             type="submit"
           >
-            {isSubmitting ? "Processing..." : type === "create" ? "Create Member" : "Update Member"}
+            {isSubmitting
+              ? "Processing..."
+              : type === "create"
+              ? "Create Member"
+              : "Update Member"}
           </button>
         </div>
       </form>

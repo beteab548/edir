@@ -22,7 +22,8 @@ export const memberSchema = z.object({
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),
   phone_number: z.string().min(1, { message: "Phone number is required!" }),
 
-  // document: z.string().optional(),
+  document: z.string().optional(),
+  image_url: z.string().optional(),
   remark: z.string().optional(),
 
   status: z.enum(["Active", "Inactive"], { message: "Status is required!" }),
