@@ -1,31 +1,31 @@
-import prisma from '@/lib/prisma';
-import { Decimal } from '@prisma/client/runtime/library';
+import prisma from "@/lib/prisma";
+import { Decimal } from "@prisma/client/runtime/library";
 
 class PaymentProcessingError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'PaymentProcessingError';
+    this.name = "PaymentProcessingError";
   }
 }
 
 class ValidationError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'ValidationError';
+    this.name = "ValidationError";
   }
 }
 
 class NotFoundError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'NotFoundError';
+    this.name = "NotFoundError";
   }
 }
 
 interface ApplyCatchUpPaymentParams {
   memberId: number;
   contributionId: number;
-  paidAmount: Decimal;
+  paidAmount: number;
   paymentMethod: string;
   documentReference?: string;
 }
@@ -34,24 +34,26 @@ export async function applyCatchUpPayment({
   memberId,
   contributionId,
   paidAmount,
-  paymentMethod = 'Cash',
-  documentReference = '-',
-}: ApplyCatchUpPaymentParams): Promise<Array<{
-  month: Date;
-  paid: number;
-  type: string;
-}>> {
+  paymentMethod = "Cash",
+  documentReference = "-",
+}: ApplyCatchUpPaymentParams): Promise<
+  Array<{
+    month: Date;
+    paid: number;
+    type: string;
+  }>
+> {
   // Input validation
   if (!memberId || !contributionId) {
-    throw new ValidationError('Member ID and Contribution ID are required');
+    throw new ValidationError("Member ID and Contribution ID are required");
   }
 
-  if (paidAmount.lessThanOrEqualTo(0)) {
-    throw new ValidationError('Paid amount must be greater than zero');
+  if (paidAmount < 0) {
+    throw new ValidationError("Paid amount must be greater than zero");
   }
 
   if (!paymentMethod) {
-    throw new ValidationError('Payment method is required');
+    throw new ValidationError("Payment method is required");
   }
 
   try {
@@ -67,25 +69,34 @@ export async function applyCatchUpPayment({
 
       // Verify contribution exists
       const contribution = await tx.contribution.findUnique({
-        where: { id: contributionId },
+        where: {
+          member_id_contribution_type_id: {
+            member_id: memberId,
+            contribution_type_id: contributionId,
+          },
+        },
         include: { contributionType: true },
       });
-
+console.log("found contribution is",contribution);
       if (!contribution) {
-        throw new NotFoundError(`Contribution with ID ${contributionId} not found`);
+        throw new NotFoundError(
+          `Contribution with ID ${contributionId} not found`
+        );
       }
-
+      console.log("where values are", memberId, contributionId);
       const schedules = await tx.contributionSchedule.findMany({
         where: {
           member_id: memberId,
-          contribution_id: contributionId,
+          contribution_id: contribution.id,
           is_paid: false,
         },
-        orderBy: { month: 'asc' },
+        orderBy: { month: "asc" },
       });
-
+      console.log("scheduels are", schedules);
       if (schedules.length === 0) {
-        throw new PaymentProcessingError('No unpaid schedules found for this member and contribution');
+        throw new PaymentProcessingError(
+          "No unpaid schedules found for this member and contribution"
+        );
       }
 
       let remaining = new Decimal(paidAmount);
@@ -95,16 +106,14 @@ export async function applyCatchUpPayment({
         const monthlyAmount = contribution.amount;
 
         try {
-          // Check for penalty on this schedule's month
+          // Fetch penalty for this schedule month if exists and unresolved
           const penalty = await tx.penalty.findFirst({
             where: {
               member_id: memberId,
-              contribution_id: contributionId,
+              contribution_id: contribution.id,
               resolved_at: null,
-              missed_months: {
-                some: {
-                  month: sched.month.toISOString().slice(0, 7),
-                },
+              contributionSchedule: {
+                month: sched.month,
               },
             },
           });
@@ -115,7 +124,7 @@ export async function applyCatchUpPayment({
           if (penalty && remaining.greaterThanOrEqualTo(penaltyAmount)) {
             await tx.payment.create({
               data: {
-                contribution_id: contributionId,
+                contribution_id: contribution.id,
                 member_id: memberId,
                 payment_date: new Date(),
                 payment_month: sched.month.toISOString().slice(0, 7),
@@ -134,7 +143,7 @@ export async function applyCatchUpPayment({
             payments.push({
               month: sched.month,
               paid: penaltyAmount.toNumber(),
-              type: 'penalty',
+              type: "penalty",
             });
           }
 
@@ -142,7 +151,7 @@ export async function applyCatchUpPayment({
           if (remaining.greaterThanOrEqualTo(monthlyAmount)) {
             await tx.payment.create({
               data: {
-                contribution_id: contributionId,
+                contribution_id: contribution.id,
                 member_id: memberId,
                 payment_date: new Date(),
                 payment_month: sched.month.toISOString().slice(0, 7),
@@ -154,20 +163,24 @@ export async function applyCatchUpPayment({
 
             await tx.contributionSchedule.update({
               where: { id: sched.id },
-              data: { is_paid: true, paid_at: new Date() },
+              data: {
+                is_paid: true,
+                paid_at: new Date(),
+                paid_amount: monthlyAmount,
+              },
             });
 
             remaining = remaining.minus(monthlyAmount);
             payments.push({
               month: sched.month,
               paid: monthlyAmount.toNumber(),
-              type: 'contribution_full',
+              type: "contribution_full",
             });
           } else if (remaining.greaterThan(0)) {
-            // Partial contribution payment (after penalty is cleared)
+            // Partial contribution payment (after penalty cleared)
             await tx.payment.create({
               data: {
-                contribution_id: contributionId,
+                contribution_id: contribution.id,
                 member_id: memberId,
                 payment_date: new Date(),
                 payment_month: sched.month.toISOString().slice(0, 7),
@@ -177,7 +190,6 @@ export async function applyCatchUpPayment({
               },
             });
 
-            // <=== THIS IS THE IMPORTANT FIX ===>
             await tx.contributionSchedule.update({
               where: { id: sched.id },
               data: {
@@ -186,21 +198,23 @@ export async function applyCatchUpPayment({
                 },
               },
             });
+
             payments.push({
               month: sched.month,
               paid: remaining.toNumber(),
-              type: 'contribution_partial',
+              type: "contribution_partial",
             });
             remaining = new Decimal(0);
             break;
           }
         } catch (error) {
           throw new PaymentProcessingError(
-            `Failed to process payment for month ${sched.month.toISOString()}: ${error instanceof Error ? error.message : String(error)}`
+            `Failed to process payment for month ${sched.month.toISOString()}: ${
+              error instanceof Error ? error.message : String(error)
+            }`
           );
         }
       }
-
       // Update Balance
       try {
         const totalPaid = payments.reduce((acc, p) => acc + p.paid, 0);
@@ -209,7 +223,7 @@ export async function applyCatchUpPayment({
           where: {
             member_id_contribution_id: {
               member_id: memberId,
-              contribution_id: contributionId,
+              contribution_id: contribution.id,
             },
           },
         });
@@ -226,29 +240,39 @@ export async function applyCatchUpPayment({
           await tx.balance.create({
             data: {
               member_id: memberId,
-              contribution_id: contributionId,
+              contribution_id: contribution.id,
               amount: new Decimal(0).minus(totalPaid),
             },
           });
         }
       } catch (error) {
         throw new PaymentProcessingError(
-          `Failed to update balance: ${error instanceof Error ? error.message : String(error)}`
+          `Failed to update balance: ${
+            error instanceof Error ? error.message : String(error)
+          }`
         );
       }
 
       return payments;
     });
   } catch (error) {
-    if (error instanceof ValidationError || error instanceof NotFoundError || error instanceof PaymentProcessingError) {
+    if (
+      error instanceof ValidationError ||
+      error instanceof NotFoundError ||
+      error instanceof PaymentProcessingError
+    ) {
       throw error; // Re-throw our custom errors
     }
 
     if (error instanceof Error) {
-      throw new PaymentProcessingError(`Database operation failed: ${error.message}`);
+      throw new PaymentProcessingError(
+        `Database operation failed: ${error.message}`
+      );
     }
 
-    throw new PaymentProcessingError('Unknown error occurred during payment processing');
+    throw new PaymentProcessingError(
+      "Unknown error occurred during payment processing"
+    );
   }
 }
 

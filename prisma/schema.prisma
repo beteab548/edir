@@ -76,7 +76,7 @@ model ContributionType {
   id             Int           @id @default(autoincrement())
   name           String        @unique
   amount         Decimal
-  penalty_amount Decimal?      @default(0) //this should be required chnage later
+  penalty_amount Decimal?      @default(0) 
   is_active      Boolean       @default(true)
   is_for_all     Boolean       @default(false)
   created_at     DateTime      @default(now())
@@ -118,7 +118,7 @@ model Penalty {
   id                      Int                  @id @default(autoincrement())
   member_id               Int
   contribution_id         Int
-  contribution_schedule_id Int                  // new foreign key
+  contribution_schedule_id Int               
 
   member                 Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contribution           Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)

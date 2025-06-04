@@ -7,7 +7,7 @@ export default async function ContributionPage() {
   const data = await prisma.contributionType.findMany();
   const safeContributions = data.map((c) => ({
     ...c,
-    amount: c.amount.toNumber(),
+    amount: Number(c.amount),
   }));
 generateContributionSchedulesForAllActiveMembers()
   return (

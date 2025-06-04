@@ -10,7 +10,10 @@ import InputField from "../InputField";
 import SelectField from "../SelectField";
 import { toast } from "react-toastify";
 import { createPaymentAction } from "@/lib/actions";
-import { paymentFormSchema,PaymentFormSchemaType } from "@/lib/formValidationSchemas";
+import {
+  paymentFormSchema,
+  PaymentFormSchemaType,
+} from "@/lib/formValidationSchemas";
 type ContributionType = {
   id: number;
   amount: number;
@@ -89,7 +92,7 @@ export default function ContributionTemplate({
     try {
       const transformedData = {
         ...data,
-        paid_amount: new Prisma.Decimal(data.paid_amount),
+        paid_amount: Number(data.paid_amount),
         payment_date: new Date(data.payment_date),
       };
       console.log("✅ Transformed Data to Submit:", transformedData);
@@ -97,7 +100,7 @@ export default function ContributionTemplate({
         { success: false, error: false },
         transformedData
       );
-   
+
       if (!res.success) {
         return toast.error("failed to create paymnet!");
       }

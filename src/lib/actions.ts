@@ -246,7 +246,7 @@ export const updateContribution = async (
     is_active: boolean;
     is_for_all: boolean;
     member_ids?: number[];
-    mode: "Recurring" | "OneTimeWindow"|"OpenEndedRecurring";
+    mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
     penalty_amount: number;
     period_months?: number | null;
   }
@@ -278,7 +278,8 @@ export const updateContribution = async (
         is_for_all: data.is_for_all,
         mode: data.mode,
         penalty_amount: data.penalty_amount,
-        period_months: data.mode === "OneTimeWindow" ? data.period_months : null,
+        period_months:
+          data.mode === "OneTimeWindow" ? data.period_months : null,
       },
     });
 
@@ -395,9 +396,6 @@ export const updateContribution = async (
   }
 };
 
-
-
-
 export const createContributionType = async (data: {
   name: string;
   amount: number;
@@ -447,7 +445,8 @@ export const createContributionType = async (data: {
         start_date: startDate,
         end_date: endDate,
         mode: data.mode,
-        period_months: data.mode === "OneTimeWindow" ? data.period_months : null,
+        period_months:
+          data.mode === "OneTimeWindow" ? data.period_months : null,
       },
     });
 
@@ -471,7 +470,7 @@ export const createContributionType = async (data: {
           type_name: contributionType.name,
           amount: contributionType.amount,
           start_date: contributionType.start_date!,
-          end_date: contributionType.end_date, 
+          end_date: contributionType.end_date,
         })),
       });
     }
@@ -483,7 +482,6 @@ export const createContributionType = async (data: {
   }
 };
 
-
 export const deleteContributionType = async (id: number) => {
   try {
     await prisma.contributionType.delete({ where: { id } });
@@ -494,7 +492,7 @@ export const deleteContributionType = async (id: number) => {
   }
 };
 type Payment = {
-  paid_amount: Prisma.Decimal;
+  paid_amount: Number;
   payment_date: Date;
   contribution_id: string;
   contribution_type: string;
@@ -508,13 +506,13 @@ export const createPaymentAction = async (
   currentState: CurrentState,
   data: Payment
 ) => {
+  console.log("sent paymnet data is",data);
   try {
-    //check if that contribution type exists
     const currentContributionId = Number(data.contribution_id);
     const currentMemberId = Number(data.member_id);
-    const paymentMonth = data.payment_month;
-    const paymentAmount = data.paid_amount;
+    const paymentAmount = Number(data.paid_amount);
     const paymentReceipt = data.receipt;
+    const paymentMethod = data.payment_method || "Cash";
 
     const contributionExists = await prisma.contributionType.findUnique({
       where: { id: currentContributionId },
@@ -522,14 +520,14 @@ export const createPaymentAction = async (
     if (!contributionExists) {
       return { success: false, message: "Contribution Type Doesn't Exist!" };
     }
-    //check if that member exists
-    const MemberExists = await prisma.member.findUnique({
+
+    const memberExists = await prisma.member.findUnique({
       where: { id: currentMemberId },
     });
-    if (!MemberExists) {
+    if (!memberExists) {
       return { success: false, message: "Member Doesn't Exist!" };
     }
-    //check if that contribution exists for that member
+
     const currentMemberContribution = await prisma.contribution.findUnique({
       where: {
         member_id_contribution_type_id: {
@@ -538,20 +536,20 @@ export const createPaymentAction = async (
         },
       },
     });
-    // applyCatchUpPayment(
-    //   currentMemberId,
-    //   currentContributionId,
-    //   paymentAmount,
-    //   paymentMonth,
-    //   paymentReceipt
-    // );
     if (!currentMemberContribution) {
-      return { success: false, message: "Contribution Doesn't Exist!" };
+      return { success: false, message: "Member Contribution Doesn't Exist!" };
     }
-    //
+    const payments = await applyCatchUpPayment({
+      memberId: currentMemberId,
+      contributionId: currentContributionId,
+      paidAmount: paymentAmount,
+      paymentMethod,
+      documentReference: paymentReceipt || "-",
+    });
+    console.log("payments are ", payments);
     return { success: true };
-  } catch (err) {
-    // console.error(err);
+  } catch (error) {
+    console.log(error);
     return { success: false };
   }
 };
