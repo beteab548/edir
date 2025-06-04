@@ -234,7 +234,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
     });
   }
 
-  const today = addMonths(new Date(), 0); //this is where i adjust the value of the day to test penalty genertaion
+  const today = addMonths(new Date(), 1); //this is where i adjust the value of the day to test penalty genertaion
 
   const unpaidSchedules = await prisma.contributionSchedule.findMany({
     where: { is_paid: false },

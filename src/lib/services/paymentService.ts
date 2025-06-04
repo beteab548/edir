@@ -43,7 +43,6 @@ export async function applyCatchUpPayment({
     type: string;
   }>
 > {
-  // Input validation
   if (!memberId || !contributionId) {
     throw new ValidationError("Member ID and Contribution ID are required");
   }
@@ -58,16 +57,9 @@ export async function applyCatchUpPayment({
 
   try {
     return await prisma.$transaction(async (tx) => {
-      // Verify member exists
-      const member = await tx.member.findUnique({
-        where: { id: memberId },
-      });
+      const member = await tx.member.findUnique({ where: { id: memberId } });
+      if (!member) throw new NotFoundError(`Member ${memberId} not found`);
 
-      if (!member) {
-        throw new NotFoundError(`Member with ID ${memberId} not found`);
-      }
-
-      // Verify contribution exists
       const contribution = await tx.contribution.findUnique({
         where: {
           member_id_contribution_type_id: {
@@ -77,13 +69,10 @@ export async function applyCatchUpPayment({
         },
         include: { contributionType: true },
       });
-console.log("found contribution is",contribution);
       if (!contribution) {
-        throw new NotFoundError(
-          `Contribution with ID ${contributionId} not found`
-        );
+        throw new NotFoundError(`Contribution ${contributionId} not found`);
       }
-      console.log("where values are", memberId, contributionId);
+console.log('contribution type is', contribution.type_name);
       const schedules = await tx.contributionSchedule.findMany({
         where: {
           member_id: memberId,
@@ -92,11 +81,9 @@ console.log("found contribution is",contribution);
         },
         orderBy: { month: "asc" },
       });
-      console.log("scheduels are", schedules);
+
       if (schedules.length === 0) {
-        throw new PaymentProcessingError(
-          "No unpaid schedules found for this member and contribution"
-        );
+        throw new PaymentProcessingError("No unpaid schedules found");
       }
 
       let remaining = new Decimal(paidAmount);
@@ -106,7 +93,6 @@ console.log("found contribution is",contribution);
         const monthlyAmount = contribution.amount;
 
         try {
-          // Fetch penalty for this schedule month if exists and unresolved
           const penalty = await tx.penalty.findFirst({
             where: {
               member_id: memberId,
@@ -120,13 +106,13 @@ console.log("found contribution is",contribution);
 
           const penaltyAmount = penalty ? penalty.amount : new Decimal(0);
 
-          // Pay penalty first if exists and funds available
           if (penalty && remaining.greaterThanOrEqualTo(penaltyAmount)) {
             await tx.payment.create({
               data: {
                 contribution_id: contribution.id,
                 member_id: memberId,
                 payment_date: new Date(),
+                payment_type:"penalty",
                 payment_month: sched.month.toISOString().slice(0, 7),
                 paid_amount: penaltyAmount,
                 payment_method: paymentMethod,
@@ -136,7 +122,7 @@ console.log("found contribution is",contribution);
 
             await tx.penalty.update({
               where: { id: penalty.id },
-              data: { resolved_at: new Date() },
+              data: { resolved_at: new Date(), is_paid: true },
             });
 
             remaining = remaining.minus(penaltyAmount);
@@ -147,15 +133,22 @@ console.log("found contribution is",contribution);
             });
           }
 
-          // Then pay contribution
-          if (remaining.greaterThanOrEqualTo(monthlyAmount)) {
+          // ---- Updated Contribution Payment Logic ----
+          const currentPaidAmount = sched.paid_amount ?? new Decimal(0);
+          const unpaidAmount = monthlyAmount.minus(currentPaidAmount);
+
+          if (unpaidAmount.lte(0)) continue; // already paid
+
+          if (remaining.greaterThanOrEqualTo(unpaidAmount)) {
+            // Full or top-up to full
             await tx.payment.create({
               data: {
                 contribution_id: contribution.id,
                 member_id: memberId,
                 payment_date: new Date(),
+                payment_type:contribution.type_name,
                 payment_month: sched.month.toISOString().slice(0, 7),
-                paid_amount: monthlyAmount,
+                paid_amount: unpaidAmount,
                 payment_method: paymentMethod,
                 document: documentReference,
               },
@@ -166,23 +159,30 @@ console.log("found contribution is",contribution);
               data: {
                 is_paid: true,
                 paid_at: new Date(),
-                paid_amount: monthlyAmount,
+                paid_amount: currentPaidAmount.plus(unpaidAmount),
               },
             });
 
-            remaining = remaining.minus(monthlyAmount);
             payments.push({
               month: sched.month,
-              paid: monthlyAmount.toNumber(),
-              type: "contribution_full",
+              paid: unpaidAmount.toNumber(),
+              type: currentPaidAmount.gt(0)
+                ? "contribution_partial_to_full"
+                : "contribution_full",
             });
+
+            remaining = remaining.minus(unpaidAmount);
           } else if (remaining.greaterThan(0)) {
-            // Partial contribution payment (after penalty cleared)
+            // Partial
+            const newPaidAmount = currentPaidAmount.plus(remaining);
+            const fullyPaid = newPaidAmount.greaterThanOrEqualTo(monthlyAmount);
+
             await tx.payment.create({
               data: {
                 contribution_id: contribution.id,
                 member_id: memberId,
                 payment_date: new Date(),
+                payment_type:contribution.type_name,
                 payment_month: sched.month.toISOString().slice(0, 7),
                 paid_amount: remaining,
                 payment_method: paymentMethod,
@@ -193,9 +193,11 @@ console.log("found contribution is",contribution);
             await tx.contributionSchedule.update({
               where: { id: sched.id },
               data: {
-                paid_amount: {
-                  increment: remaining,
-                },
+                paid_amount: newPaidAmount,
+                ...(fullyPaid && {
+                  is_paid: true,
+                  paid_at: new Date(),
+                }),
               },
             });
 
@@ -204,21 +206,22 @@ console.log("found contribution is",contribution);
               paid: remaining.toNumber(),
               type: "contribution_partial",
             });
+
             remaining = new Decimal(0);
             break;
           }
         } catch (error) {
           throw new PaymentProcessingError(
-            `Failed to process payment for month ${sched.month.toISOString()}: ${
+            `Failed to process ${sched.month.toISOString()}: ${
               error instanceof Error ? error.message : String(error)
             }`
           );
         }
       }
-      // Update Balance
+
+      // Update balance
       try {
         const totalPaid = payments.reduce((acc, p) => acc + p.paid, 0);
-
         const balanceRecord = await tx.balance.findUnique({
           where: {
             member_id_contribution_id: {
@@ -236,7 +239,6 @@ console.log("found contribution is",contribution);
             },
           });
         } else {
-          // create new balance if none exists
           await tx.balance.create({
             data: {
               member_id: memberId,
@@ -261,18 +263,14 @@ console.log("found contribution is",contribution);
       error instanceof NotFoundError ||
       error instanceof PaymentProcessingError
     ) {
-      throw error; // Re-throw our custom errors
+      throw error;
     }
 
     if (error instanceof Error) {
-      throw new PaymentProcessingError(
-        `Database operation failed: ${error.message}`
-      );
+      throw new PaymentProcessingError(`Database failed: ${error.message}`);
     }
 
-    throw new PaymentProcessingError(
-      "Unknown error occurred during payment processing"
-    );
+    throw new PaymentProcessingError("Unknown payment error occurred");
   }
 }
 

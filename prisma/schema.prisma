@@ -96,6 +96,7 @@ payment_month String
 paid_amount Decimal
 payment_method String
 document String
+payment_type String
 contribution Contribution @relation(fields:[contribution_id],references: [id],onDelete: Cascade)
 member Member @relation(fields:[member_id],references: [id],onDelete: Cascade)
 created_at DateTime @default(now())
@@ -123,13 +124,13 @@ model Penalty {
   member                 Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contribution           Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
   contributionSchedule   ContributionSchedule  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
-
   reason                 String
   amount                 Decimal
   missed_month           DateTime
   is_paid                Boolean
   applied_at             DateTime             @default(now())
   resolved_at            DateTime?
+  
 }
 
 model ContributionSchedule {
@@ -143,9 +144,6 @@ model ContributionSchedule {
   penalties       Penalty[]  
   contribution    Contribution  @relation(fields: [contribution_id], references: [id],onDelete: Cascade)
 }
-
-
-
 
 enum Sex {
   Male   
