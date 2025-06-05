@@ -51,8 +51,7 @@ const MemberForm = ({
   const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
     null
   );
-  const [imageReady, setImageReady] = useState(false);
-
+  const [imageReady, setImageReady] = useState(true);
   const [tabIndex, setTabIndex] = useState(0);
   const [state, formAction] = useFormState(
     type === "create" ? createMember : updateMember,
@@ -65,11 +64,9 @@ const MemberForm = ({
   }, [data, reset]);
   console.log("state url is", image);
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
-    console.log("newImage is", newImage);
-    // Only delete the previous image *after* the new one is uploaded
-    if (data?.image_url && data?.image_url !== newImage.Url) {
-      console.log("exisiting image data to be delted", data?.image_url);
-      try {
+    try {
+      if (data?.image_url && data?.image_url !== newImage.Url) {
+        console.log("existing image data to be deleted", data?.image_url);
         await fetch("/api/imageKit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -78,25 +75,23 @@ const MemberForm = ({
             fileId: data?.image_file_id,
           }),
         });
-      } catch (err) {
-        console.error("Failed to delete previous image:", err);
       }
-    }
-    console.log("the new image url being set is ", newImage);
-    // Inside getImageUrl
-    setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
+      setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
+    } catch (err) {
+      console.error("Failed to handle image:", err);
+    } 
   };
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
         member: {
           ...formData.member,
-          image_url: image?.Url ?? undefined, // Use null instead of undefined
+          image_url: image?.Url ?? undefined, 
           image_file_id: image?.fileId ?? undefined,
         },
         relatives: relatives,
       };
-      console.log("Submitting:", submissionData); // Verify the data structure
+      console.log("Submitting:", submissionData); 
       formAction(submissionData);
     },
     (errors) => {
@@ -687,9 +682,7 @@ const MemberForm = ({
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            disabled={
-               !imageReady || isSubmitting
-            }
+            disabled={!imageReady || isSubmitting}
             type="submit"
           >
             {isSubmitting

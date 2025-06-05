@@ -35,41 +35,42 @@ export default function UploadFile({
   };
 
   const handleUpload = async () => {
-  if (!selectedFile) return;
-  setLoading(true);
-  setError(null);
-  setImageReady(false); // 👈 Block submit
+    if (!selectedFile) return;
+    setLoading(true);
+    setError(null);
+    setImageReady(false); // 👈 Block submit
 
-  try {
-    const base64 = await convertToBase64(selectedFile);
+    try {
+      const base64 = await convertToBase64(selectedFile);
 
-    const response = await fetch("/api/upload", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        file: base64,
-        fileName: selectedFile.name,
-      }),
-    });
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          file: base64,
+          fileName: selectedFile.name,
+        }),
+      });
 
-    const data = await response.json();
-    if (!response.ok || !data?.Url || !data?.fileId) {
-      throw new Error("Invalid response from server");
+      const data = await response.json();
+      if (!response.ok || !data?.Url || !data?.fileId) {
+        throw new Error("Invalid response from server");
+      }
+
+      setUploadedUrl(data.Url);
+      getImageUrl(data);
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      setImageReady(true);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message);
+      setImageReady(false);
+    } finally {
+      setLoading(false);
     }
-
-    setUploadedUrl(data.Url);
-    getImageUrl(data);
-    setImageReady(true); // ✅ Only ready now
-  } catch (err: any) {
-    console.error(err);
-    setError(err.message);
-    setImageReady(false); // ❌ Something went wrong
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
