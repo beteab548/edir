@@ -84,6 +84,7 @@ model ContributionType {
   created_at     DateTime      @default(now())
   start_date     DateTime?
   end_date       DateTime?
+  months_before_inactivation Int?
   mode           ContributionMode @default(OneTimeWindow) 
   period_months  Int?            
   contributions  Contribution[]
@@ -140,7 +141,7 @@ model ContributionSchedule {
   contribution_id Int
   member_id       Int
   month           DateTime  
-  paid_amount     Decimal   
+  paid_amount     Decimal   @default(0.0)
   is_paid         Boolean    @default(false)
   paid_at         DateTime?
   penalties       Penalty[]  

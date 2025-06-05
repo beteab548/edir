@@ -12,6 +12,10 @@ import { Member } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { ContributionTypeSchema } from "@/lib/formValidationSchemas";
 
+// Update this schema to include months_before_inactivation
+// Only require months_before_inactivation when mode === "OneTimeWindow"
+// And penalty_amount only when mode !== "OneTimeWindow"
+
 type ContributionTypeForm = z.infer<typeof ContributionTypeSchema>;
 
 export default function CreateNewContribution({
@@ -37,6 +41,8 @@ export default function CreateNewContribution({
       mode: "Recurring",
       member_ids: [],
       penalty_amount: 0,
+      months_before_inactivation: undefined,
+      period_months: undefined,
     },
   });
 
@@ -62,18 +68,19 @@ export default function CreateNewContribution({
             ? null
             : undefined,
         period_months:
+          data.mode === "OneTimeWindow" ? Number(data.period_months) : undefined,
+        penalty_amount:
+          data.mode !== "OneTimeWindow" ? data.penalty_amount : undefined,
+        months_before_inactivation:
           data.mode === "OneTimeWindow"
-            ? Number(data.period_months)
+            ? Number(data.months_before_inactivation)
             : undefined,
-        penalty_amount: data.penalty_amount,
       };
-
       const result = await createContributionType(payload);
       if (result.success) {
         toast.success("Contribution type created!");
         reset();
         setSelectedMemberIds([]);
-
         router.refresh();
       } else {
         toast.error("Failed to create contribution type");
@@ -122,19 +129,38 @@ export default function CreateNewContribution({
               }),
             }}
           />
-          <InputField
-            label="Penalty Amount"
-            name="penalty_amount"
-            type="number"
-            register={register}
-            error={errors.penalty_amount}
-            inputProps={{
-              step: "0.01",
-              ...register("penalty_amount", {
-                setValueAs: (v) => (v === "" ? undefined : Number(v)),
-              }),
-            }}
-          />
+
+          {/* Show Penalty Amount or Months Before Inactivation depending on mode */}
+          {mode === "OneTimeWindow" ? (
+            <InputField
+              label="Months Before Inactivation"
+              name="months_before_inactivation"
+              type="number"
+              register={register}
+              error={errors.months_before_inactivation}
+              inputProps={{
+                min: 1,
+                step: 1,
+                ...register("months_before_inactivation", {
+                  setValueAs: (v) => (v === "" ? undefined : Number(v)),
+                }),
+              }}
+            />
+          ) : (
+            <InputField
+              label="Penalty Amount"
+              name="penalty_amount"
+              type="number"
+              register={register}
+              error={errors.penalty_amount}
+              inputProps={{
+                step: "0.01",
+                ...register("penalty_amount", {
+                  setValueAs: (v) => (v === "" ? undefined : Number(v)),
+                }),
+              }}
+            />
+          )}
 
           <div className="form-control">
             <label className="label">

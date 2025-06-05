@@ -201,6 +201,7 @@ export type PaymentFormSchemaType = {
   payment_date: string;
 };
 
+
 export const ContributionTypeSchema = z
   .object({
     name: z.string().min(1, "Name is required"),
@@ -209,7 +210,12 @@ export const ContributionTypeSchema = z
     start_date: z.string().optional(),
     end_date: z.string().optional(),
     period_months: z.number().optional(),
-    penalty_amount: z.number().min(0, "Penalty must be 0 or more"),
+    penalty_amount: z.number().min(0, "Penalty must be 0 or more").optional(),
+    months_before_inactivation: z
+      .number()
+      .int()
+      .positive()
+      .optional(),
     is_for_all: z.boolean(),
     is_active: z.boolean(),
     member_ids: z.array(z.number()).optional(),
@@ -230,6 +236,13 @@ export const ContributionTypeSchema = z
           path: ["end_date"],
         });
       }
+      if (data.penalty_amount === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Penalty amount is required for Recurring mode",
+          path: ["penalty_amount"],
+        });
+      }
     } else if (data.mode === "OneTimeWindow") {
       if (typeof data.period_months !== "number" || data.period_months <= 0) {
         ctx.addIssue({
@@ -238,12 +251,28 @@ export const ContributionTypeSchema = z
           path: ["period_months"],
         });
       }
+      if (typeof data.months_before_inactivation !== "number" || data.months_before_inactivation <= 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Months before inactivation must be a positive number for OneTimeWindow mode",
+          path: ["months_before_inactivation"],
+        });
+      }
+      // penalty_amount should not be required here, you can optionally clear it
+      data.penalty_amount = undefined;
     } else if (data.mode === "OpenEndedRecurring") {
       if (!data.start_date) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Start date is required for OpenEndedRecurring mode",
           path: ["start_date"],
+        });
+      }
+      if (data.penalty_amount === undefined) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Penalty amount is required for OpenEndedRecurring mode",
+          path: ["penalty_amount"],
         });
       }
       // Explicitly clear period_months for OpenEndedRecurring

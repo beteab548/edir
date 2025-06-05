@@ -42,12 +42,8 @@ export const createMember = async (
         kebele: data.member.kebele,
         zone_or_district: data.member.zone_or_district,
         member_type: data.member.member_type,
-        ...(data.member.document
-          ? { document: data.member.document }
-          : {}),
-        ...(data.member.image_url
-          ? { image_url: data.member.image_url }
-          : {}),
+        ...(data.member.document ? { document: data.member.document } : {}),
+        ...(data.member.image_url ? { image_url: data.member.image_url } : {}),
         ...(data.member.image_file_id
           ? { image_file_id: data.member.image_file_id }
           : {}),
@@ -134,15 +130,13 @@ export const updateMember = async (
           ...(data.member.end_date && {
             end_date: new Date(data.member.end_date),
           }),
-            ...(data.member.document
-          ? { document: data.member.document }
-          : {}),
-        ...(data.member.image_url
-          ? { image_url: data.member.image_url }
-          : {}),
-        ...(data.member.image_file_id
-          ? { image_file_id: data.member.image_file_id }
-          : {}),
+          ...(data.member.document ? { document: data.member.document } : {}),
+          ...(data.member.image_url
+            ? { image_url: data.member.image_url }
+            : {}),
+          ...(data.member.image_file_id
+            ? { image_file_id: data.member.image_file_id }
+            : {}),
           phone_number: data.member.phone_number,
           wereda: data.member.wereda,
           kebele: data.member.kebele,
@@ -161,19 +155,20 @@ export const updateMember = async (
         });
 
         if (!existingContributions) {
-          const activeContributionTypes = await prisma.contributionType.findMany({
-            where: {
-              is_active: true,
-              is_for_all: true,
-            },
-            select: {
-              id: true,
-              name: true,
-              amount: true,
-              start_date: true,
-              end_date: true,
-            },
-          });
+          const activeContributionTypes =
+            await prisma.contributionType.findMany({
+              where: {
+                is_active: true,
+                is_for_all: true,
+              },
+              select: {
+                id: true,
+                name: true,
+                amount: true,
+                start_date: true,
+                end_date: true,
+              },
+            });
 
           const contributionsData = activeContributionTypes.map((type) => ({
             contribution_type_id: type.id,
@@ -215,7 +210,6 @@ export const updateMember = async (
     return { success: false, error: true };
   }
 };
-
 
 export const deleteMember = async (
   currentState: CurrentState,
@@ -394,11 +388,10 @@ export const updateContribution = async (
     return { success: false, error: true };
   }
 };
-
 export const createContributionType = async (data: {
   name: string;
   amount: number;
-  penalty_amount: number;
+  penalty_amount: number | undefined;
   start_date: Date | undefined;
   end_date: Date | null | undefined;
   period_months: number | undefined;
@@ -406,6 +399,7 @@ export const createContributionType = async (data: {
   member_ids?: number[];
   is_active?: boolean;
   mode: ContributionMode;
+  months_before_inactivation: number | undefined;
 }) => {
   console.log(data);
   try {
@@ -413,13 +407,24 @@ export const createContributionType = async (data: {
     let endDate: Date | null = null;
 
     if (data.mode === "OneTimeWindow" && data.period_months !== undefined) {
+      // For OneTimeWindow, start date is now, end date is start + period_months
       startDate = new Date();
       endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + data.period_months);
-      endDate.setDate(0); // Set to the last day of the target month
+      endDate.setDate(0); // last day of the previous month after adding period_months
+
+      if (
+        typeof data.months_before_inactivation !== "number" ||
+        data.months_before_inactivation <= 0
+      ) {
+        throw new Error("months_before_inactivation must be a positive number for OneTimeWindow mode.");
+      }
     } else if (data.mode === "Recurring") {
       if (!data.start_date || !data.end_date) {
         throw new Error("Recurring mode requires start and end dates.");
+      }
+      if (data.penalty_amount === undefined) {
+        throw new Error("Recurring mode requires penalty_amount.");
       }
       startDate = new Date(data.start_date);
       endDate = new Date(data.end_date);
@@ -427,18 +432,22 @@ export const createContributionType = async (data: {
       if (!data.start_date) {
         throw new Error("OpenEndedRecurring mode requires a start date.");
       }
+      if (data.penalty_amount === undefined) {
+        throw new Error("OpenEndedRecurring mode requires penalty_amount.");
+      }
       startDate = new Date(data.start_date);
-      endDate = null; // No end date for open-ended
+      endDate = null; // open-ended
     } else {
       throw new Error("Invalid configuration for contribution period.");
     }
 
-    // Create the contribution type
+    // Create the contribution type record
     const contributionType = await prisma.contributionType.create({
       data: {
         name: data.name,
         amount: data.amount,
-        penalty_amount: data.penalty_amount,
+        penalty_amount:
+          data.mode === "OneTimeWindow" ? null : data.penalty_amount,
         is_active: data.is_active ?? true,
         is_for_all: data.is_for_all,
         start_date: startDate,
@@ -446,9 +455,14 @@ export const createContributionType = async (data: {
         mode: data.mode,
         period_months:
           data.mode === "OneTimeWindow" ? data.period_months : null,
+        months_before_inactivation:
+          data.mode === "OneTimeWindow"
+            ? data.months_before_inactivation
+            : null,
       },
     });
 
+    // Prepare member IDs list
     let memberIds: number[] = [];
 
     if (data.is_for_all) {
@@ -481,6 +495,7 @@ export const createContributionType = async (data: {
   }
 };
 
+
 export const deleteContributionType = async (id: number) => {
   try {
     await prisma.contributionType.delete({ where: { id } });
@@ -505,7 +520,7 @@ export const createPaymentAction = async (
   currentState: CurrentState,
   data: Payment
 ) => {
-  console.log("sent paymnet data is",data);
+  console.log("sent paymnet data is", data);
   try {
     const currentContributionId = Number(data.contribution_id);
     const currentMemberId = Number(data.member_id);
