@@ -3,17 +3,14 @@
 import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
-import { Prisma } from "@prisma/client";
 import { applyCatchUpPayment } from "./services/paymentService";
 import { ContributionMode } from "@prisma/client"; // Assuming you have this enum defined
-
 type CurrentState = { success: boolean; error: boolean };
 export const createMember = async (
   currentState: CurrentState,
   data: CombinedSchema
 ) => {
   console.log("in create", data);
-
   try {
     const createdMember = await prisma.member.create({
       data: {
@@ -51,9 +48,11 @@ export const createMember = async (
         ...(data.member.image_url
           ? { image_url: data.member.image_url }
           : {}),
+        ...(data.member.image_file_id
+          ? { image_file_id: data.member.image_file_id }
+          : {}),
         sex: data.member.sex,
         status: data.member.status,
-
         remark: data.member.remark ?? "",
         relative: {
           create: data.relatives?.map((relative: RelativeSchema) => ({
@@ -135,6 +134,15 @@ export const updateMember = async (
           ...(data.member.end_date && {
             end_date: new Date(data.member.end_date),
           }),
+            ...(data.member.document
+          ? { document: data.member.document }
+          : {}),
+        ...(data.member.image_url
+          ? { image_url: data.member.image_url }
+          : {}),
+        ...(data.member.image_file_id
+          ? { image_file_id: data.member.image_file_id }
+          : {}),
           phone_number: data.member.phone_number,
           wereda: data.member.wereda,
           kebele: data.member.kebele,
@@ -225,15 +233,7 @@ export const deleteMember = async (
     return { success: false, error: true };
   }
 };
-// type ContributionType={
-//   id:number
-//   type_name:string
-//   amount:number
-//   start_date:Date
-//   end_date:Date
-//   is_active:boolean
-//   is_for_all:boolean
-// }
+
 export const updateContribution = async (
   currentState: CurrentState,
   data: {

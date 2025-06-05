@@ -5,9 +5,11 @@ import imageCompression from "browser-image-compression";
 export default function UploadFile({
   text,
   getImageUrl,
+  setImageReady,
 }: {
   text: string;
-  getImageUrl: (url: string) => void;
+  getImageUrl: (newImage: { Url: string; fileId: string }) => void;
+  setImageReady: (ready: boolean) => void;
 }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
@@ -33,39 +35,41 @@ export default function UploadFile({
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
-    setLoading(true);
-    setError(null);
+  if (!selectedFile) return;
+  setLoading(true);
+  setError(null);
+  setImageReady(false); // 👈 Block submit
 
-    try {
-      const base64 = await convertToBase64(selectedFile);
+  try {
+    const base64 = await convertToBase64(selectedFile);
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          file: base64,
-          fileName: selectedFile.name,
-        }),
-      });
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        file: base64,
+        fileName: selectedFile.name,
+      }),
+    });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Upload failed");
-      }
-
-      setUploadedUrl(data.url);
-      getImageUrl(data.url); // 🔥 Call the parent-provided function
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    const data = await response.json();
+    if (!response.ok || !data?.Url || !data?.fileId) {
+      throw new Error("Invalid response from server");
     }
-  };
+
+    setUploadedUrl(data.Url);
+    getImageUrl(data);
+    setImageReady(true); // ✅ Only ready now
+  } catch (err: any) {
+    console.error(err);
+    setError(err.message);
+    setImageReady(false); // ❌ Something went wrong
+  } finally {
+    setLoading(false);
+  }
+};
 
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -75,9 +79,8 @@ export default function UploadFile({
       reader.onerror = reject;
     });
   };
-
   return (
-    <div style={{ maxWidth: 500,  }}>
+    <div style={{ maxWidth: 500 }}>
       <h1>Upload Optimized {text === "profile" ? "Image" : "Document"}</h1>
       <input type="file" accept="image/*" onChange={handleFileChange} />
       <br />
@@ -93,7 +96,7 @@ export default function UploadFile({
       {error && <p style={{ color: "red" }}>{error}</p>}
       {uploadedUrl && (
         <>
-          <h2>Result:</h2>
+          <h2>Your Image</h2>
           <img src={uploadedUrl} alt="Uploaded" style={{ maxWidth: "100%" }} />
         </>
       )}

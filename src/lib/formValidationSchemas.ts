@@ -24,6 +24,7 @@ export const memberSchema = z.object({
 
   document: z.string().optional(),
   image_url: z.string().optional(),
+  image_file_id: z.string().optional(),
   remark: z.string().optional(),
 
   status: z.enum(["Active", "Inactive"], { message: "Status is required!" }),

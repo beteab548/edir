@@ -14,9 +14,12 @@ export async function POST(req: NextRequest) {
     const { file, fileName } = body;
 
     if (!file || !fileName) {
-      return new Response(JSON.stringify({ message: "Missing file or fileName" }), {
-        status: 400,
-      });
+      return new Response(
+        JSON.stringify({ message: "Missing file or fileName" }),
+        {
+          status: 400,
+        }
+      );
     }
 
     const result = await imagekit.upload({
@@ -24,13 +27,19 @@ export async function POST(req: NextRequest) {
       fileName,
     });
 
-    return new Response(JSON.stringify({ url: result.url }), {
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({ Url: result.url, fileId: result.fileId }),
+      {
+        status: 200,
+      }
+    );
   } catch (error: any) {
     console.error("Upload error:", error);
-    return new Response(JSON.stringify({ message: "Upload failed", error: error.message }), {
-      status: 500,
-    });
+    return new Response(
+      JSON.stringify({ message: "Upload failed", error: error.message }),
+      {
+        status: 500,
+      }
+    );
   }
 }

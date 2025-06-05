@@ -11,9 +11,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import UploadFile from "../upload/page";
 import Image from "next/image";
-
 const tabs = ["Member Info", "Address", "Relatives"];
-
 const MemberForm = ({
   type,
   data,
@@ -25,7 +23,6 @@ const MemberForm = ({
 }) => {
   const formatDate = (dateStr?: string) =>
     dateStr ? new Date(dateStr).toISOString().split("T")[0] : "";
-
   const [relatives, setRelatives] = useState<any[]>(data?.relatives || []);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(
@@ -43,7 +40,6 @@ const MemberForm = ({
     status: "Alive",
     relation_type: "Mother",
   });
-
   const {
     register,
     handleSubmit,
@@ -52,39 +48,61 @@ const MemberForm = ({
   } = useForm<CombinedSchema>({
     resolver: zodResolver(combinedSchema),
   });
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
+    null
+  );
+  const [imageReady, setImageReady] = useState(false);
 
   const [tabIndex, setTabIndex] = useState(0);
   const [state, formAction] = useFormState(
     type === "create" ? createMember : updateMember,
     { success: false, error: false }
   );
-
   useEffect(() => {
     if (data) {
       setRelatives(data.relative || []);
     }
   }, [data, reset]);
-  const getImageUrl = (url: string) => {
-    console.log("Image uploaded to:", url);
-    setImageUrl(url);
+  console.log("state url is", image);
+  const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
+    console.log("newImage is", newImage);
+    // Only delete the previous image *after* the new one is uploaded
+    if (data?.image_url && data?.image_url !== newImage.Url) {
+      console.log("exisiting image data to be delted", data?.image_url);
+      try {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.image_url,
+            fileId: data?.image_file_id,
+          }),
+        });
+      } catch (err) {
+        console.error("Failed to delete previous image:", err);
+      }
+    }
+    console.log("the new image url being set is ", newImage);
+    // Inside getImageUrl
+    setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
   };
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
         member: {
           ...formData.member,
-          image_url: imageUrl ?? undefined,
+          image_url: image?.Url ?? undefined, // Use null instead of undefined
+          image_file_id: image?.fileId ?? undefined,
         },
         relatives: relatives,
       };
+      console.log("Submitting:", submissionData); // Verify the data structure
       formAction(submissionData);
     },
     (errors) => {
       console.error("Validation errors:", errors);
     }
   );
-
   const router = useRouter();
   useEffect(() => {
     if (state.success) {
@@ -170,7 +188,7 @@ const MemberForm = ({
     setConfirmDeleteIndex(null);
     deleteDialogRef.current?.close();
   };
-
+  console.log(imageReady);
   return (
     <div className="max-h-[80vh] overflow-y-auto">
       <div className="sticky top-0 bg-white pt-4 pb-2 z-10">
@@ -397,7 +415,11 @@ const MemberForm = ({
             )}
 
             {/* Upload file component - pass getImageUrl to update imageUrl */}
-            <UploadFile text="profile" getImageUrl={getImageUrl} />
+            <UploadFile
+              text="profile"
+              getImageUrl={getImageUrl}
+              setImageReady={setImageReady}
+            />
             <div className="md:col-span-2 flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">
                 Remark
@@ -665,7 +687,9 @@ const MemberForm = ({
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            disabled={isSubmitting}
+            disabled={
+               !imageReady || isSubmitting
+            }
             type="submit"
           >
             {isSubmitting
@@ -679,5 +703,4 @@ const MemberForm = ({
     </div>
   );
 };
-
 export default MemberForm;
