@@ -16,7 +16,14 @@ export default async function ContributionPage({ params }: PageProps) {
   const types = await prisma.contributionType.findUnique({
     where: { name: updatedType ?? undefined },
   });
-  console.log("current contribution type is ", types);
+  const payments = await prisma.payment.findMany({
+    where: { payment_type: types?.name ?? undefined },
+    include: { member: true },
+     orderBy: {
+    payment_date: "desc",
+  },
+  });
+  console.log(payments);
   if (type) {
     const members = await prisma.member.findMany({
       where: {
@@ -41,6 +48,7 @@ export default async function ContributionPage({ params }: PageProps) {
         <ContributionTemplate
           ContributionType={updatedTypes}
           members={members}
+          payments={payments}
         />
       </div>
     );

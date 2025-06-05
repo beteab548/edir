@@ -62,7 +62,7 @@ const MemberForm = ({
       setRelatives(data.relative || []);
     }
   }, [data, reset]);
-  console.log("state url is", image);
+  console.log("data", data);
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
     try {
       if (data?.image_url && data?.image_url !== newImage.Url) {
@@ -79,19 +79,19 @@ const MemberForm = ({
       setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
     } catch (err) {
       console.error("Failed to handle image:", err);
-    } 
+    }
   };
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
         member: {
           ...formData.member,
-          image_url: image?.Url ?? undefined, 
+          image_url: image?.Url ?? undefined,
           image_file_id: image?.fileId ?? undefined,
         },
         relatives: relatives,
       };
-      console.log("Submitting:", submissionData); 
+      console.log("Submitting:", submissionData);
       formAction(submissionData);
     },
     (errors) => {
@@ -292,7 +292,7 @@ const MemberForm = ({
               <select
                 {...register("member.status")}
                 className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
-                defaultValue={data?.first_name}
+                defaultValue={data?.status ?? "Active"}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>

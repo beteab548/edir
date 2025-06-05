@@ -1,6 +1,6 @@
 "use client";
 
-import { Member, Payment } from "@prisma/client";
+import { Member } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -24,18 +24,31 @@ type ContributionType = {
   is_for_all: boolean;
   is_active: Boolean;
 };
+type Payment = {
+  id: number;
+  document: string;
+  contribution_id: number;
+  member_id: number;
+  payment_method: string;
+  payment_month: string;
+  paid_amount: Prisma.Decimal;
+  payment_date: Date;
+  created_at: Date;
+  payment_type: string;
+  member: Member;
+};
 
 export default function ContributionTemplate({
   ContributionType,
   members,
+  payments,
 }: {
   ContributionType: ContributionType;
   members: Member[];
+  payments: Payment[];
 }) {
-  const [payments, setPayments] = useState<Payment[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [Allmembers, setMembers] = useState<Member[]>(members);
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(false);
@@ -60,7 +73,10 @@ export default function ContributionTemplate({
 
   useEffect(() => {
     if (selectedContributionTypeFormat?.amount) {
-      setValue("paid_amount", selectedContributionTypeFormat?.amount.toString());
+      setValue(
+        "paid_amount",
+        selectedContributionTypeFormat?.amount.toString()
+      );
       setValue("contribution_type", selectedContributionTypeFormat.name);
     }
   }, [selectedContributionTypeFormat, setValue]);
@@ -178,7 +194,11 @@ export default function ContributionTemplate({
                 {payments.map((payment: Payment) => (
                   <tr key={payment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {payment.id}
+                      {payment?.id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {payment?.member?.first_name}{" "}
+                      {payment?.member?.second_name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {payment.paid_amount.toString()} birr
@@ -297,14 +317,16 @@ export default function ContributionTemplate({
                           min: "0",
                           placeholder: "0.00",
                           required: true,
-                          className: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                          className:
+                            "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
                         }}
                       />
                       <input
                         type="hidden"
                         {...register("contribution_id")}
                         value={
-                          selectedContributionTypeFormat?.id || ContributionType.id
+                          selectedContributionTypeFormat?.id ||
+                          ContributionType.id
                         }
                       />
                       <InputField
@@ -314,7 +336,8 @@ export default function ContributionTemplate({
                         inputProps={{
                           value: selectedContributionTypeFormat?.name,
                           disabled: true,
-                          className: "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
+                          className:
+                            "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
                         }}
                       />
                       <InputField
@@ -325,7 +348,8 @@ export default function ContributionTemplate({
                         inputProps={{
                           disabled: true,
                           required: true,
-                          className: "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
+                          className:
+                            "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
                         }}
                       />
                       <SelectField
@@ -349,7 +373,8 @@ export default function ContributionTemplate({
                           { value: "December", label: "December" },
                         ]}
                         selectProps={{
-                          className: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                          className:
+                            "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
                         }}
                       />
                       <div className="col-span-2">
@@ -388,7 +413,8 @@ export default function ContributionTemplate({
                           { value: "Mobile banking", label: "Mobile banking" },
                         ]}
                         selectProps={{
-                          className: "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                          className:
+                            "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
                         }}
                       />
                     </div>
