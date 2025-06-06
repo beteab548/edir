@@ -36,6 +36,7 @@ export default async function ContributionPage({ params }: PageProps) {
       },
       include: {
         Contribution: true,
+        Balance:true
       },
     });
     if (!types) {

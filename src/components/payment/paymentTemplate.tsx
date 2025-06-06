@@ -1,5 +1,4 @@
 "use client";
-
 import { Member } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
@@ -14,7 +13,6 @@ import {
   paymentFormSchema,
   PaymentFormSchemaType,
 } from "@/lib/formValidationSchemas";
-
 type ContributionType = {
   id: number;
   amount: number;
