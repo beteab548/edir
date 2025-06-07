@@ -12,12 +12,7 @@ import { Member } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { ContributionTypeSchema } from "@/lib/formValidationSchemas";
 
-// Update this schema to include months_before_inactivation
-// Only require months_before_inactivation when mode === "OneTimeWindow"
-// And penalty_amount only when mode !== "OneTimeWindow"
-
 type ContributionTypeForm = z.infer<typeof ContributionTypeSchema>;
-
 export default function CreateNewContribution({
   members,
 }: {
@@ -68,7 +63,9 @@ export default function CreateNewContribution({
             ? null
             : undefined,
         period_months:
-          data.mode === "OneTimeWindow" ? Number(data.period_months) : undefined,
+          data.mode === "OneTimeWindow"
+            ? Number(data.period_months)
+            : undefined,
         penalty_amount:
           data.mode !== "OneTimeWindow" ? data.penalty_amount : undefined,
         months_before_inactivation:

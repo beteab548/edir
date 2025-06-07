@@ -21,12 +21,17 @@ export const memberSchema = z.object({
   kebele: z.string().optional(),
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),
   phone_number: z.string().min(1, { message: "Phone number is required!" }),
-
+  phone_number_2: z.string().optional(),
+  bank_name: z.string().optional(),
+  bank_account_number: z.string().optional(),
+  bank_account_name: z.string().optional(),
+  email: z.string().email({ message: "Invalid email address!" }).optional(),
+  email_2: z.string().email({ message: "Invalid email address!" }).optional(),
   document: z.string().optional(),
+  document_file_id: z.string().optional(),
   image_url: z.string().optional(),
   image_file_id: z.string().optional(),
   remark: z.string().optional(),
-
   status: z.enum(["Active", "Inactive"], { message: "Status is required!" }),
   member_type: z.enum(["New", "Existing"], { message: "member status is required!" }),
 });

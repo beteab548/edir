@@ -13,6 +13,7 @@ import {
   paymentFormSchema,
   PaymentFormSchemaType,
 } from "@/lib/formValidationSchemas";
+import UploadFile from "../FileUpload/page";
 type ContributionType = {
   id: number;
   amount: number;
@@ -50,6 +51,10 @@ export default function ContributionTemplate({
   const [searchResults, setSearchResults] = useState<Member[]>([]);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(false);
+  const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
+    null
+  );
+  const [imageReady, setImageReady] = useState(true);
   const router = useRouter();
   const [selectedContributionTypeFormat, setSelectedContributionTypeFormat] =
     useState<ContributionType>(ContributionType);
@@ -68,7 +73,13 @@ export default function ContributionTemplate({
       payment_date: new Date().toISOString().split("T")[0],
     },
   });
-
+  const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
+    try {
+      setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
+    } catch (err) {
+      console.error("Failed to handle receipt:", err);
+    }
+  };
   useEffect(() => {
     if (selectedContributionTypeFormat?.amount) {
       setValue(
@@ -110,6 +121,7 @@ export default function ContributionTemplate({
     try {
       const transformedData = {
         ...data,
+        receipt: image?.Url,
         paid_amount: Number(data.paid_amount),
         payment_date: new Date(data.payment_date),
       };
@@ -134,7 +146,7 @@ export default function ContributionTemplate({
       setValue("contribution_type", ContributionType.name);
       setValue("paid_amount", ContributionType.amount.toString());
       setValue("payment_date", new Date().toISOString().split("T")[0]);
-      
+
       setShowAddModal(false);
       router.refresh();
     } catch (error) {
@@ -145,7 +157,6 @@ export default function ContributionTemplate({
   const onError = (errors: any) => {
     console.log("❌ Zod Validation Errors:", errors);
   };
-
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -367,29 +378,11 @@ export default function ContributionTemplate({
                             "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
                         }}
                       />
-                     
                       <div className="col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Upload receipt
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="file"
-                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) {
-                                setValue("receipt", file.name);
-                              }
-                            }}
-                          />
-                        </div>
-                        <InputField
-                          label="receipt"
-                          name="receipt"
-                          register={register}
-                          error={errors.receipt}
-                          hidden
+                        <UploadFile
+                          text="receipt"
+                          getImageUrl={getImageUrl}
+                          setImageReady={setImageReady}
                         />
                       </div>
                       <SelectField
@@ -425,7 +418,8 @@ export default function ContributionTemplate({
                       <button
                         type="submit"
                         className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        disabled={loading}
+                        disabled={!imageReady || loading}
+                        //when disabled, show loading spinner
                       >
                         {loading ? (
                           <span className="flex items-center justify-center">

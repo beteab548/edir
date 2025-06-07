@@ -9,22 +9,27 @@ const imagekit = new ImageKit({
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json(); // use fetch API to get JSON body
+    const body = await req.json();
 
-    const { file, fileName } = body;
+    const { file, fileName, type } = body;
 
-    if (!file || !fileName) {
+    if (!file || !fileName || !type) {
       return new Response(
-        JSON.stringify({ message: "Missing file or fileName" }),
+        JSON.stringify({ message: "Missing file, fileName, or type" }),
         {
           status: 400,
         }
       );
     }
 
+    // Sanitize and define the folder path
+    const allowedTypes = ["profile", "receipt", "document"];
+    const folder = allowedTypes.includes(type) ? `/${type}` : "/others";
+
     const result = await imagekit.upload({
       file,
       fileName,
+      folder,
     });
 
     return new Response(

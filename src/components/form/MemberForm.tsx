@@ -9,8 +9,9 @@ import { useFormState } from "react-dom";
 import { createMember, updateMember } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import UploadFile from "../upload/page";
+import UploadFile from "../FileUpload/page";
 import Image from "next/image";
+import SelectField from "../SelectField";
 const tabs = ["Member Info", "Address", "Relatives"];
 const MemberForm = ({
   type,
@@ -52,6 +53,11 @@ const MemberForm = ({
     null
   );
   const [imageReady, setImageReady] = useState(true);
+  const [document, SetDocumentUrl] = useState<{
+    Url: string;
+    fileId: string;
+  } | null>(null);
+  const [documentReady, setDocumentReady] = useState(true);
   const [tabIndex, setTabIndex] = useState(0);
   const [state, formAction] = useFormState(
     type === "create" ? createMember : updateMember,
@@ -81,11 +87,30 @@ const MemberForm = ({
       console.error("Failed to handle image:", err);
     }
   };
+  const getDocument = async (newImage: { Url: string; fileId: string }) => {
+    try {
+      if (data?.document && data?.document !== document?.Url) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.document,
+            fileId: data?.document_file_id,
+          }),
+        });
+      }
+      SetDocumentUrl({ Url: newImage.Url, fileId: newImage.fileId });
+    } catch (err) {
+      console.error("Failed to handle image:", err);
+    }
+  };
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
         member: {
           ...formData.member,
+          document: document?.Url ?? undefined,
+          document_file_id: document?.fileId ?? undefined,
           image_url: image?.Url ?? undefined,
           image_file_id: image?.fileId ?? undefined,
         },
@@ -372,6 +397,27 @@ const MemberForm = ({
               defaultValue={data?.phone_number}
             />
             <InputField
+              label="Second Phone Number "
+              name="member.phone_number_2"
+              register={register}
+              error={errors.member?.phone_number_2}
+              defaultValue={data?.phone_number_2}
+            />
+            <InputField
+              label="Email "
+              name="member.email"
+              register={register}
+              error={errors.member?.email}
+              defaultValue={data?.email}
+            />
+            <InputField
+              label="Email "
+              name="member.email_2"
+              register={register}
+              error={errors.member?.email_2}
+              defaultValue={data?.email_2}
+            />
+            <InputField
               label="Wereda"
               name="member.wereda"
               register={register}
@@ -391,6 +437,79 @@ const MemberForm = ({
               register={register}
               error={errors.member?.kebele}
               defaultValue={data?.kebele}
+            />
+            {/* //bank name should be a select field with options  */}
+
+            <SelectField
+              label="Bank Name"
+              name="member.bank_name"
+              register={register}
+              error={errors.member?.bank_name}
+              options={[
+                { value: "", label: "Select Bank Name" },
+                {
+                  value: "Commercial Bank of Ethiopia",
+                  label: "Commercial Bank of Ethiopia",
+                },
+                { value: "Dashen Bank", label: "Dashen Bank" },
+                { value: "Awash Bank", label: "Awash Bank" },
+                {
+                  value: "Nib International Bank",
+                  label: "Nib International Bank",
+                },
+                { value: "Wegagen Bank", label: "Wegagen Bank" },
+                { value: "United Bank", label: "United Bank" },
+                { value: "Bank of Abyssinia", label: "Bank of Abyssinia" },
+                { value: "Zemen Bank", label: "Zemen Bank" },
+                { value: "Berhan Bank", label: "Berhan Bank" },
+                {
+                  value: "Cooperative Bank of Oromia",
+                  label: "Cooperative Bank of Oromia",
+                },
+                {
+                  value: "Lion International Bank",
+                  label: "Lion International Bank",
+                },
+                { value: "Enat Bank", label: "Enat Bank" },
+                {
+                  value: "Addis International Bank",
+                  label: "Addis International Bank",
+                },
+                {
+                  value: "Bunna International Bank",
+                  label: "Bunna International Bank",
+                },
+                { value: "Debub Global Bank", label: "Debub Global Bank" },
+                { value: "Abay Bank", label: "Abay Bank" },
+                {
+                  value: "Oromia International Bank",
+                  label: "Oromia International Bank",
+                },
+                { value: "Hijra Bank", label: "Hijra Bank" },
+                { value: "ZamZam Bank", label: "ZamZam Bank" },
+                { value: "Goh Betoch Bank", label: "Goh Betoch Bank" },
+                { value: "Siinqee Bank", label: "Siinqee Bank" },
+                { value: "Shabelle Bank", label: "Shabelle Bank" },
+                { value: "Tsedey Bank", label: "Tsedey Bank" },
+              ]}
+              selectProps={{
+                className:
+                  "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+              }}
+            />
+            <InputField
+              label="Bank Account Number"
+              name="member.bank_account_number"
+              register={register}
+              error={errors.member?.bank_account_number}
+              defaultValue={data?.bank_account_number}
+            />
+            <InputField
+              label="Bank Account Name"
+              name="member.bank_account_name"
+              register={register}
+              error={errors.member?.bank_account_name}
+              defaultValue={data?.bank_account_name}
             />
 
             {/* Image preview if imageUrl exists */}
@@ -414,6 +533,28 @@ const MemberForm = ({
               text="profile"
               getImageUrl={getImageUrl}
               setImageReady={setImageReady}
+            />
+            {/* Image preview if imageUrl exists */}
+            {data?.document && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700">
+                  Current Document
+                </label>
+                <Image
+                  width={200}
+                  height={200}
+                  src={data?.document ?? "profile image"}
+                  alt="Profile preview"
+                  className="mt-2 h-32 w-32 object-cover rounded-full border"
+                />
+              </div>
+            )}
+
+            {/* Upload file component - pass getImageUrl to update imageUrl */}
+            <UploadFile
+              text="document"
+              getImageUrl={getDocument}
+              setImageReady={setDocumentReady}
             />
             <div className="md:col-span-2 flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">
@@ -682,7 +823,7 @@ const MemberForm = ({
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-            disabled={!imageReady || isSubmitting}
+            disabled={!imageReady || !documentReady || isSubmitting}
             type="submit"
           >
             {isSubmitting

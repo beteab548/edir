@@ -33,10 +33,16 @@ model Member {
   sex          Sex
   phone_number String  @unique
   member_type MemberType 
-  // phone_number_2 String @unique @default("none")
+  phone_number_2 String @unique @default("null")
+  bank_name    String?
+  bank_account_number String? @unique
+  bank_account_name String?
+  email        String? @unique
+  email_2      String? @unique
   image_url String?
   image_file_id String?
   document     String?
+  document_file_id     String?
   remark String?
   status Status 
   relative  Relative[]

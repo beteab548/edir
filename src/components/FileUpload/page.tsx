@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import imageCompression from "browser-image-compression";
+import Image from "next/image";
 
 export default function UploadFile({
   text,
@@ -51,9 +52,11 @@ export default function UploadFile({
         body: JSON.stringify({
           file: base64,
           fileName: selectedFile.name,
+          type: ["profile", "receipt", "document"].includes(text)
+            ? text
+            : "others",
         }),
       });
-
       const data = await response.json();
       if (!response.ok || !data?.Url || !data?.fileId) {
         throw new Error("Invalid response from server");
@@ -80,26 +83,55 @@ export default function UploadFile({
       reader.onerror = reject;
     });
   };
+
   return (
-    <div style={{ maxWidth: 500 }}>
-      <h1>Upload Optimized {text === "profile" ? "Image" : "Document"}</h1>
-      <input type="file" accept="image/*" onChange={handleFileChange} />
-      <br />
+    <div className="max-w-md mx-auto p-6 border rounded-xl shadow-md bg-white space-y-4">
+      <h1 className="text-xl font-semibold text-gray-800">
+        Upload Optimized {text === "profile" ? "Image" : text}
+      </h1>
+
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+      />
+
       {selectedFile && (
-        <p>
-          Ready to upload: {selectedFile.name} (
+        <p className="text-sm text-gray-600">
+          Ready to upload:{" "}
+          <span className="font-medium">{selectedFile.name}</span> (
           {(selectedFile.size / 1024).toFixed(1)} KB)
         </p>
       )}
-      <button onClick={handleUpload} disabled={loading || !selectedFile}>
+
+      <button
+        onClick={handleUpload}
+        disabled={loading || !selectedFile}
+        className={`w-full py-2 px-4 text-white rounded-lg transition ${
+          loading || !selectedFile
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
+      >
         {loading ? "Uploading..." : "Upload"}
       </button>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
       {uploadedUrl && (
-        <>
-          <h2>Your Image</h2>
-          <img src={uploadedUrl} alt="Uploaded" style={{ maxWidth: "100%" }} />
-        </>
+        <div className="mt-4">
+          <h2 className="text-lg font-medium text-gray-800">Your Image</h2>
+          <Image
+            width={50}
+            height={50}
+            unoptimized
+            loading="lazy"
+            src={uploadedUrl}
+            alt="Uploaded"
+            className="mt-2 w-24 h-auto rounded border"
+          />
+        </div>
       )}
     </div>
   );
