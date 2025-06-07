@@ -7,7 +7,7 @@ import {
 
 const test = true;
 const realCurrentDate = new Date();
-const simulatedMonthsToAdd = 4;
+const simulatedMonthsToAdd = 5;
 const currentMonthStart = normalizeToMonthStart(
   test ? addMonths(realCurrentDate, simulatedMonthsToAdd) : realCurrentDate
 );

@@ -124,6 +124,17 @@ export default function ContributionTemplate({
       }
       toast.success("Payment created successfully!");
       reset();
+      // Reset form values
+      setSelectedMember(null);
+      setSearchTerm("");
+      setSearchResults([]);
+      // Close the modal
+      setSelectedContributionTypeFormat(ContributionType);
+      setValue("contribution_id", ContributionType.id.toString());
+      setValue("contribution_type", ContributionType.name);
+      setValue("paid_amount", ContributionType.amount.toString());
+      setValue("payment_date", new Date().toISOString().split("T")[0]);
+      
       setShowAddModal(false);
       router.refresh();
     } catch (error) {
@@ -356,31 +367,7 @@ export default function ContributionTemplate({
                             "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
                         }}
                       />
-                      <SelectField
-                        label="Month Being Paid For"
-                        name="payment_month"
-                        register={register}
-                        error={errors.payment_month}
-                        options={[
-                          { value: "", label: "Select a month" },
-                          { value: "January", label: "January" },
-                          { value: "February", label: "February" },
-                          { value: "March", label: "March" },
-                          { value: "April", label: "April" },
-                          { value: "May", label: "May" },
-                          { value: "June", label: "June" },
-                          { value: "July", label: "July" },
-                          { value: "August", label: "August" },
-                          { value: "September", label: "September" },
-                          { value: "October", label: "October" },
-                          { value: "November", label: "November" },
-                          { value: "December", label: "December" },
-                        ]}
-                        selectProps={{
-                          className:
-                            "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
-                        }}
-                      />
+                     
                       <div className="col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Upload receipt

@@ -184,7 +184,6 @@ export const paymentFormSchema = z.object({
   contribution_type: z.string(),
   member_id: z.number().min(1, "Member is required"),
   payment_method: z.string().min(1, "Payment method is required"),
-  payment_month: z.string().min(1, "Payment month is required"),
   receipt: z.string().min(1, "Receipt is required"),
   paid_amount: z.string(),
   payment_date: z.string(),
@@ -195,7 +194,6 @@ export type PaymentFormSchemaType = {
   contribution_type: string;
   member_id: number;
   payment_method: string;
-  payment_month: string;
   receipt: string;
   paid_amount: string;
   payment_date: string;

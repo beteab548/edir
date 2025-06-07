@@ -512,7 +512,6 @@ type Payment = {
   contribution_type: string;
   member_id: number;
   payment_method: string;
-  payment_month: string;
   receipt: string;
 };
 
