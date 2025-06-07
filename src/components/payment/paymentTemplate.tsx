@@ -1,5 +1,5 @@
 "use client";
-import { Member } from "@prisma/client";
+import { Contribution, Member } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -23,19 +23,17 @@ type ContributionType = {
   is_for_all: boolean;
   is_active: Boolean;
 };
-type Payment = {
-  id: number;
-  document: string;
-  contribution_id: number;
-  member_id: number;
-  payment_method: string;
-  payment_month: string;
-  paid_amount: Prisma.Decimal;
-  payment_date: Date;
-  created_at: Date;
-  payment_type: string;
-  member: Member;
-};
+type PaymentRecord = {
+    id: number;
+    member_id: number;
+    contribution_id: number;
+    payment_method: string;
+    payment_date: Date;
+    document_reference: string;
+    total_paid_amount: Prisma.Decimal;
+    member: Member;
+    contribution: Contribution;
+}
 
 export default function ContributionTemplate({
   ContributionType,
@@ -44,7 +42,7 @@ export default function ContributionTemplate({
 }: {
   ContributionType: ContributionType;
   members: Member[];
-  payments: Payment[];
+  payments: PaymentRecord[];
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -214,7 +212,7 @@ export default function ContributionTemplate({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {payments.map((payment: Payment) => (
+                {payments.map((payment: PaymentRecord) => (
                   <tr key={payment.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {payment?.id}
@@ -224,16 +222,16 @@ export default function ContributionTemplate({
                       {payment?.member?.second_name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.paid_amount.toString()} birr
+                      {payment.total_paid_amount.toString()} birr
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.payment_type}
+                      {payment.contribution.type_name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(payment.payment_date).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.payment_month}
+                      {payment.payment_method}
                     </td>
                   </tr>
                 ))}

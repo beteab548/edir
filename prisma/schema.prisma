@@ -50,6 +50,8 @@ model Member {
   Balance Balance[]
   Penalty Penalty[]
   Contribution Contribution[]
+
+  PaymentRecord PaymentRecord[]
 }
 
 model Relative{
@@ -78,6 +80,7 @@ model Contribution {
   Balance            Balance[]
   Penalty            Penalty[]
   ContributionSchedule ContributionSchedule[]
+  PaymentRecord PaymentRecord[]
 }
 
 model ContributionType {
@@ -96,20 +99,39 @@ model ContributionType {
   contributions  Contribution[]
 }
 
-model Payment {
-id Int @id @default(autoincrement())
-contribution_id Int
-member_id Int 
-payment_date DateTime @default(now())
-payment_month String
-paid_amount Decimal
-payment_method String
-document String
-payment_type String
-contribution Contribution @relation(fields:[contribution_id],references: [id],onDelete: Cascade)
-member Member @relation(fields:[member_id],references: [id],onDelete: Cascade)
-created_at DateTime @default(now())
+model PaymentRecord {
+  id                Int       @id @default(autoincrement())
+  member_id         Int
+  contribution_id   Int
+  payment_date      DateTime
+  payment_method    String
+  document_reference String   @default("-")
+  total_paid_amount Decimal   // ✅ Add this field
+
+  member            Member    @relation(fields: [member_id], references: [id])
+  contribution      Contribution @relation(fields: [contribution_id], references: [id])
+  payments          Payment[]    // One-to-many
+
+  created_at        DateTime @default(now())
 }
+
+
+model Payment {
+  id                      Int       @id @default(autoincrement())
+  payment_record_id       Int
+  member_id               Int
+  contribution_id         Int
+  contribution_schedule_id Int?     // Can be null for future use or general cases
+  payment_type            String    // "penalty", "OneTimeWindow", etc.
+  payment_month           String    // Format: "YYYY-MM"
+  paid_amount             Decimal
+  paymentRecord           PaymentRecord @relation(fields: [payment_record_id], references: [id])
+  member                  Member        @relation(fields: [member_id], references: [id])
+  contribution            Contribution  @relation(fields: [contribution_id], references: [id])
+  contributionSchedule    ContributionSchedule? @relation(fields: [contribution_schedule_id], references: [id])
+}
+
+
 
 model Balance {
   id                Int          @id @default(autoincrement())
@@ -152,6 +174,8 @@ model ContributionSchedule {
   paid_at         DateTime?
   penalties       Penalty[]  
   contribution    Contribution  @relation(fields: [contribution_id], references: [id],onDelete: Cascade)
+
+  Payment Payment[]
 }
 
 enum Sex {

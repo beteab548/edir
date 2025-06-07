@@ -48,7 +48,7 @@ export async function applyCatchUpPayment({
     throw new ValidationError("Member ID and Contribution ID are required");
   }
 
-  if (paidAmount < 0) {
+  if (paidAmount <= 0) {
     throw new ValidationError("Paid amount must be greater than zero");
   }
 
@@ -74,15 +74,25 @@ export async function applyCatchUpPayment({
         throw new NotFoundError(`Contribution ${contributionId} not found`);
       }
 
+      let remaining = new Decimal(paidAmount);
       const payments: {
         month: Date;
         paid: number;
         type: string;
       }[] = [];
 
-      let remaining = new Decimal(paidAmount);
+      // Create PaymentRecord (for all payments under this transaction)
+      const paymentRecord = await tx.paymentRecord.create({
+        data: {
+          member_id: memberId,
+          contribution_id: contribution.id,
+          payment_date: new Date(),
+          payment_method: paymentMethod,
+          document_reference: documentReference,
+          total_paid_amount: new Decimal(paidAmount), // ✅ Record total from input
+        },
+      });
 
-      // ----- OneTimeWindow Handling -----
       if (contribution.contributionType.mode === "OneTimeWindow") {
         const schedule = await tx.contributionSchedule.findFirst({
           where: {
@@ -114,19 +124,22 @@ export async function applyCatchUpPayment({
         if (amountToPay.gt(0)) {
           await tx.payment.create({
             data: {
-              contribution_id: contribution.id,
+              payment_record_id: paymentRecord.id,
               member_id: memberId,
-              payment_date: new Date(),
+              contribution_id: contribution.id,
+              contribution_schedule_id: schedule.id,
               payment_type: contribution.contributionType.name,
-              payment_month: new Date().toISOString().slice(0, 7),
+              payment_month: schedule.month.toISOString().slice(0, 7),
               paid_amount: amountToPay,
-              payment_method: paymentMethod,
-              document: documentReference,
             },
           });
 
-          const newTotalPaid = (schedule.paid_amount ?? new Decimal(0)).plus(amountToPay);
-          const isFullyPaid = newTotalPaid.greaterThanOrEqualTo(contribution.amount);
+          const newTotalPaid = (schedule.paid_amount ?? new Decimal(0)).plus(
+            amountToPay
+          );
+          const isFullyPaid = newTotalPaid.greaterThanOrEqualTo(
+            contribution.amount
+          );
 
           await tx.contributionSchedule.update({
             where: { id: schedule.id },
@@ -140,14 +153,13 @@ export async function applyCatchUpPayment({
           });
 
           payments.push({
-            month: new Date(),
+            month: schedule.month,
             paid: amountToPay.toNumber(),
             type: unpaidAmount.lte(amountToPay)
               ? "contribution_full"
               : "contribution_partial",
           });
 
-          // Update balance - ONLY for contribution payments
           const balanceRecord = await tx.balance.findUnique({
             where: {
               member_id_contribution_id: {
@@ -178,10 +190,9 @@ export async function applyCatchUpPayment({
             contribution.contributionType.months_before_inactivation ?? 5;
           const deadlineDate = addMonths(contribution.start_date, graceMonths);
 
-          const totalPaidAfter = alreadyPaid.plus(amountToPay);
           if (
             new Date() > deadlineDate &&
-            totalPaidAfter.lt(contribution.amount)
+            newTotalPaid.lt(contribution.amount)
           ) {
             await tx.member.update({
               where: { id: memberId },
@@ -201,7 +212,7 @@ export async function applyCatchUpPayment({
         return payments;
       }
 
-      // ----- Recurring Handling -----
+      // Recurring
       const schedules = await tx.contributionSchedule.findMany({
         where: {
           member_id: memberId,
@@ -223,6 +234,7 @@ export async function applyCatchUpPayment({
       for (const sched of schedules) {
         if (remaining.lte(0)) break;
 
+        // Penalty first
         const penalty = await tx.penalty.findFirst({
           where: {
             member_id: memberId,
@@ -235,23 +247,26 @@ export async function applyCatchUpPayment({
         });
 
         const penaltyAmount = penalty ? penalty.amount : new Decimal(0);
-        if (penalty && penaltyAmount.gt(0) && remaining.greaterThanOrEqualTo(penaltyAmount)) {
+
+        if (penalty && penaltyAmount.gt(0) && remaining.gte(penaltyAmount)) {
           await tx.payment.create({
             data: {
-              contribution_id: contribution.id,
+              payment_record_id: paymentRecord.id,
               member_id: memberId,
-              payment_date: new Date(),
+              contribution_id: contribution.id,
+              contribution_schedule_id: sched.id,
               payment_type: "penalty",
               payment_month: sched.month.toISOString().slice(0, 7),
               paid_amount: penaltyAmount,
-              payment_method: paymentMethod,
-              document: documentReference,
             },
           });
 
           await tx.penalty.update({
             where: { id: penalty.id },
-            data: { resolved_at: new Date(), is_paid: true },
+            data: {
+              resolved_at: new Date(),
+              is_paid: true,
+            },
           });
 
           payments.push({
@@ -263,11 +278,9 @@ export async function applyCatchUpPayment({
           remaining = remaining.minus(penaltyAmount);
         }
 
+        // Contribution
         const currentPaid = sched.paid_amount ?? new Decimal(0);
         const unpaid = monthlyAmount.minus(currentPaid);
-
-        if (unpaid.lte(0)) continue;
-
         const toPay = Decimal.min(unpaid, remaining);
 
         if (toPay.gt(0)) {
@@ -276,14 +289,13 @@ export async function applyCatchUpPayment({
 
           await tx.payment.create({
             data: {
-              contribution_id: contribution.id,
+              payment_record_id: paymentRecord.id,
               member_id: memberId,
-              payment_date: new Date(),
+              contribution_id: contribution.id,
+              contribution_schedule_id: sched.id,
               payment_type: contribution.type_name,
               payment_month: sched.month.toISOString().slice(0, 7),
               paid_amount: toPay,
-              payment_method: paymentMethod,
-              document: documentReference,
             },
           });
 
@@ -310,7 +322,6 @@ export async function applyCatchUpPayment({
 
           remaining = remaining.minus(toPay);
         }
-        // else skip 0 payment
       }
 
       if (remaining.gt(0)) {
@@ -321,10 +332,13 @@ export async function applyCatchUpPayment({
         });
       }
 
-      // Calculate total contribution payments only (exclude penalties)
+      // Update balance with contribution payments only
       const totalContributionPaid = new Decimal(
         payments
-          .filter((p) => p.type !== "penalty")
+          .filter(
+            (p) =>
+              !p.type.includes("penalty") && !p.type.includes("unallocated")
+          )
           .reduce((acc, p) => acc + p.paid, 0)
       );
 

@@ -16,9 +16,9 @@ export default async function ContributionPage({ params }: PageProps) {
   const types = await prisma.contributionType.findUnique({
     where: { name: updatedType ?? undefined },
   });
-  const payments = await prisma.payment.findMany({
-    where: { payment_type: types?.name ?? undefined },
-    include: { member: true },
+  const payments = await prisma.paymentRecord.findMany({
+    where: { contribution_id: types?.id ?? undefined },
+    include: { member: true,contribution: true },
      orderBy: {
     payment_date: "desc",
   },
