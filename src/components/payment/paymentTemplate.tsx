@@ -24,16 +24,17 @@ type ContributionType = {
   is_active: Boolean;
 };
 type PaymentRecord = {
-    id: number;
-    member_id: number;
-    contribution_id: number;
-    payment_method: string;
-    payment_date: Date;
-    document_reference: string;
-    total_paid_amount: Prisma.Decimal;
-    member: Member;
-    contribution: Contribution;
-}
+  id: number;
+  member_id: number;
+  contribution_id: number;
+  payment_method: string;
+  payment_date: Date;
+  document_reference: string;
+  total_paid_amount: Prisma.Decimal;
+  member: Member;
+  contribution: Contribution;
+  remaining_balance?: Prisma.Decimal | null;
+};
 
 export default function ContributionTemplate({
   ContributionType,
@@ -204,10 +205,13 @@ export default function ContributionTemplate({
                     contribution Type
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date
+                    Payment Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Month
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Balance
                   </th>
                 </tr>
               </thead>
@@ -232,6 +236,13 @@ export default function ContributionTemplate({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {payment.payment_method}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {payment?.remaining_balance !== undefined &&
+                      payment.remaining_balance !== null
+                        ? payment.remaining_balance.toString()
+                        : "N/A"}{" "}
+                      birr
                     </td>
                   </tr>
                 ))}

@@ -103,17 +103,20 @@ model PaymentRecord {
   id                Int       @id @default(autoincrement())
   member_id         Int
   contribution_id   Int
-  payment_date      DateTime
+  payment_date      DateTime  @default(now())
   payment_method    String
   document_reference String   @default("-")
-  total_paid_amount Decimal   // ✅ Add this field
+  
+  total_paid_amount Decimal   // total amount paid in this record
+  remaining_balance Decimal?   // ✅ remaining balance after this payment
 
-  member            Member    @relation(fields: [member_id], references: [id])
+  member            Member      @relation(fields: [member_id], references: [id])
   contribution      Contribution @relation(fields: [contribution_id], references: [id])
-  payments          Payment[]    // One-to-many
+  payments          Payment[]    // linked breakdowns
 
-  created_at        DateTime @default(now())
+  created_at        DateTime    @default(now())
 }
+
 
 
 model Payment {
@@ -147,22 +150,24 @@ model Balance {
 }
 
 model Penalty {
-  id                      Int                  @id @default(autoincrement())
-  member_id               Int
-  contribution_id         Int
-  contribution_schedule_id Int               
+  id                        Int                   @id @default(autoincrement())
+  member_id                 Int
+  contribution_id           Int
+  contribution_schedule_id  Int
 
-  member                 Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
-  contribution           Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
-  contributionSchedule   ContributionSchedule  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
-  reason                 String
-  amount                 Decimal
-  missed_month           DateTime
-  is_paid                Boolean
-  applied_at             DateTime             @default(now())
-  resolved_at            DateTime?
-  
+  member                   Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
+  contribution             Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
+  contributionSchedule     ContributionSchedule  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
+
+  reason                   String
+  amount                   Decimal
+  paid_amount              Decimal               @default(0) // <-- Add this
+  missed_month             DateTime
+  is_paid                  Boolean               @default(false)
+  applied_at               DateTime              @default(now())
+  resolved_at              DateTime?
 }
+
 
 model ContributionSchedule {
   id              Int       @id @default(autoincrement())
