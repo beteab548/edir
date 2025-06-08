@@ -1,8 +1,8 @@
 "use client";
-import { Contribution, Member } from "@prisma/client";
+import { Contribution, Member, Payment } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
@@ -34,6 +34,7 @@ type PaymentRecord = {
   member: Member;
   contribution: Contribution;
   remaining_balance?: Prisma.Decimal | null;
+  payments: Payment[];
 };
 
 export default function ContributionTemplate({
@@ -57,6 +58,7 @@ export default function ContributionTemplate({
   const router = useRouter();
   const [selectedContributionTypeFormat, setSelectedContributionTypeFormat] =
     useState<ContributionType>(ContributionType);
+  const [openPaymentId, setOpenPaymentId] = useState<number | null>(null);
 
   const {
     register,
@@ -104,6 +106,9 @@ export default function ContributionTemplate({
       setSearchResults([]);
     }
   }, [searchTerm, selectedMember, members]);
+  const toggleDetails = (id: number) => {
+    setOpenPaymentId((prev) => (prev === id ? null : id));
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -208,7 +213,7 @@ export default function ContributionTemplate({
                     Payment Date
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Month
+                    Payment Method
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Balance
@@ -216,36 +221,96 @@ export default function ContributionTemplate({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {payments.map((payment: PaymentRecord) => (
-                  <tr key={payment.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {payment?.id}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment?.member?.first_name}{" "}
-                      {payment?.member?.second_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.total_paid_amount.toString()} birr
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.contribution.type_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(payment.payment_date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment.payment_method}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {payment?.remaining_balance !== undefined &&
-                      payment.remaining_balance !== null
-                        ? payment.remaining_balance.toString()
-                        : "N/A"}{" "}
-                      birr
-                    </td>
-                  </tr>
+             {payments.map((payment) => (
+  <React.Fragment key={payment.id}>
+    {/* Main Payment Row */}
+    <tr
+      className="hover:bg-blue-50 transition-colors duration-150 cursor-pointer border-b border-gray-200"
+      onClick={() => toggleDetails(payment.id)}
+    >
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="text-sm font-medium text-gray-900">
+          #{payment.id}
+        </span>
+      </td>
+      <td className="px-6 py-4">
+        <div className="flex items-center">
+          <div className="ml-0">
+            <p className="text-sm font-medium text-gray-900">
+              {payment.member.first_name} {payment.member.second_name}
+            </p>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="px-2 py-1 text-sm font-semibold text-blue-800 bg-blue-100 rounded-full">
+          {payment.total_paid_amount.toString()} birr
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="text-sm text-gray-600">
+          {payment.contribution.type_name}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="text-sm text-gray-600">
+          {new Date(payment.payment_date).toLocaleDateString()}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-green-100 text-green-800">
+          {payment.payment_method}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`text-sm font-medium ${Number(payment.remaining_balance) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+          {payment.remaining_balance?.toString() ?? "N/A"} birr
+        </span>
+      </td>
+    </tr>
+
+    {/* Expanded Details Row */}
+    {openPaymentId === payment.id && (
+      <tr className="bg-gray-50">
+        <td colSpan={7} className="px-6 py-4">
+          <div className="pl-8 pr-4 py-3 bg-white rounded-lg shadow-xs border border-gray-200">
+            <h4 className="text-sm font-semibold text-gray-800 mb-2">
+              Payment Breakdown
+            </h4>
+            {payment.payments.length > 0 ? (
+              <ul className="space-y-2">
+                {payment.payments.map((p) => (
+                  <li key={p.id} className="flex items-start">
+                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 mr-3 mt-0.5 text-xs">
+                      {p.payment_type === "penalty" ? "!" : "$"}
+                    </span>
+                    <div className="flex-1">
+                      <p className="text-sm text-gray-700">
+                        {p.payment_type === "penalty"
+                          ? `Penalty Payment`
+                          : `Monthly Contribution`}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Amount: {Number(p.paid_amount)} birr
+                        {p.payment_type !== "penalty" && ` • Month: ${p.payment_month}`}
+                        {p.payment_type === "penalty" && ` • Month: ${p.payment_month}`}
+                      </p>
+                    </div>
+                  </li>
                 ))}
+              </ul>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-gray-500">No payment details available</p>
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    )}
+  </React.Fragment>
+))}
+
                 {payments.length === 0 && (
                   <tr>
                     <td

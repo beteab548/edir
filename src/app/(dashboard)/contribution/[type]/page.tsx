@@ -18,7 +18,7 @@ export default async function ContributionPage({ params }: PageProps) {
   });
   const payments = await prisma.paymentRecord.findMany({
     where: { contribution_id: types?.id ?? undefined },
-    include: { member: true,contribution: true },
+    include: { member: true,contribution: true,payments: true },
      orderBy: {
     payment_date: "desc",
   },

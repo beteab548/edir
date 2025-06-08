@@ -1,9 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  addMonths,
-  isAfter,
-  differenceInMonths,
-} from "date-fns";
+import { addMonths, isAfter, differenceInMonths } from "date-fns";
 
 const test = true;
 const realCurrentDate = new Date();
@@ -91,7 +87,10 @@ export async function generateContributionSchedulesForAllActiveMembers() {
       if (contributionType.mode === "Recurring") {
         if (!contributionType.end_date) continue;
 
-        const months = generateMonthlyDates(startDate, contributionType.end_date);
+        const months = generateMonthlyDates(
+          startDate,
+          contributionType.end_date
+        );
 
         const existingSchedules = await prisma.contributionSchedule.findMany({
           where: {
@@ -130,10 +129,15 @@ export async function generateContributionSchedulesForAllActiveMembers() {
         }
         continue;
       }
-
       if (contributionType.mode === "OpenEndedRecurring") {
-        const recurringStart = contribution.start_date ?? startDate;
-        const months = generateMonthlyDates(recurringStart, oneYearFromNow);
+        const recurringStart = normalizeToMonthStart(
+          contribution.start_date ?? startDate
+        );
+        // Only generate up to 12 months ahead of current month
+        const endDate = addMonths(now, 11);
+          // const oneYearFromNow = addMonths(now, 11);
+
+        const months = generateMonthlyDates(recurringStart, endDate);
 
         const existingSchedules = await prisma.contributionSchedule.findMany({
           where: {
@@ -145,10 +149,17 @@ export async function generateContributionSchedulesForAllActiveMembers() {
         });
 
         const existingMonthsSet = new Set(
-          existingSchedules.map((s) => s.month.toISOString())
+          existingSchedules.map((s) =>
+            normalizeToMonthStart(s.month).toISOString()
+          )
         );
+
         const missingMonths = months.filter(
-          (m) => !existingMonthsSet.has(m.toISOString())
+          (m) => !existingMonthsSet.has(normalizeToMonthStart(m).toISOString())
+        );
+
+        console.log(
+          `Would create ${missingMonths.length} schedules for member ${member.id}`
         );
 
         for (const month of missingMonths) {
@@ -238,49 +249,56 @@ export async function generateContributionSchedulesForAllActiveMembers() {
   }[] = [];
 
   for (const schedule of unpaidSchedules) {
-  const contribution = schedule.contribution;
-  const contributionType = contribution.contributionType;
-  const memberStatus = contribution.member?.status;
+    const contribution = schedule.contribution;
+    const contributionType = contribution.contributionType;
+    const memberStatus = contribution.member?.status;
 
-  if (!contributionType || memberStatus !== "Active") continue;
-  if (contributionType.mode === "OneTimeWindow") continue;
+    if (!contributionType || memberStatus !== "Active") continue;
+    if (contributionType.mode === "OneTimeWindow") continue;
 
-  const penaltyBase = Number(contributionType.penalty_amount ?? 10);
-  if (penaltyBase <= 0) continue;
+    const penaltyBase = Number(contributionType.penalty_amount ?? 10);
+    if (penaltyBase <= 0) continue;
 
-  const scheduleMonthStart = normalizeToMonthStart(schedule.month);
+    const scheduleMonthStart = normalizeToMonthStart(schedule.month);
 
-  if (isAfter(currentMonthStart, scheduleMonthStart)) {
-    const monthsLate = differenceInMonths(currentMonthStart, scheduleMonthStart);
-    const calculatedPenaltyAmount = penaltyBase * monthsLate;
+    if (isAfter(currentMonthStart, scheduleMonthStart)) {
+      const monthsLate = differenceInMonths(
+        currentMonthStart,
+        scheduleMonthStart
+      );
+      const calculatedPenaltyAmount = penaltyBase * monthsLate;
 
-    const existingUnpaidPenalty = schedule.penalties.find((p) => !p.is_paid);
+      const existingUnpaidPenalty = schedule.penalties.find((p) => !p.is_paid);
 
-    if (existingUnpaidPenalty) {
-      if (Number(existingUnpaidPenalty.amount) < calculatedPenaltyAmount) {
-        await prisma.penalty.update({
-          where: { id: existingUnpaidPenalty.id },
-          data: {
-            amount: calculatedPenaltyAmount,
-            applied_at: new Date(), // Optional: refresh applied date
-            reason: `Missed payment for ${schedule.month.toISOString().slice(0, 7)}`,
-          },
+      if (existingUnpaidPenalty) {
+        if (Number(existingUnpaidPenalty.amount) < calculatedPenaltyAmount) {
+          await prisma.penalty.update({
+            where: { id: existingUnpaidPenalty.id },
+            data: {
+              amount: calculatedPenaltyAmount,
+              applied_at: new Date(), // Optional: refresh applied date
+              reason: `Missed payment for ${schedule.month
+                .toISOString()
+                .slice(0, 7)}`,
+            },
+          });
+        }
+      } else {
+        penaltiesToCreate.push({
+          member_id: schedule.member_id,
+          contribution_id: schedule.contribution_id,
+          contribution_schedule_id: schedule.id,
+          reason: `Missed payment for ${schedule.month
+            .toISOString()
+            .slice(0, 7)}`,
+          amount: calculatedPenaltyAmount,
+          missed_month: schedule.month,
+          is_paid: false,
+          applied_at: new Date(),
         });
       }
-    } else {
-      penaltiesToCreate.push({
-        member_id: schedule.member_id,
-        contribution_id: schedule.contribution_id,
-        contribution_schedule_id: schedule.id,
-        reason: `Missed payment for ${schedule.month.toISOString().slice(0, 7)}`,
-        amount: calculatedPenaltyAmount,
-        missed_month: schedule.month,
-        is_paid: false,
-        applied_at: new Date(),
-      });
     }
   }
-}
 
   if (penaltiesToCreate.length > 0) {
     const batchSize = 500;

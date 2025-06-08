@@ -286,7 +286,6 @@ export async function applyCatchUpPayment({
               remaining = remaining.minus(penaltyToPay);
             }
           }
-
           const currentPaid = sched.paid_amount ?? new Decimal(0);
           const unpaid = monthlyAmount.minus(currentPaid);
           const toPay = Decimal.min(unpaid, remaining);
