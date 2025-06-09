@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
 import Penalty from "../../../../components/penalties"; // adjust the import path as needed
+import { getMembersWithPenalties } from '@/lib/actions';
 
 type PageProps = {
   params: Promise<{
@@ -17,17 +18,18 @@ export default async function ContributionPage({ params }: PageProps) {
   const updatedType = decodedType.replace(/%20/g, " ");
 
   // If type is "penalties", render the Penalty component
+  const types = await prisma.contributionType.findUnique({
+    where: { name: updatedType ?? undefined },
+  });
+
   if (updatedType.toLowerCase() === "penalties") {
     return (
       <div className="contribution-page">
-        <Penalty />
+        <Penalty initialMembers={await getMembersWithPenalties()} />
       </div>
     );
   }
 
-  const types = await prisma.contributionType.findUnique({
-    where: { name: updatedType ?? undefined },
-  });
   const payments = await prisma.paymentRecord.findMany({
     where: { contribution_id: types?.id ?? undefined },
     include: { member: true, contribution: true, payments: true },

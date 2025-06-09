@@ -649,3 +649,31 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
     return { success: false, message: 'Failed to waive penalty' };
   }
 }
+export async function getMembersWithPenalties() {
+  return await prisma.member.findMany({
+    where: {
+      Penalty: {
+        some: {},
+      },
+    },
+    include: {
+      Penalty: {
+        include: {
+          contribution: {
+            include: {
+              contributionType: {
+                select: {
+                  mode: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      first_name: 'asc',
+    },
+  });
+}
