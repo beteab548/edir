@@ -48,6 +48,12 @@ export default function ContributionDropdown({
           >
             Contribution setting
           </Link>
+          <Link
+            href="/contribution/penalties"
+            className="flex items-center gap-2 px-2 py-2 text-gray-700 hover:bg-gray-100"
+          >
+            Penalty Management
+          </Link>
         </div>
       </div>
     </div>

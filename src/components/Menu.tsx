@@ -28,8 +28,8 @@ const menuItems = [
       },
       {
         icon: "/contribution.png",
-        label: "Contribtuion",
-        href: "/contribution",
+        label: "Contribution",
+        href: "/Contribution",
         visible: ["admin"],
         hasDropdown: true,
       },
@@ -80,7 +80,7 @@ const Menu = async () => {
           </span>
           {group.items.map((item) => {
             if (item.visible.includes(role)) {
-              if (item.hasDropdown && item.label === "Contribtuion") {
+              if (item.hasDropdown && item.label === "Contribution") {
                 return (
                   <ContributionDropdown
                     key={item.label}

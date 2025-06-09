@@ -606,3 +606,46 @@ export const createPaymentAction = async (
     return { success: false };
   }
 };
+export async function waivePenalty(penaltyId: number, memberId: number) {
+  try {
+    // Check if penalty exists and is unpaid
+    const penalty = await prisma.penalty.findUnique({
+      where: { id: penaltyId, member_id: memberId },
+    });
+
+    if (!penalty) {
+      return { success: false, message: 'Penalty not found' };
+    }
+
+    if (penalty.is_paid) {
+      return { success: false, message: 'Penalty is already paid' };
+    }
+
+    // Update the penalty as waived
+    await prisma.penalty.update({
+      where: { id: penaltyId },
+      data: {
+        is_paid: true,
+        resolved_at: new Date(),
+        paid_amount: penalty.amount, // Mark as fully paid
+      },
+    });
+
+    // Update the related contribution schedule if needed
+    await prisma.contributionSchedule.update({
+      where: { id: penalty.contribution_schedule_id },
+      data: {
+        is_paid: true,
+        paid_at: new Date(),
+      },
+    });
+
+    // Revalidate the cache
+    // revalidatePath(`/members/${memberId}/penalties`);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error waiving penalty:', error);
+    return { success: false, message: 'Failed to waive penalty' };
+  }
+}
