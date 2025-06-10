@@ -280,6 +280,7 @@ export const updateContribution = async (
     mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
     penalty_amount: number;
     period_months?: number | null;
+    months_before_inactivation?: number | null;
   }
 ) => {
   try {
@@ -311,6 +312,10 @@ export const updateContribution = async (
         penalty_amount: data.penalty_amount,
         period_months:
           data.mode === "OneTimeWindow" ? data.period_months : null,
+        months_before_inactivation:
+          data.mode === "OneTimeWindow"
+            ? data.months_before_inactivation
+            : null,
       },
     });
 
@@ -614,23 +619,24 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
     });
 
     if (!penalty) {
-      return { success: false, message: 'Penalty not found' };
+      return { success: false, message: "Penalty not found" };
     }
 
     if (penalty.is_paid) {
-      return { success: false, message: 'Penalty is already paid' };
+      return { success: false, message: "Penalty is already paid" };
     }
 
     // Update the penalty as waived
-    await prisma.penalty.update({
+   const updatedPenalty= await prisma.penalty.update({
       where: { id: penaltyId },
       data: {
         is_paid: true,
         resolved_at: new Date(),
-        paid_amount: penalty.amount, // Mark as fully paid
+        paid_amount: penalty.amount,
+        waived: true, 
       },
     });
-
+console.log(updatedPenalty);
     // Update the related contribution schedule if needed
     await prisma.contributionSchedule.update({
       where: { id: penalty.contribution_schedule_id },
@@ -645,8 +651,8 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
 
     return { success: true };
   } catch (error) {
-    console.error('Error waiving penalty:', error);
-    return { success: false, message: 'Failed to waive penalty' };
+    console.error("Error waiving penalty:", error);
+    return { success: false, message: "Failed to waive penalty" };
   }
 }
 export async function getMembersWithPenalties() {
@@ -673,7 +679,7 @@ export async function getMembersWithPenalties() {
       },
     },
     orderBy: {
-      first_name: 'asc',
+      first_name: "asc",
     },
   });
 }

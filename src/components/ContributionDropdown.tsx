@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Cog6ToothIcon, ScaleIcon } from "@heroicons/react/24/outline";
 
 type ContributionDropdownProps = {
   icon: string;
@@ -44,14 +45,16 @@ export default function ContributionDropdown({
           ))}
           <Link
             href="/contribution"
-            className="text-sm text-gray-700 hover:bg-gray-100 px-2 py-1 rounded"
+            className="text-sm text-gray-700 hover:bg-gray-100 px-2 py-1 rounded flex items-center gap-2"
           >
-            Contribution setting
+            <Cog6ToothIcon className="w-5 h-5" />
+            Contribution Management
           </Link>
           <Link
             href="/contribution/penalties"
             className="flex items-center gap-2 px-2 py-2 text-gray-700 hover:bg-gray-100"
           >
+            <ScaleIcon className="w-5 h-5" />
             Penalty Management
           </Link>
         </div>

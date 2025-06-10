@@ -158,7 +158,7 @@ model Penalty {
   member                   Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contribution             Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
   contributionSchedule     ContributionSchedule  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
-
+ waived  Boolean? @default(false)
   reason                   String
   amount                   Decimal
   paid_amount              Decimal               @default(0) // <-- Add this

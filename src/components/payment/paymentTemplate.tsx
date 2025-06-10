@@ -171,25 +171,35 @@ export default function ContributionTemplate({
               Manage all {ContributionType.name} payments
             </p>
           </div>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-            disabled={members.length <= 0}
+          <div
+            title={
+              members.length <= 0
+                ? "No members available"
+                : !ContributionType.is_active
+                ? "Contribution is inactive"
+                : ""
+            }
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              disabled={members.length <= 0 || !ContributionType.is_active}
             >
-              <path
-                fillRule="evenodd"
-                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Add Payment
-          </button>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              Add Payment
+            </button>
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -221,95 +231,106 @@ export default function ContributionTemplate({
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-             {payments.map((payment) => (
-  <React.Fragment key={payment.id}>
-    {/* Main Payment Row */}
-    <tr
-      className="hover:bg-blue-50 transition-colors duration-150 cursor-pointer border-b border-gray-200"
-      onClick={() => toggleDetails(payment.id)}
-    >
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="text-sm font-medium text-gray-900">
-          #{payment.id}
-        </span>
-      </td>
-      <td className="px-6 py-4">
-        <div className="flex items-center">
-          <div className="ml-0">
-            <p className="text-sm font-medium text-gray-900">
-              {payment.member.first_name} {payment.member.second_name}
-            </p>
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="px-2 py-1 text-sm font-semibold text-blue-800 bg-blue-100 rounded-full">
-          {payment.total_paid_amount.toString()} birr
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="text-sm text-gray-600">
-          {payment.contribution.type_name}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="text-sm text-gray-600">
-          {new Date(payment.payment_date).toLocaleDateString()}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-green-100 text-green-800">
-          {payment.payment_method}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`text-sm font-medium ${Number(payment.remaining_balance) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-          {payment.remaining_balance?.toString() ?? "N/A"} birr
-        </span>
-      </td>
-    </tr>
+                {payments.map((payment) => (
+                  <React.Fragment key={payment.id}>
+                    {/* Main Payment Row */}
+                    <tr
+                      className="hover:bg-blue-50 transition-colors duration-150 cursor-pointer border-b border-gray-200"
+                      onClick={() => toggleDetails(payment.id)}
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm font-medium text-gray-900">
+                          #{payment.id}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="ml-0">
+                            <p className="text-sm font-medium text-gray-900">
+                              {payment.member.first_name}{" "}
+                              {payment.member.second_name}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="px-2 py-1 text-sm font-semibold text-blue-800 bg-blue-100 rounded-full">
+                          {payment.total_paid_amount.toString()} birr
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600">
+                          {payment.contribution.type_name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="text-sm text-gray-600">
+                          {new Date(payment.payment_date).toLocaleDateString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-green-100 text-green-800">
+                          {payment.payment_method}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`text-sm font-medium ${
+                            Number(payment.remaining_balance) > 0
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {payment.remaining_balance?.toString() ?? "N/A"} birr
+                        </span>
+                      </td>
+                    </tr>
 
-    {/* Expanded Details Row */}
-    {openPaymentId === payment.id && (
-      <tr className="bg-gray-50">
-        <td colSpan={7} className="px-6 py-4">
-          <div className="pl-8 pr-4 py-3 bg-white rounded-lg shadow-xs border border-gray-200">
-            <h4 className="text-sm font-semibold text-gray-800 mb-2">
-              Payment Breakdown
-            </h4>
-            {payment.payments.length > 0 ? (
-              <ul className="space-y-2">
-                {payment.payments.map((p) => (
-                  <li key={p.id} className="flex items-start">
-                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 mr-3 mt-0.5 text-xs">
-                      {p.payment_type === "penalty" ? "!" : "$"}
-                    </span>
-                    <div className="flex-1">
-                      <p className="text-sm text-gray-700">
-                        {p.payment_type === "penalty"
-                          ? `Penalty Payment`
-                          : `Monthly Contribution`}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Amount: {Number(p.paid_amount)} birr
-                        {p.payment_type !== "penalty" && ` • Month: ${p.payment_month}`}
-                        {p.payment_type === "penalty" && ` • Month: ${p.payment_month}`}
-                      </p>
-                    </div>
-                  </li>
+                    {/* Expanded Details Row */}
+                    {openPaymentId === payment.id && (
+                      <tr className="bg-gray-50">
+                        <td colSpan={7} className="px-6 py-4">
+                          <div className="pl-8 pr-4 py-3 bg-white rounded-lg shadow-xs border border-gray-200">
+                            <h4 className="text-sm font-semibold text-gray-800 mb-2">
+                              Payment Breakdown
+                            </h4>
+                            {payment.payments.length > 0 ? (
+                              <ul className="space-y-2">
+                                {payment.payments.map((p) => (
+                                  <li key={p.id} className="flex items-start">
+                                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 mr-3 mt-0.5 text-xs">
+                                      {p.payment_type === "penalty" ? "!" : "$"}
+                                    </span>
+                                    <div className="flex-1">
+                                      <p className="text-sm text-gray-700">
+                                        {p.payment_type === "penalty"
+                                          ? `Penalty Payment`
+                                          : `Monthly Contribution`}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        Amount: {Number(p.paid_amount)} birr
+                                        {p.payment_type !== "penalty" &&
+                                          ` • Month: ${p.payment_month}`}
+                                        {p.payment_type === "penalty" &&
+                                          ` • Month: ${p.payment_month}`}
+                                      </p>
+                                    </div>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <div className="text-center py-4">
+                                <p className="text-sm text-gray-500">
+                                  No payment details available
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
-              </ul>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-gray-500">No payment details available</p>
-              </div>
-            )}
-          </div>
-        </td>
-      </tr>
-    )}
-  </React.Fragment>
-))}
 
                 {payments.length === 0 && (
                   <tr>

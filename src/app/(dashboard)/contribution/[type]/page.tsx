@@ -21,7 +21,6 @@ export default async function ContributionPage({ params }: PageProps) {
   const types = await prisma.contributionType.findUnique({
     where: { name: updatedType ?? undefined },
   });
-
   if (updatedType.toLowerCase() === "penalties") {
     return (
       <div className="contribution-page">

@@ -1,5 +1,4 @@
 "use client";
-
 import { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,6 +24,7 @@ type ContributionType = {
   mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
   penalty_amount: number;
   period_months: number | null;
+  months_before_inactivation?: number;
 };
 
 type ConfigureExistingContributionProps = {
@@ -75,6 +75,7 @@ export default function ConfigureExistingContribution({
       mode: contribution.mode || "Recurring",
       penalty_amount: contribution.penalty_amount ?? 0,
       period_months: contribution.period_months ?? undefined,
+      months_before_inactivation: contribution.months_before_inactivation ?? 1,
     });
   };
 
@@ -100,8 +101,11 @@ export default function ConfigureExistingContribution({
       penalty_amount: Number(data.penalty_amount),
       period_months:
         data.mode === "OneTimeWindow" ? Number(data.period_months) : null,
+      months_before_inactivation:
+        data.mode === "OneTimeWindow"
+          ? Number(data.months_before_inactivation)
+          : undefined,
     };
-
     try {
       const result = await updateContribution(
         { success: false, error: false },
@@ -143,14 +147,14 @@ export default function ConfigureExistingContribution({
     console.error("Validation errors:", formErrors);
   };
 
-useEffect(() => {
-  if (watchMode === "OpenEndedRecurring") {
-    setValue("end_date", "");
-    setValue("period_months", undefined); // Explicitly clear period_months
-  } else if (watchMode === "OneTimeWindow") {
-    setValue("end_date", "");
-  }
-}, [watchMode, setValue]);
+  useEffect(() => {
+    if (watchMode === "OpenEndedRecurring") {
+      setValue("end_date", "");
+      setValue("period_months", undefined); // Explicitly clear period_months
+    } else if (watchMode === "OneTimeWindow") {
+      setValue("end_date", "");
+    }
+  }, [watchMode, setValue]);
 
   useEffect(() => {
     const fetchExistingMembers = async () => {
@@ -257,23 +261,42 @@ useEffect(() => {
                         },
                       }}
                     />
-
-                    <InputField
-                      label="Penalty Amount"
-                      name="penalty_amount"
-                      type="number"
-                      register={register}
-                      error={errors.penalty_amount}
-                      inputProps={{
-                        step: "0.01",
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          setValue(
-                            "penalty_amount",
-                            parseFloat(e.target.value) || 0
-                          );
-                        },
-                      }}
-                    />
+                    {watchMode === "OneTimeWindow" ? (
+                      <InputField
+                        label="Months Before Inactivation"
+                        name="months_before_inactivation"
+                        type="number"
+                        register={register}
+                        error={errors.months_before_inactivation}
+                        inputProps={{
+                          min: 1,
+                          step: 1,
+                          ...register("months_before_inactivation", {
+                            setValueAs: (v) =>
+                              v === "" ? undefined : Number(v),
+                          }),
+                        }}
+                      />
+                    ) : (
+                      <InputField
+                        label="Penalty Amount"
+                        name="penalty_amount"
+                        type="number"
+                        register={register}
+                        error={errors.penalty_amount}
+                        inputProps={{
+                          step: "0.01",
+                          onChange: (
+                            e: React.ChangeEvent<HTMLInputElement>
+                          ) => {
+                            setValue(
+                              "penalty_amount",
+                              parseFloat(e.target.value)
+                            );
+                          },
+                        }}
+                      />
+                    )}
 
                     <div className="form-control w-48">
                       <label className="label">
@@ -310,10 +333,7 @@ useEffect(() => {
                           onChange: (
                             e: React.ChangeEvent<HTMLInputElement>
                           ) => {
-                            setValue(
-                              "period_months",
-                              parseInt(e.target.value) || 1
-                            );
+                            setValue("period_months", parseInt(e.target.value));
                           },
                         }}
                       />
@@ -420,20 +440,30 @@ useEffect(() => {
                           : "Selected Members"}
                       </span>
                       |<span>Mode: {contribution.mode}</span>|
-                      <span>Penalty: {contribution.penalty_amount}</span>|
+                      {contribution.mode === "OneTimeWindow" ? (
+                        <span>
+                          Months Before Inactivation:{" "}
+                          {contribution.months_before_inactivation ?? "N/A"}
+                        </span>
+                      ) : (
+                        <span>Penalty: {contribution.penalty_amount}</span>
+                      )}
+                      |
                       <span>
                         Start:{" "}
                         {contribution.start_date?.toLocaleDateString() || "N/A"}
                       </span>
                       |
-                      <span>
-                        End:{" "}
-                        {contribution.end_date?.toLocaleDateString() || "N/A"}
-                      </span>
+                      {contribution.mode !== "OneTimeWindow" && contribution.mode !=="OpenEndedRecurring" && (
+                        <span>
+                          End:{" "}
+                          {contribution.end_date?.toLocaleDateString() || "N/A"}
+                        </span>
+                      )}
                       |
                       {contribution.mode === "OneTimeWindow" && (
                         <span>
-                          Period Months: {contribution.period_months ?? "N/A"}
+                         Months of Duration: {contribution.period_months ?? "N/A"}
                         </span>
                       )}
                     </div>
@@ -454,7 +484,6 @@ useEffect(() => {
                     >
                       Delete
                     </button>
-                    
                   </div>
                 </div>
               )}

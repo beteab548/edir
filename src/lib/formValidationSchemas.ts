@@ -124,6 +124,26 @@ export const ContributionSchema = z
     is_for_all: z.boolean(),
     is_active: z.boolean(),
     mode: z.enum(["Recurring", "OneTimeWindow", "OpenEndedRecurring"]),
+    months_before_inactivation: z
+      .union([
+        z.number().int().positive(),
+        z
+          .string()
+          .transform((val, ctx) => {
+            if (!val) return undefined;
+            const parsed = parseInt(val);
+            if (isNaN(parsed) || parsed < 1) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: "Must be a positive integer",
+              });
+              return z.NEVER;
+            }
+            return parsed;
+          }),
+      ])
+      .optional()
+      .nullable(),
     penalty_amount: z.union([
       z.number(),
       z.string().transform((val, ctx) => {
@@ -161,13 +181,13 @@ export const ContributionSchema = z
   })
   // Require period_months when mode is OneTimeWindow
   .refine(
-    (data) =>
-      data.mode === "Recurring" || (data.mode === "OneTimeWindow" && data.period_months),
-    {
-      message: "Period months is required for OneTimeWindow mode",
-      path: ["period_months"],
-    }
-  )
+  (data) =>
+    data.mode !== "OneTimeWindow" || !!data.period_months,
+  {
+    message: "Period months is required for OneTimeWindow mode",
+    path: ["period_months"],
+  }
+)
   // Require end_date when mode is Recurring
   .refine(
     (data) => {
