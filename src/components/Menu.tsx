@@ -4,6 +4,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
 import ContributionDropdown from "./ContributionDropdown"; // <-- client component
+import PenaltyDropdown from "./penaltyDropdown"; // <-- client component
 
 const fetchTypes = async () => {
   const data = await prisma.contributionType.findMany();
@@ -30,6 +31,13 @@ const menuItems = [
         icon: "/contribution.png",
         label: "Contribution",
         href: "/Contribution",
+        visible: ["admin"],
+        hasDropdown: true,
+      },
+      {
+        icon: "/penalty.png",
+        label: "Penalty",
+        href: "/penalty",
         visible: ["admin"],
         hasDropdown: true,
       },
@@ -90,7 +98,15 @@ const Menu = async () => {
                   />
                 );
               }
-
+              if (item.hasDropdown && item.label === "Penalty") {
+                return (
+                  <PenaltyDropdown
+                    key={item.label}
+                    icon={item.icon}
+                    label={item.label}
+                  />
+                );
+              }
               return (
                 <Link
                   href={item.href}

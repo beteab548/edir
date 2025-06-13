@@ -8,12 +8,15 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import SelectField from "../SelectField";
 import { toast } from "react-toastify";
-import { createPaymentAction } from "@/lib/actions";
+import { createPaymentAction, createPenaltyPaymentAction } from "@/lib/actions";
 import {
   paymentFormSchema,
   PaymentFormSchemaType,
 } from "@/lib/formValidationSchemas";
 import UploadFile from "../FileUpload/page";
+import { useFormState } from "react-dom";
+import Image from "next/image";
+
 type ContributionType = {
   id: number;
   amount: number;
@@ -23,28 +26,31 @@ type ContributionType = {
   is_for_all: boolean;
   is_active: Boolean;
 };
+
 type PaymentRecord = {
   id: number;
   member_id: number;
-  contribution_id: number;
+  contribution_id?: number | null;
   payment_method: string;
   payment_date: Date;
   document_reference: string;
   total_paid_amount: Prisma.Decimal;
   member: Member;
-  contribution: Contribution;
+  contribution?: Contribution;
   remaining_balance?: Prisma.Decimal | null;
-  payments: Payment[];
+  payments?: Payment[];
 };
 
 export default function ContributionTemplate({
   ContributionType,
   members,
   payments,
+  type,
 }: {
-  ContributionType: ContributionType;
+  ContributionType?: ContributionType;
   members: Member[];
   payments: PaymentRecord[];
+  type: "manually" | "automatically";
 }) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,23 +63,30 @@ export default function ContributionTemplate({
   const [imageReady, setImageReady] = useState(true);
   const router = useRouter();
   const [selectedContributionTypeFormat, setSelectedContributionTypeFormat] =
-    useState<ContributionType>(ContributionType);
+    useState<ContributionType | undefined>(ContributionType);
   const [openPaymentId, setOpenPaymentId] = useState<number | null>(null);
-
   const {
     register,
     handleSubmit,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, isValid },
+    watch, // <-- add this
   } = useForm<PaymentFormSchemaType>({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
-      payment_method: "Bank",
+      payment_method: "Cash",
       receipt: "www://example.com/receipt.jpg",
       payment_date: new Date().toISOString().split("T")[0],
     },
+    mode: "onChange", // Add this to validate form as user types
   });
+  const [state, formAction] = useFormState(
+    type === "automatically" ? createPaymentAction : createPenaltyPaymentAction,
+    { success: false, error: false }
+  );
+  const paymentMethod = watch("payment_method"); // <-- add this
+
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
     try {
       setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
@@ -81,6 +94,7 @@ export default function ContributionTemplate({
       console.error("Failed to handle receipt:", err);
     }
   };
+
   useEffect(() => {
     if (selectedContributionTypeFormat?.amount) {
       setValue(
@@ -106,6 +120,7 @@ export default function ContributionTemplate({
       setSearchResults([]);
     }
   }, [searchTerm, selectedMember, members]);
+
   const toggleDetails = (id: number) => {
     setOpenPaymentId((prev) => (prev === id ? null : id));
   };
@@ -118,41 +133,45 @@ export default function ContributionTemplate({
     setSelectedMember(member);
     setSearchTerm(`${member.first_name} ${member.last_name}`);
     setSearchResults([]);
-    setValue("member_id", member.id);
+    setValue("member_id", member.id, { shouldValidate: true });
+  };
+
+  const clearSelectedMember = () => {
+    setSelectedMember(null);
+    setSearchTerm("");
+    setValue("member_id", 1, { shouldValidate: true });
   };
 
   const onSubmit = async (data: PaymentFormSchemaType) => {
     try {
+      if (!selectedMember) {
+        toast.error("Please select a member first");
+        return;
+      }
+
       const transformedData = {
         ...data,
         receipt: image?.Url,
         paid_amount: Number(data.paid_amount),
         payment_date: new Date(data.payment_date),
       };
+
       console.log("✅ Transformed Data to Submit:", transformedData);
-      const res = await createPaymentAction(
-        { success: false, error: false },
-        transformedData
-      );
-
-      if (!res.success) {
-        return toast.error("Failed to create payment!");
+      if (type === "automatically") {
+        if (transformedData.paid_amount < 0) {
+          toast.error("Paid amount cannot be negative!");
+          return;
+        }
+        formAction(transformedData);
       }
-      toast.success("Payment created successfully!");
-      reset();
-      // Reset form values
-      setSelectedMember(null);
-      setSearchTerm("");
-      setSearchResults([]);
-      // Close the modal
-      setSelectedContributionTypeFormat(ContributionType);
-      setValue("contribution_id", ContributionType.id.toString());
-      setValue("contribution_type", ContributionType.name);
-      setValue("paid_amount", ContributionType.amount.toString());
-      setValue("payment_date", new Date().toISOString().split("T")[0]);
+      // const res = await createPaymentAction(
+      // { success: false, error: false },
+      // transformedData
+      // );
+      // formAction(transformedData) // Removed: formAction expects no arguments
+      // The form will be submitted via the form's onSubmit handler and useFormState
 
-      setShowAddModal(false);
-      router.refresh();
+      // The rest of this block is not needed here, as the state will be handled by useFormState's state
     } catch (error) {
       console.error("❌ Error submitting form:", error);
     }
@@ -161,6 +180,23 @@ export default function ContributionTemplate({
   const onError = (errors: any) => {
     console.log("❌ Zod Validation Errors:", errors);
   };
+  useEffect(() => {
+    if (state.success) {
+      toast(` Payment created successfully!`);
+      type === "automatically"
+        ? router.push(`/contribution/${ContributionType?.name}`)
+        : router.push("/penalty/payment");
+      router.refresh();
+      if (type === "automatically") {
+        setShowAddModal(false);
+        setSelectedMember(null);
+        setSearchTerm("");
+        reset();
+      }
+    }
+    if (state.error) toast.error("Something went wrong");
+  }, [state, router, type]);
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -168,14 +204,14 @@ export default function ContributionTemplate({
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Payments</h1>
             <p className="text-gray-600">
-              Manage all {ContributionType.name} payments
+              Manage all {ContributionType?.name ?? "Contribution"} payments
             </p>
           </div>
           <div
             title={
               members.length <= 0
                 ? "No members available"
-                : !ContributionType.is_active
+                : !ContributionType?.is_active
                 ? "Contribution is inactive"
                 : ""
             }
@@ -183,7 +219,10 @@ export default function ContributionTemplate({
             <button
               onClick={() => setShowAddModal(true)}
               className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              disabled={members.length <= 0 || !ContributionType.is_active}
+              disabled={
+                members.length <= 0 ||
+                (ContributionType && !ContributionType.is_active)
+              }
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -216,9 +255,11 @@ export default function ContributionTemplate({
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Amount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    contribution Type
-                  </th>
+                  {type === "automatically" && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Contribution Type
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Payment Date
                   </th>
@@ -258,11 +299,13 @@ export default function ContributionTemplate({
                           {payment.total_paid_amount.toString()} birr
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600">
-                          {payment.contribution.type_name}
-                        </span>
-                      </td>
+                      {type === "automatically" && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className="text-sm text-gray-600">
+                            {payment.contribution?.type_name}
+                          </span>
+                        </td>
+                      )}
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="text-sm text-gray-600">
                           {new Date(payment.payment_date).toLocaleDateString()}
@@ -294,9 +337,9 @@ export default function ContributionTemplate({
                             <h4 className="text-sm font-semibold text-gray-800 mb-2">
                               Payment Breakdown
                             </h4>
-                            {payment.payments.length > 0 ? (
+                            {(payment.payments?.length ?? 0) > 0 ? (
                               <ul className="space-y-2">
-                                {payment.payments.map((p) => (
+                                {payment.payments?.map((p) => (
                                   <li key={p.id} className="flex items-start">
                                     <span className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 mr-3 mt-0.5 text-xs">
                                       {p.payment_type === "penalty" ? "!" : "$"}
@@ -317,6 +360,18 @@ export default function ContributionTemplate({
                                     </div>
                                   </li>
                                 ))}
+                                  <div>
+                                {payment?.document_reference!=="-" && (
+                                    <Image
+                                      src={payment.document_reference}
+                                      alt="Payment Receipt"
+                                      width={100}
+                                      height={100}
+                                      unoptimized
+                                      className="mt-2 rounded-lg"
+                                    />
+                                  )}
+                                  </div>
                               </ul>
                             ) : (
                               <div className="text-center py-4">
@@ -335,7 +390,7 @@ export default function ContributionTemplate({
                 {payments.length === 0 && (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={7}
                       className="px-6 py-4 text-center text-sm text-gray-500"
                     >
                       No payments recorded yet
@@ -346,212 +401,255 @@ export default function ContributionTemplate({
             </table>
           </div>
         </div>
+      </div>
 
-        {showAddModal && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setShowAddModal(false);
-                setSelectedMember(null);
-                setSearchTerm("");
-              }
-            }}
-          >
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-semibold text-gray-800">
-                    Add New Payment
-                  </h3>
+      {showAddModal && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddModal(false);
+              setSelectedMember(null);
+              setSearchTerm("");
+            }
+          }}
+        >
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-gray-800">
+                  Add New Payment
+                </h3>
+                <button
+                  type="button"
+                  className="text-gray-400 hover:text-gray-500"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setSelectedMember(null);
+                    setSearchTerm("");
+                  }}
+                  aria-label="Close"
+                >
+                  <svg
+                    className="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmit(onSubmit, onError)}>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Search and Select Member
+                  </label>
+                  <div className="relative">
+                    {selectedMember ? (
+                      <div className="flex items-center justify-between p-2 border border-gray-300 rounded-md bg-gray-50">
+                        <span>
+                          {selectedMember.first_name}{" "}
+                          {selectedMember.second_name}{" "}
+                          {selectedMember.last_name} (
+                          {selectedMember.phone_number})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={clearSelectedMember}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Type member name or phone number..."
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          value={searchTerm}
+                          onChange={handleSearchChange}
+                        />
+                        {searchResults.length > 0 && (
+                          <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto border border-gray-200">
+                            {searchResults.map((member) => (
+                              <li key={member.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleMemberSelect(member)}
+                                  className="w-full text-left px-4 py-2 hover:bg-gray-100 flex justify-between items-center"
+                                >
+                                  <span>
+                                    {member.first_name} {member.second_name}{" "}
+                                    {member.last_name} ({member.phone_number})
+                                  </span>
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    className="h-5 w-5 text-blue-500"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                  >
+                                    <path
+                                      fillRule="evenodd"
+                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                                      clipRule="evenodd"
+                                    />
+                                  </svg>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <InputField
+                    label="Amount"
+                    name="paid_amount"
+                    type="number"
+                    register={register}
+                    error={errors.paid_amount}
+                    inputProps={{
+                      step: "0.01",
+                      min: "0",
+                      placeholder: "0.00",
+                      required: true,
+                      className:
+                        "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                    }}
+                  />
+                  <input
+                    type="hidden"
+                    {...register("contribution_id")}
+                    value={
+                      selectedContributionTypeFormat?.id || ContributionType?.id
+                    }
+                  />
+                  {type === "automatically" && (
+                    <InputField
+                      label="Contribution Type"
+                      name="contribution_type"
+                      register={register}
+                      inputProps={{
+                        value: selectedContributionTypeFormat?.name,
+                        disabled: true,
+                        className:
+                          "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
+                      }}
+                    />
+                  )}
+                  <InputField
+                    label="Payment Date"
+                    name="payment_date"
+                    type="date"
+                    register={register}
+                    inputProps={{
+                      required: true,
+                      className:
+                        "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
+                    }}
+                  />
+                  {paymentMethod !== "Cash" && (
+                    <div className="col-span-2">
+                      <UploadFile
+                        text="receipt"
+                        getImageUrl={getImageUrl}
+                        setImageReady={setImageReady}
+                      />
+                    </div>
+                  )}
+                  <SelectField
+                    label="Payment Method"
+                    name="payment_method"
+                    register={register}
+                    error={errors.payment_method}
+                    options={[
+                      { value: "", label: "Select payment method" },
+                      { value: "Cash", label: "Cash" },
+                      { value: "Bank", label: "Bank" },
+                      { value: "Mobile banking", label: "Mobile banking" },
+                    ]}
+                    selectProps={{
+                      className:
+                        "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                    }}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4 border-t">
                   <button
                     type="button"
-                    className="text-gray-400 hover:text-gray-500"
                     onClick={() => {
                       setShowAddModal(false);
                       setSelectedMember(null);
                       setSearchTerm("");
                     }}
-                    aria-label="Close"
+                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    <svg
-                      className="h-6 w-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={
+                      !imageReady || loading || !selectedMember || !isValid
+                    }
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center">
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : (
+                      "Save Payment"
+                    )}
                   </button>
                 </div>
-
-                {!selectedMember && (
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Search Member
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        placeholder="Type member name or phone number..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        disabled={!!selectedMember}
-                      />
-                      {searchResults.length > 0 && !selectedMember && (
-                        <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto">
-                          {searchResults.map((member) => (
-                            <li key={member.id}>
-                              <button
-                                type="button"
-                                onClick={() => handleMemberSelect(member)}
-                                className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                              >
-                                {member.first_name} {member.second_name}{" "}
-                                {member.last_name} ({member.phone_number})
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {selectedMember && (
-                  <form onSubmit={handleSubmit(onSubmit, onError)}>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <InputField
-                        label="Amount"
-                        name="paid_amount"
-                        type="number"
-                        register={register}
-                        error={errors.paid_amount}
-                        inputProps={{
-                          step: "0.01",
-                          min: "0",
-                          placeholder: "0.00",
-                          required: true,
-                          className:
-                            "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
-                        }}
-                      />
-                      <input
-                        type="hidden"
-                        {...register("contribution_id")}
-                        value={
-                          selectedContributionTypeFormat?.id ||
-                          ContributionType.id
-                        }
-                      />
-                      <InputField
-                        label="Contribution Type"
-                        name="contribution_type"
-                        register={register}
-                        inputProps={{
-                          value: selectedContributionTypeFormat?.name,
-                          disabled: true,
-                          className:
-                            "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
-                        }}
-                      />
-                      <InputField
-                        label="Payment Date"
-                        name="payment_date"
-                        type="date"
-                        register={register}
-                        inputProps={{
-                          disabled: true,
-                          required: true,
-                          className:
-                            "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
-                        }}
-                      />
-                      <div className="col-span-2">
-                        <UploadFile
-                          text="receipt"
-                          getImageUrl={getImageUrl}
-                          setImageReady={setImageReady}
-                        />
-                      </div>
-                      <SelectField
-                        label="Payment Method"
-                        name="payment_method"
-                        register={register}
-                        error={errors.payment_method}
-                        options={[
-                          { value: "", label: "Select payment method" },
-                          { value: "Bank", label: "Bank" },
-                          { value: "Cash", label: "Cash" },
-                          { value: "Mobile banking", label: "Mobile banking" },
-                        ]}
-                        selectProps={{
-                          className:
-                            "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
-                        }}
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-4 border-t">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowAddModal(false);
-                          setSelectedMember(null);
-                          setSearchTerm("");
-                        }}
-                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        disabled={!imageReady || loading}
-                        //when disabled, show loading spinner
-                      >
-                        {loading ? (
-                          <span className="flex items-center justify-center">
-                            <svg
-                              className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                            >
-                              <circle
-                                className="opacity-25"
-                                cx="12"
-                                cy="12"
-                                r="10"
-                                stroke="currentColor"
-                                strokeWidth="4"
-                              ></circle>
-                              <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                              ></path>
-                            </svg>
-                            Processing...
-                          </span>
-                        ) : (
-                          "Save Payment"
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
+              </form>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

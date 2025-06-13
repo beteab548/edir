@@ -1,4 +1,3 @@
-// app/contribution/[type]/page.tsx
 
 import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
@@ -17,7 +16,6 @@ export default async function ContributionPage({ params }: PageProps) {
   const decodedType = decodeURIComponent(type);
   const updatedType = decodedType.replace(/%20/g, " ");
 
-  // If type is "penalties", render the Penalty component
   const types = await prisma.contributionType.findUnique({
     where: { name: updatedType ?? undefined },
   });
@@ -30,7 +28,7 @@ export default async function ContributionPage({ params }: PageProps) {
   }
 
   const payments = await prisma.paymentRecord.findMany({
-    where: { contribution_id: types?.id ?? undefined },
+    where: { contribution_id: types?.id ?? undefined ,penalty_type_payed_for:"automatically"},
     include: { member: true, contribution: true, payments: true },
     orderBy: {
       payment_date: "desc",
@@ -53,7 +51,6 @@ export default async function ContributionPage({ params }: PageProps) {
       },
     });
     if (!types) {
-      //redirect to not found url
       throw new Error("Contribution type not found");
     }
     const updatedTypes = { ...types, amount: Number(types.amount) };
@@ -62,7 +59,11 @@ export default async function ContributionPage({ params }: PageProps) {
         <ContributionTemplate
           ContributionType={updatedTypes}
           members={members}
-          payments={payments}
+          payments={payments.map(payment => ({
+            ...payment,
+            contribution: payment.contribution === null ? undefined : payment.contribution,
+          }))}
+          type="automatically"
         />
       </div>
     );

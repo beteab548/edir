@@ -196,11 +196,14 @@ export async function applyCatchUpPayment({
           ) {
             await tx.member.update({
               where: { id: memberId },
-              data: { status: "Inactive" },
+              data: {
+                status: "Inactive",
+                end_date: new Date(),
+                remark: "Inactivated due to unpaid contributions",
+              },
             });
           }
         }
-
         if (remainingAfter.gt(0)) {
           payments.push({
             month: new Date(),

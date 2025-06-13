@@ -135,7 +135,6 @@ const MemberForm = ({
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router, type]);
-
   // Relative management functions
   const openRelativesDialog = (index?: number) => {
     if (typeof index === "number") {

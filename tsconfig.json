@@ -21,6 +21,14 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/lib/seed.js"],
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    "src/lib/seed.js",
+    "src/app/(dashboard)/penalty/[type]/penalty.tsx",
+    "src/app/(dashboard)/penalty/[type]/page.tsx"
+  ],
   "exclude": ["node_modules"]
 }

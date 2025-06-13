@@ -5,7 +5,7 @@ import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
 import { ContributionMode } from "@prisma/client"; // Assuming you have this enum defined
-type CurrentState = { success: boolean; error: boolean };
+type CurrentState = { success: boolean; error: boolean, message?: string };
 export const createMember = async (
   currentState: CurrentState,
   data: CombinedSchema
@@ -304,7 +304,7 @@ export const updateContribution = async (
       data: {
         amount: data.amount,
         name: data.type_name,
-        start_date: data.start_date,
+        start_date: data.start_date ?? new Date(),
         end_date: data.end_date,
         is_active: data.is_active,
         is_for_all: data.is_for_all,
@@ -576,14 +576,14 @@ export const createPaymentAction = async (
       where: { id: currentContributionId },
     });
     if (!contributionExists) {
-      return { success: false, message: "Contribution Type Doesn't Exist!" };
+      return { success: false, error:true, message: "Contribution Type Doesn't Exist!" };
     }
 
     const memberExists = await prisma.member.findUnique({
       where: { id: currentMemberId },
     });
     if (!memberExists) {
-      return { success: false, message: "Member Doesn't Exist!" };
+      return { success: false ,error:true, message: "Member Doesn't Exist!" };
     }
 
     const currentMemberContribution = await prisma.contribution.findUnique({
@@ -595,7 +595,7 @@ export const createPaymentAction = async (
       },
     });
     if (!currentMemberContribution) {
-      return { success: false, message: "Member Contribution Doesn't Exist!" };
+      return { success: false ,error:true, message: "Member Contribution Doesn't Exist!" };
     }
     const payments = await applyCatchUpPayment({
       memberId: currentMemberId,
@@ -605,10 +605,10 @@ export const createPaymentAction = async (
       documentReference: paymentReceipt || "-",
     });
     console.log("payments are ", payments);
-    return { success: true };
+    return { success: true ,error:false};
   } catch (error) {
     console.log(error);
-    return { success: false };
+    return { success: false ,error:true};
   }
 };
 export async function waivePenalty(penaltyId: number, memberId: number) {
@@ -627,24 +627,26 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
     }
 
     // Update the penalty as waived
-   const updatedPenalty= await prisma.penalty.update({
+    const updatedPenalty = await prisma.penalty.update({
       where: { id: penaltyId },
       data: {
         is_paid: true,
         resolved_at: new Date(),
         paid_amount: penalty.amount,
-        waived: true, 
+        waived: true,
       },
     });
-console.log(updatedPenalty);
+    console.log(updatedPenalty);
     // Update the related contribution schedule if needed
-    await prisma.contributionSchedule.update({
-      where: { id: penalty.contribution_schedule_id },
-      data: {
-        is_paid: true,
-        paid_at: new Date(),
-      },
-    });
+    if (penalty.contribution_schedule_id !== null) {
+      await prisma.contributionSchedule.update({
+        where: { id: penalty.contribution_schedule_id },
+        data: {
+          is_paid: true,
+          paid_at: new Date(),
+        },
+      });
+    }
 
     // Revalidate the cache
     // revalidatePath(`/members/${memberId}/penalties`);
@@ -683,3 +685,9 @@ export async function getMembersWithPenalties() {
     },
   });
 }
+export const createPenaltyPaymentAction = async (
+  currentState: CurrentState,
+  data: Payment
+) => {
+  return { success: false, error: true };
+};

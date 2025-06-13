@@ -7,13 +7,10 @@
 generator client {
   provider = "prisma-client-js"
 }
-
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
 model Member {
   id           Int     @id @default(autoincrement())
   first_name   String
@@ -32,8 +29,8 @@ model Member {
   kebele        String? 
   sex          Sex
   phone_number String  @unique
-  member_type MemberType 
   phone_number_2 String @unique @default("null")
+  member_type MemberType 
   bank_name    String?
   bank_account_number String? @unique
   bank_account_name String?
@@ -91,7 +88,7 @@ model ContributionType {
   is_active      Boolean       @default(true)
   is_for_all     Boolean       @default(false)
   created_at     DateTime      @default(now())
-  start_date     DateTime?
+  start_date     DateTime
   end_date       DateTime?
   months_before_inactivation Int?
   mode           ContributionMode @default(OneTimeWindow) 
@@ -102,22 +99,18 @@ model ContributionType {
 model PaymentRecord {
   id                Int       @id @default(autoincrement())
   member_id         Int
-  contribution_id   Int
+  contribution_id   Int?
   payment_date      DateTime  @default(now())
   payment_method    String
-  document_reference String   @default("-")
-  
-  total_paid_amount Decimal   // total amount paid in this record
-  remaining_balance Decimal?   // ✅ remaining balance after this payment
-
+  document_reference String   @default("-") //correct his one to be nullable
+  total_paid_amount Decimal  
+  remaining_balance Decimal?
+  penalty_type_payed_for PenaltyType? @default(automatically) // Default to automatically if not specified
   member            Member      @relation(fields: [member_id], references: [id])
-  contribution      Contribution @relation(fields: [contribution_id], references: [id])
-  payments          Payment[]    // linked breakdowns
-
+  contribution      Contribution? @relation(fields: [contribution_id], references: [id])
+  payments          Payment[]    
   created_at        DateTime    @default(now())
 }
-
-
 
 model Payment {
   id                      Int       @id @default(autoincrement())
@@ -134,18 +127,14 @@ model Payment {
   contributionSchedule    ContributionSchedule? @relation(fields: [contribution_schedule_id], references: [id])
 }
 
-
-
 model Balance {
   id                Int          @id @default(autoincrement())
   member_id         Int
   contribution_id   Int
   amount            Decimal      @default(0)
   updated_at        DateTime     @updatedAt
-
   member            Member       @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contribution      Contribution @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
-
   @@unique([member_id, contribution_id]) 
 }
 
@@ -153,12 +142,13 @@ model Penalty {
   id                        Int                   @id @default(autoincrement())
   member_id                 Int
   contribution_id           Int
-  contribution_schedule_id  Int
-
+  contribution_schedule_id  Int?
   member                   Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contribution             Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
-  contributionSchedule     ContributionSchedule  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
- waived  Boolean? @default(false)
+  contributionSchedule     ContributionSchedule?  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
+  waived  Boolean? @default(false)
+  generated PenaltyType? @default(automatically) 
+  penalty_type             String?
   reason                   String
   amount                   Decimal
   paid_amount              Decimal               @default(0) // <-- Add this
@@ -179,7 +169,6 @@ model ContributionSchedule {
   paid_at         DateTime?
   penalties       Penalty[]  
   contribution    Contribution  @relation(fields: [contribution_id], references: [id],onDelete: Cascade)
-
   Payment Payment[]
 }
 
@@ -218,4 +207,9 @@ enum ContributionMode {
   Recurring 
   OneTimeWindow        
   OpenEndedRecurring
+}
+
+enum PenaltyType {
+  automatically
+  manually
 }

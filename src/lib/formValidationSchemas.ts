@@ -309,3 +309,13 @@ export const ContributionTypeSchema = z
     }
     return data;
   });
+export const penaltyFormSchema = z.object({
+  memberId: z.number().min(1, "Member is required"),
+  contributionId: z.number().min(1, "Contribution type is required"),
+  reason: z.string().min(1, "Reason is required"),
+  amount: z.number().min(0, "Amount must be positive"),
+  missedMonth: z.date(),
+  waived: z.boolean().optional(),
+  generated: z.enum(["automatically", "manually"]),
+  penalty_type:z.string()
+});
