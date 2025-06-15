@@ -141,10 +141,10 @@ model Balance {
 model Penalty {
   id                        Int                   @id @default(autoincrement())
   member_id                 Int
-  contribution_id           Int
+  contribution_id           Int?
   contribution_schedule_id  Int?
   member                   Member                @relation(fields: [member_id], references: [id], onDelete: Cascade)
-  contribution             Contribution          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
+  contribution             Contribution?          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
   contributionSchedule     ContributionSchedule?  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
   waived  Boolean? @default(false)
   generated PenaltyType? @default(automatically) 
@@ -156,7 +156,15 @@ model Penalty {
   is_paid                  Boolean               @default(false)
   applied_at               DateTime              @default(now())
   resolved_at              DateTime?
+  penaltyTypeId Int?
+  penaltyType   PenaltyTypeModel?   @relation(fields: [penaltyTypeId], references: [id], onDelete: Cascade)
 }
+model PenaltyTypeModel {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  penalties Penalty[]
+}
+
 
 
 model ContributionSchedule {

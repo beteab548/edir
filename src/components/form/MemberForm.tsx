@@ -128,6 +128,8 @@ const MemberForm = ({
     if (state.success) {
       toast(`Member has been ${type === "create" ? "created" : "updated"}!`);
       router.push("/list/members");
+              router.refresh();
+
       if (type === "update") {
         router.refresh();
         setOpen(false);
@@ -207,7 +209,6 @@ const MemberForm = ({
     setConfirmDeleteIndex(null);
     deleteDialogRef.current?.close();
   };
-  console.log(imageReady);
   return (
     <div className="max-h-[80vh] overflow-y-auto">
       <div className="sticky top-0 bg-white pt-4 pb-2 z-10">

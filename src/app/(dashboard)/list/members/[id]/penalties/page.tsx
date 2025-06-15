@@ -23,7 +23,7 @@ export default async function MemberPenaltiesPage({
   });
   // Fetch all penalties for this member
   const penalties = await prisma.penalty.findMany({
-    where: { member_id: memberId },
+    where: { member_id: memberId ,generated:"automatically"},
     include: {
       contribution: {
         select: {
@@ -95,7 +95,7 @@ export default async function MemberPenaltiesPage({
               penalties.map((penalty) => (
                 <tr key={penalty.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {penalty.contribution.type_name}
+                    {penalty.contribution?.type_name}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(penalty.missed_month).toLocaleDateString(

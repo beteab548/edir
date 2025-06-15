@@ -4,8 +4,30 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
-import { ContributionMode } from "@prisma/client"; // Assuming you have this enum defined
-type CurrentState = { success: boolean; error: boolean, message?: string };
+import { ContributionMode, PenaltyTypeModel } from "@prisma/client";
+type Payment = {
+  amount?: number;
+  paid_amount?: Number;
+  payment_date?: Date;
+  contribution_id?: string;
+  contribution_type?: string;
+  member_id: number;
+  payment_method?: string;
+  receipt?: string | undefined;
+  penalty_type?: string | null;
+  penalty_month?: Date | null;
+};
+type Penalty = {
+  amount: number;
+  paid_amount?: Number;
+  member_id: number;
+  penalty_type?: string | null;
+  penalty_months?: Date | null;
+  reason?: string;
+  missed_month?: Date | null;
+};
+
+type CurrentState = { success: boolean; error: boolean; message?: string };
 export const createMember = async (
   currentState: CurrentState,
   data: CombinedSchema
@@ -13,7 +35,6 @@ export const createMember = async (
   console.log("in create", data);
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Create member and relatives
       const createdMember = await tx.member.create({
         data: {
           first_name: data.member.first_name,
@@ -550,15 +571,6 @@ export const deleteContributionType = async (id: number) => {
     return { success: false };
   }
 };
-type Payment = {
-  paid_amount: Number;
-  payment_date: Date;
-  contribution_id: string;
-  contribution_type: string;
-  member_id: number;
-  payment_method: string;
-  receipt: string | undefined;
-};
 
 export const createPaymentAction = async (
   currentState: CurrentState,
@@ -576,14 +588,18 @@ export const createPaymentAction = async (
       where: { id: currentContributionId },
     });
     if (!contributionExists) {
-      return { success: false, error:true, message: "Contribution Type Doesn't Exist!" };
+      return {
+        success: false,
+        error: true,
+        message: "Contribution Type Doesn't Exist!",
+      };
     }
 
     const memberExists = await prisma.member.findUnique({
       where: { id: currentMemberId },
     });
     if (!memberExists) {
-      return { success: false ,error:true, message: "Member Doesn't Exist!" };
+      return { success: false, error: true, message: "Member Doesn't Exist!" };
     }
 
     const currentMemberContribution = await prisma.contribution.findUnique({
@@ -595,7 +611,11 @@ export const createPaymentAction = async (
       },
     });
     if (!currentMemberContribution) {
-      return { success: false ,error:true, message: "Member Contribution Doesn't Exist!" };
+      return {
+        success: false,
+        error: true,
+        message: "Member Contribution Doesn't Exist!",
+      };
     }
     const payments = await applyCatchUpPayment({
       memberId: currentMemberId,
@@ -605,10 +625,10 @@ export const createPaymentAction = async (
       documentReference: paymentReceipt || "-",
     });
     console.log("payments are ", payments);
-    return { success: true ,error:false};
+    return { success: true, error: false };
   } catch (error) {
     console.log(error);
-    return { success: false ,error:true};
+    return { success: false, error: true };
   }
 };
 export async function waivePenalty(penaltyId: number, memberId: number) {
@@ -658,14 +678,19 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
   }
 }
 export async function getMembersWithPenalties() {
-  return await prisma.member.findMany({
+  const members = await prisma.member.findMany({
     where: {
       Penalty: {
-        some: {},
+        some: {
+          generated: "automatically",
+        },
       },
     },
     include: {
       Penalty: {
+        where: {
+          generated: "automatically",
+        },
         include: {
           contribution: {
             include: {
@@ -684,10 +709,118 @@ export async function getMembersWithPenalties() {
       first_name: "asc",
     },
   });
+  console.log("members with penalties:", members);
+  return members;
 }
-export const createPenaltyPaymentAction = async (
+
+export const createPenalty = async (
+  currentState: CurrentState,
+  data: Penalty
+) => {
+  if (!data.member_id || !data.amount) {
+    console.error("Invalid data for penalty creation", data);
+    return { success: false, error: true };
+  }
+
+  try {
+    const member = await prisma.member.findUnique({
+      where: { id: data.member_id },
+    });
+    if (!member) {
+      return { success: false, error: true, message: "Member not found" };
+    }
+
+    const penaltyType = data.penalty_type
+      ? await prisma.penaltyTypeModel.findUnique({
+          where: { name: data.penalty_type },
+        })
+      : null;
+    if (!penaltyType) {
+      return { success: false, error: true, message: "penalty type not found" };
+    }
+    const penaltyData: any = {
+      amount: new Decimal(data.amount),
+      member_id: data.member_id,
+      reason: data.reason ?? "",
+      missed_month: data.missed_month,
+      generated: "manually",
+      penalty_type: data.penalty_type,
+    };
+    if (penaltyType?.id !== undefined) {
+      penaltyData.penaltyTypeId = penaltyType.id;
+    }
+    const penalty = await prisma.penalty.create({
+      data: penaltyData,
+    });
+    return { success: true, error: false, penalty };
+  } catch (error) {
+    console.error("Error creating penalty:", error);
+  }
+
+  return { success: false, error: true };
+};
+export const PenaltyPaymentAction = async (
   currentState: CurrentState,
   data: Payment
 ) => {
-  return { success: false, error: true };
+  console.log(`Payment data received for penalty: `, data);
+  const penalty = await prisma.penalty.findFirst({
+    where: {
+      member_id: data.member_id,
+      is_paid: false,
+      ...(data.penalty_month !== null && data.penalty_month !== undefined
+        ? { missed_month: data.penalty_month }
+        : {}),
+    },
+  });
+  console.log("penalty is", penalty);
+  if (!penalty) {
+    console.error("No unpaid penalty found for the given member and month");
+    return { success: false, error: true, message: "No unpaid penalty found" };
+  }
+  try {
+    if (data.paid_amount === undefined || Number(data.paid_amount) <= 0) {
+      return { success: false, error: true, message: "Invalid payment amount" };
+    }
+
+    // Update the penalty as paid
+    const updatedPenalty = await prisma.penalty.update({
+      where: { id: penalty.id },
+      data: {
+        is_paid: true,
+        paid_amount: new Decimal(Number(data.paid_amount)),
+        resolved_at: new Date(),
+      },
+    });
+
+    await prisma.paymentRecord.create({
+      data: {
+        member_id: data.member_id,
+        contribution_id: penalty.contribution_id,
+        total_paid_amount: new Decimal(Number(data.paid_amount)),
+        payment_date: new Date(),
+        payment_method: data.payment_method || "Cash",
+        document_reference: data.receipt || undefined,
+        penalty_type_payed_for:"manually"
+      },
+    });
+    return { success: true, error: false, penalty: updatedPenalty };
+  } catch (error) {
+    console.error("Error processing penalty payment:", error);
+    return { success: false, error: true };
+  }
 };
+export async function getPenaltyTypes() {
+  return await prisma.penaltyTypeModel.findMany({ orderBy: { name: "asc" } });
+}
+export async function addPenaltyType(name: string) {
+  const trimmedName = name.trim();
+  if (!trimmedName) throw new Error("Penalty type cannot be empty");
+  const existing = await prisma.penaltyTypeModel.findUnique({
+    where: { name: trimmedName },
+  });
+  if (existing) return existing;
+  return await prisma.penaltyTypeModel.create({
+    data: { name: trimmedName },
+  });
+}

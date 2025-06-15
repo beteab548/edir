@@ -33,9 +33,10 @@ export const memberSchema = z.object({
   image_file_id: z.string().optional(),
   remark: z.string().optional(),
   status: z.enum(["Active", "Inactive"], { message: "Status is required!" }),
-  member_type: z.enum(["New", "Existing"], { message: "member status is required!" }),
+  member_type: z.enum(["New", "Existing"], {
+    message: "member status is required!",
+  }),
 });
-
 
 export type MemberSchema = z.infer<typeof memberSchema>;
 export const relativeSchema = z.object({
@@ -127,20 +128,18 @@ export const ContributionSchema = z
     months_before_inactivation: z
       .union([
         z.number().int().positive(),
-        z
-          .string()
-          .transform((val, ctx) => {
-            if (!val) return undefined;
-            const parsed = parseInt(val);
-            if (isNaN(parsed) || parsed < 1) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Must be a positive integer",
-              });
-              return z.NEVER;
-            }
-            return parsed;
-          }),
+        z.string().transform((val, ctx) => {
+          if (!val) return undefined;
+          const parsed = parseInt(val);
+          if (isNaN(parsed) || parsed < 1) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Must be a positive integer",
+            });
+            return z.NEVER;
+          }
+          return parsed;
+        }),
       ])
       .optional()
       .nullable(),
@@ -161,33 +160,27 @@ export const ContributionSchema = z
     period_months: z
       .union([
         z.number().int().positive(),
-        z
-          .string()
-          .transform((val, ctx) => {
-            if (!val) return undefined;
-            const parsed = parseInt(val);
-            if (isNaN(parsed) || parsed < 1) {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: "Must be a positive integer",
-              });
-              return z.NEVER;
-            }
-            return parsed;
-          }),
+        z.string().transform((val, ctx) => {
+          if (!val) return undefined;
+          const parsed = parseInt(val);
+          if (isNaN(parsed) || parsed < 1) {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: "Must be a positive integer",
+            });
+            return z.NEVER;
+          }
+          return parsed;
+        }),
       ])
       .optional()
       .nullable(),
   })
   // Require period_months when mode is OneTimeWindow
-  .refine(
-  (data) =>
-    data.mode !== "OneTimeWindow" || !!data.period_months,
-  {
+  .refine((data) => data.mode !== "OneTimeWindow" || !!data.period_months, {
     message: "Period months is required for OneTimeWindow mode",
     path: ["period_months"],
-  }
-)
+  })
   // Require end_date when mode is Recurring
   .refine(
     (data) => {
@@ -202,8 +195,7 @@ export const ContributionSchema = z
     }
   );
 
-
-export type ContributionType=z.infer<typeof ContributionSchema>
+export type ContributionType = z.infer<typeof ContributionSchema>;
 export const paymentFormSchema = z.object({
   contribution_id: z.string(),
   contribution_type: z.string(),
@@ -212,8 +204,18 @@ export const paymentFormSchema = z.object({
   receipt: z.string().min(1, "Receipt is required"),
   paid_amount: z.string(),
   payment_date: z.string(),
+  penalty_month: z.string(),
 });
-
+export const penaltyPaymentFormSchema = z.object({
+  member_id: z.number().min(1, "Member is required"),
+  paid_amount: z.string().min(1, "Amount is required"),
+  payment_method: z.string().min(1, "Payment method is required"),
+  payment_date: z.string().min(1, "Payment date is required"),
+  receipt: z.string().optional(),
+  penalty_month: z.string().min(1, "Penalty month is required"),
+  // Note: contribution_type and contribution_id are not required for penalty payments
+});
+export type penaltyPaymentFormSchemaType = z.infer<typeof penaltyPaymentFormSchema>;
 export type PaymentFormSchemaType = {
   contribution_id: string;
   contribution_type: string;
@@ -222,8 +224,8 @@ export type PaymentFormSchemaType = {
   receipt: string;
   paid_amount: string;
   payment_date: string;
+  penalty_month?: Date | undefined;
 };
-
 
 export const ContributionTypeSchema = z
   .object({
@@ -234,11 +236,7 @@ export const ContributionTypeSchema = z
     end_date: z.string().optional(),
     period_months: z.number().optional(),
     penalty_amount: z.number().min(0, "Penalty must be 0 or more").optional(),
-    months_before_inactivation: z
-      .number()
-      .int()
-      .positive()
-      .optional(),
+    months_before_inactivation: z.number().int().positive().optional(),
     is_for_all: z.boolean(),
     is_active: z.boolean(),
     member_ids: z.array(z.number()).optional(),
@@ -270,14 +268,19 @@ export const ContributionTypeSchema = z
       if (typeof data.period_months !== "number" || data.period_months <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Period months must be a positive number for OneTimeWindow mode",
+          message:
+            "Period months must be a positive number for OneTimeWindow mode",
           path: ["period_months"],
         });
       }
-      if (typeof data.months_before_inactivation !== "number" || data.months_before_inactivation <= 0) {
+      if (
+        typeof data.months_before_inactivation !== "number" ||
+        data.months_before_inactivation <= 0
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Months before inactivation must be a positive number for OneTimeWindow mode",
+          message:
+            "Months before inactivation must be a positive number for OneTimeWindow mode",
           path: ["months_before_inactivation"],
         });
       }
@@ -310,12 +313,10 @@ export const ContributionTypeSchema = z
     return data;
   });
 export const penaltyFormSchema = z.object({
-  memberId: z.number().min(1, "Member is required"),
-  contributionId: z.number().min(1, "Contribution type is required"),
+  member_id: z.number().min(1, "Member is required"),
   reason: z.string().min(1, "Reason is required"),
   amount: z.number().min(0, "Amount must be positive"),
-  missedMonth: z.date(),
-  waived: z.boolean().optional(),
+  missed_month: z.date(),
   generated: z.enum(["automatically", "manually"]),
-  penalty_type:z.string()
+  penalty_type: z.string(),
 });

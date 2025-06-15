@@ -19,14 +19,25 @@ export default async function ContributionPage({ params }: PageProps) {
   const types = await prisma.contributionType.findUnique({
     where: { name: updatedType ?? undefined },
   });
+  const members= await getMembersWithPenalties();
+  console.log("members", members);
   if (updatedType.toLowerCase() === "penalties") {
     return (
       <div className="contribution-page">
-        <Penalty initialMembers={await getMembersWithPenalties()} />
+        <Penalty initialMembers={
+          (await getMembersWithPenalties()).map(member => ({
+            ...member,
+            Penalty: member.Penalty
+              .filter(penalty => penalty.contribution !== null)
+              .map(penalty => ({
+                ...penalty,
+                contribution: penalty.contribution!
+              }))
+          }))
+        } />
       </div>
     );
   }
-
   const payments = await prisma.paymentRecord.findMany({
     where: { contribution_id: types?.id ?? undefined ,penalty_type_payed_for:"automatically"},
     include: { member: true, contribution: true, payments: true },

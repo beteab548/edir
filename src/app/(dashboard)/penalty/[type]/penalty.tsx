@@ -1,11 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
 import { penaltyFormSchema } from "@/lib/formValidationSchemas";
+import { addPenaltyType, createPenalty, getPenaltyTypes } from "@/lib/actions";
+import { useFormState } from "react-dom";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 type Member = {
   id: number;
   first_name: string;
@@ -39,27 +43,46 @@ type Props = {
   penalties: Penalty[];
 };
 
-
-export default function PenaltyManagement({
-  members,
-  penalties,
-}: Props) {
+export default function PenaltyManagement({ members, penalties }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>(members);
-
+  const [isWaiveModalOpen, setIsWaiveModalOpen] = useState(false);
+  const [selectedPenalty, setSelectedPenalty] = useState<Penalty | null>(null);
+  const router = useRouter();
   const form = useForm<z.infer<typeof penaltyFormSchema>>({
     resolver: zodResolver(penaltyFormSchema),
     defaultValues: {
-      memberId: 0,
+      member_id: 0,
       reason: "",
       amount: 0,
-      missedMonth: new Date(),
-      waived: false,
+      missed_month: new Date(),
       generated: "manually",
     },
   });
+  const [penaltyTypes, setPenaltyTypes] = useState<string[]>([]);
+  const [newPenaltyType, setNewPenaltyType] = useState("");
+  const [state, formAction] = useFormState(createPenalty, {
+    success: false,
+    error: false,
+  });
+  useEffect(() => {
+    getPenaltyTypes().then((types) =>
+      setPenaltyTypes(types.map((t) => t.name))
+    );
+  }, []);
+
+  const handleAddPenaltyType = async () => {
+    if (!newPenaltyType.trim()) return;
+    try {
+      const result = await addPenaltyType(newPenaltyType);
+      setPenaltyTypes((prev) => Array.from(new Set([...prev, result.name])));
+      setNewPenaltyType("");
+    } catch (err) {
+      console.error("Failed to add penalty type:", err);
+    }
+  };
 
   const handleSearch = (term: string) => {
     setSearchTerm(term);
@@ -80,23 +103,27 @@ export default function PenaltyManagement({
 
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);
-    form.setValue("memberId", member.id);
+    form.setValue("member_id", member.id);
   };
 
   const onSubmit = async (data: z.infer<typeof penaltyFormSchema>) => {
     try {
-      // Here you would typically call your server action
-      // await createPenalty(data)
       console.log("Submitting penalty:", data);
+      formAction(data);
       setIsModalOpen(false);
       form.reset();
       setSelectedMember(null);
-      // You might want to refresh the penalties list here
     } catch (error) {
       console.error("Error creating penalty:", error);
     }
   };
-
+  useEffect(() => {
+    if (state.success) {
+      toast.success(`peanlty has been created`);
+      router.push("/penalty/manage");
+    }
+    if (state.error) toast.error("Something went wrong");
+  }, [state, router]);
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
@@ -108,7 +135,6 @@ export default function PenaltyManagement({
           Add Penalty
         </button>
       </div>
-
       {/* Penalty Table */}
       <div className="border rounded-lg overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -136,7 +162,7 @@ export default function PenaltyManagement({
                 Status
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Applied At
+                Actions
               </th>
             </tr>
           </thead>
@@ -147,7 +173,7 @@ export default function PenaltyManagement({
                   {penalty.member.first_name} {penalty.member.second_name}{" "}
                   {penalty.member.last_name}
                 </td>
-                
+
                 {/* <td className="px-6 py-4 whitespace-nowrap">
                   {penalty.type_name || "Unknown"}
                 </td> */}
@@ -171,7 +197,17 @@ export default function PenaltyManagement({
                     : "Pending"}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  {format(new Date(penalty.applied_at), "dd MMM yyyy")}
+                  {!penalty.is_paid && !penalty.waived && (
+                    <button
+                      onClick={() => {
+                        setSelectedPenalty(penalty);
+                        setIsWaiveModalOpen(true);
+                      }}
+                      className="text-blue-600 hover:text-blue-800"
+                    >
+                      Waive
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -257,37 +293,45 @@ export default function PenaltyManagement({
                       {selectedMember.second_name} {selectedMember.last_name}
                     </div>
                   )}
-                  {form.formState.errors.memberId && (
+                  {form.formState.errors.member_id && (
                     <p className="text-sm text-red-500">
-                      {form.formState.errors.memberId.message}
+                      {form.formState.errors.member_id.message}
                     </p>
                   )}
                 </div>
 
-                {/* Contribution Type */}
                 <div className="space-y-2">
                   <label className="block text-sm font-medium">
                     Penalty Type
                   </label>
                   <select
-                    {...form.register("penalty_type", {
-                      valueAsNumber: true,
-                    })}
+                    {...form.register("penalty_type")}
                     className="w-full p-2 border rounded"
                   >
                     <option value="">Select Penalty type</option>
-                    <option key="missed funeral" value="missed meetin">
-                      missed funeral
-                    </option>
-                    <option key="missed meeting" value="missed meetin">
-                      missed meeting
-                    </option>
+                    {penaltyTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
                   </select>
-                  {form.formState.errors.contributionId && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.contributionId.message}
-                    </p>
-                  )}
+
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Add new type"
+                      value={newPenaltyType}
+                      onChange={(e) => setNewPenaltyType(e.target.value)}
+                      className="flex-1 p-2 border rounded"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddPenaltyType}
+                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
+                    >
+                      Add
+                    </button>
+                  </div>
                 </div>
 
                 {/* Reason */}
@@ -329,15 +373,15 @@ export default function PenaltyManagement({
                   </label>
                   <input
                     type="month"
-                    {...form.register("missedMonth", {
+                    {...form.register("missed_month", {
                       setValueAs: (value) =>
                         value ? new Date(value + "-01") : new Date(),
                     })}
                     className="w-full p-2 border rounded"
                   />
-                  {form.formState.errors.missedMonth && (
+                  {form.formState.errors.missed_month && (
                     <p className="text-sm text-red-500">
-                      {form.formState.errors.missedMonth.message}
+                      {form.formState.errors.missed_month.message}
                     </p>
                   )}
                 </div>
@@ -361,6 +405,53 @@ export default function PenaltyManagement({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Waive Penalty Modal */}
+      {isWaiveModalOpen && selectedPenalty && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Waive Penalty</h2>
+                <button
+                  onClick={() => setIsWaiveModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  ×
+                </button>
+              </div>
+
+              <p className="mb-4">
+                Are you sure you want to waive the penalty for{" "}
+                {selectedPenalty.member.first_name}{" "}
+                {selectedPenalty.member.last_name}?
+              </p>
+
+              <div className="flex justify-end space-x-2 pt-4">
+                <button
+                  onClick={() => setIsWaiveModalOpen(false)}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // Here you would call your API to waive the penalty
+                    // For example: waivePenalty(selectedPenalty.id);
+                    toast.success(
+                      `Penalty waived for ${selectedPenalty.member.first_name}`
+                    );
+                    setIsWaiveModalOpen(false);
+                    // You might want to refresh the data here
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                >
+                  Confirm Waive
+                </button>
+              </div>
             </div>
           </div>
         </div>

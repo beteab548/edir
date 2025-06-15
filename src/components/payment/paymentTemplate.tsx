@@ -8,10 +8,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import SelectField from "../SelectField";
 import { toast } from "react-toastify";
-import { createPaymentAction, createPenaltyPaymentAction } from "@/lib/actions";
+import { createPaymentAction, PenaltyPaymentAction } from "@/lib/actions";
 import {
   paymentFormSchema,
   PaymentFormSchemaType,
+  penaltyPaymentFormSchema,
+  penaltyPaymentFormSchemaType,
 } from "@/lib/formValidationSchemas";
 import UploadFile from "../FileUpload/page";
 import { useFormState } from "react-dom";
@@ -60,33 +62,43 @@ export default function ContributionTemplate({
   const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
     null
   );
+  const [penaltyMonths, setPenaltyMonths] = useState<
+    { month: Date; amount: number }[]
+  >([]);
+  const [loadingPenaltyMonths, setLoadingPenaltyMonths] = useState(false);
   const [imageReady, setImageReady] = useState(true);
   const router = useRouter();
   const [selectedContributionTypeFormat, setSelectedContributionTypeFormat] =
     useState<ContributionType | undefined>(ContributionType);
   const [openPaymentId, setOpenPaymentId] = useState<number | null>(null);
+  const [isAmountLocked, setIsAmountLocked] = useState(false);
   const {
     register,
     handleSubmit,
     setValue,
     reset,
     formState: { errors, isValid },
-    watch, // <-- add this
-  } = useForm<PaymentFormSchemaType>({
-    resolver: zodResolver(paymentFormSchema),
+    watch,
+  } = useForm<
+    PaymentFormSchemaType | penaltyPaymentFormSchemaType
+    // @ts-ignore - allow union for resolver
+  >({
+    resolver: zodResolver(
+      type === "automatically" ? paymentFormSchema : penaltyPaymentFormSchema
+    ) as any,
     defaultValues: {
       payment_method: "Cash",
       receipt: "www://example.com/receipt.jpg",
       payment_date: new Date().toISOString().split("T")[0],
+      penalty_month: "",
     },
-    mode: "onChange", // Add this to validate form as user types
+    mode: "onChange",
   });
   const [state, formAction] = useFormState(
-    type === "automatically" ? createPaymentAction : createPenaltyPaymentAction,
+    type === "automatically" ? createPaymentAction : PenaltyPaymentAction,
     { success: false, error: false }
   );
   const paymentMethod = watch("payment_method"); // <-- add this
-
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
     try {
       setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
@@ -94,7 +106,42 @@ export default function ContributionTemplate({
       console.error("Failed to handle receipt:", err);
     }
   };
-
+  useEffect(() => {
+    const fetchPenaltyMonths = async () => {
+      if (type === "manually" && selectedMember) {
+        console.log("Fetching penalty months for member:", selectedMember.id);
+        setLoadingPenaltyMonths(true);
+        const res = await fetch(`/api/penalty?memberId=${selectedMember.id}`);
+        const { monthsWithAmount } = await res.json();
+        console.log(monthsWithAmount);
+        setPenaltyMonths(monthsWithAmount || []);
+        setLoadingPenaltyMonths(false);
+      } else {
+        setPenaltyMonths([]);
+      }
+    };
+    fetchPenaltyMonths();
+  }, [type, selectedMember]);
+  useEffect(() => {
+    const subscription = watch((value, { name }) => {
+      if (name === "penalty_month" && value.penalty_month) {
+        const selectedMonth = penaltyMonths.find(
+          (month) => month.month === value.penalty_month
+        );
+        if (selectedMonth) {
+          setValue("paid_amount", selectedMonth.amount.toString(), {
+            shouldValidate: true,
+          });
+          setIsAmountLocked(true); // Lock the amount after setting it
+        }
+      }
+      // Unlock if month selection is cleared
+      if (name === "penalty_month" && !value.penalty_month) {
+        setIsAmountLocked(false);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, penaltyMonths, setValue]);
   useEffect(() => {
     if (selectedContributionTypeFormat?.amount) {
       setValue(
@@ -104,7 +151,6 @@ export default function ContributionTemplate({
       setValue("contribution_type", selectedContributionTypeFormat.name);
     }
   }, [selectedContributionTypeFormat, setValue]);
-
   useEffect(() => {
     if (searchTerm.length > 1 && !selectedMember) {
       const results = members.filter((member: Member) => {
@@ -120,63 +166,64 @@ export default function ContributionTemplate({
       setSearchResults([]);
     }
   }, [searchTerm, selectedMember, members]);
-
   const toggleDetails = (id: number) => {
     setOpenPaymentId((prev) => (prev === id ? null : id));
   };
-
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
-
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);
     setSearchTerm(`${member.first_name} ${member.last_name}`);
     setSearchResults([]);
     setValue("member_id", member.id, { shouldValidate: true });
   };
-
   const clearSelectedMember = () => {
     setSelectedMember(null);
     setSearchTerm("");
     setValue("member_id", 1, { shouldValidate: true });
   };
-
-  const onSubmit = async (data: PaymentFormSchemaType) => {
+  const onSubmit = async (
+    data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
+  ) => {
     try {
       if (!selectedMember) {
         toast.error("Please select a member first");
         return;
       }
 
-      const transformedData = {
-        ...data,
-        receipt: image?.Url,
+      const baseData = {
+        member_id: selectedMember.id,
         paid_amount: Number(data.paid_amount),
+        payment_method: data.payment_method,
         payment_date: new Date(data.payment_date),
+        receipt: image?.Url,
       };
 
-      console.log("✅ Transformed Data to Submit:", transformedData);
       if (type === "automatically") {
-        if (transformedData.paid_amount < 0) {
-          toast.error("Paid amount cannot be negative!");
-          return;
-        }
-        formAction(transformedData);
-      }
-      // const res = await createPaymentAction(
-      // { success: false, error: false },
-      // transformedData
-      // );
-      // formAction(transformedData) // Removed: formAction expects no arguments
-      // The form will be submitted via the form's onSubmit handler and useFormState
+        const automaticData = {
+          ...baseData,
+          contribution_type: (data as PaymentFormSchemaType).contribution_type,
+          contribution_id: ContributionType?.id
+            ? ContributionType.id.toString()
+            : undefined,
+        };
+        formAction(automaticData);
+      } else {
+        const penaltyData = {
+          ...baseData,
+          penalty_month: new Date(
+            (data as penaltyPaymentFormSchemaType).penalty_month
+          ),
+        };
+        console.log("Submitting automatic payment data:", penaltyData);
 
-      // The rest of this block is not needed here, as the state will be handled by useFormState's state
+        formAction(penaltyData);
+      }
     } catch (error) {
       console.error("❌ Error submitting form:", error);
     }
   };
-
   const onError = (errors: any) => {
     console.log("❌ Zod Validation Errors:", errors);
   };
@@ -196,16 +243,23 @@ export default function ContributionTemplate({
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router, type]);
-
+  console.log("penaltyMonths", penaltyMonths);
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Payments</h1>
-            <p className="text-gray-600">
-              Manage all {ContributionType?.name ?? "Contribution"} payments
-            </p>
+
+            {type === "manually" ? (
+              <p className="text-gray-600">
+                Manage Manually generated Penalities payments
+              </p>
+            ) : (
+              <p className="text-gray-600">
+                Manage all {ContributionType?.name ?? "Contribution"} payments
+              </p>
+            )}
           </div>
           <div
             title={
@@ -266,9 +320,11 @@ export default function ContributionTemplate({
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Payment Method
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Balance
-                  </th>
+                  {type==="automatically" && (
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Balance
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -316,17 +372,20 @@ export default function ContributionTemplate({
                           {payment.payment_method}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span
-                          className={`text-sm font-medium ${
-                            Number(payment.remaining_balance) > 0
-                              ? "text-red-600"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {payment.remaining_balance?.toString() ?? "N/A"} birr
-                        </span>
-                      </td>
+                      {payment?.remaining_balance && (
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`text-sm font-medium ${
+                              Number(payment.remaining_balance) > 0
+                                ? "text-red-600"
+                                : "text-green-600"
+                            }`}
+                          >
+                            {payment.remaining_balance?.toString() ?? "N/A"}{" "}
+                            birr
+                          </span>
+                        </td>
+                      )}
                     </tr>
 
                     {/* Expanded Details Row */}
@@ -360,18 +419,19 @@ export default function ContributionTemplate({
                                     </div>
                                   </li>
                                 ))}
-                                  <div>
-                                {payment?.document_reference!=="-" && (
-                                    <Image
-                                      src={payment.document_reference}
-                                      alt="Payment Receipt"
-                                      width={100}
-                                      height={100}
-                                      unoptimized
-                                      className="mt-2 rounded-lg"
-                                    />
-                                  )}
-                                  </div>
+                                <div>
+                                  {payment?.document_reference &&
+                                    payment?.document_reference !== "-" && (
+                                      <Image
+                                        src={payment.document_reference}
+                                        alt="Payment Receipt"
+                                        width={100}
+                                        height={100}
+                                        unoptimized
+                                        className="mt-2 rounded-lg"
+                                      />
+                                    )}
+                                </div>
                               </ul>
                             ) : (
                               <div className="text-center py-4">
@@ -535,8 +595,10 @@ export default function ContributionTemplate({
                       min: "0",
                       placeholder: "0.00",
                       required: true,
-                      className:
-                        "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                      readOnly: isAmountLocked, // Make it read-only when locked
+                      className: `w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                        isAmountLocked ? "bg-gray-100 cursor-not-allowed" : ""
+                      }`,
                     }}
                   />
                   <input
@@ -597,6 +659,42 @@ export default function ContributionTemplate({
                   />
                 </div>
 
+                {type === "manually" && (
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Penalty Month
+                    </label>
+                    <select
+                      {...register("penalty_month", { required: true })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      disabled={
+                        loadingPenaltyMonths || penaltyMonths.length === 0
+                      }
+                    >
+                      <option value="">Select a month</option>
+                      {penaltyMonths.map((month) => {
+                        // Convert Date to "YYYY-MM"
+                        const monthStr =
+                          typeof month.month === "string"
+                            ? month.month
+                            : `${month.month.getFullYear()}-${String(
+                                month.month.getMonth() + 1
+                              ).padStart(2, "0")}`;
+                        return (
+                          <option key={monthStr} value={monthStr}>
+                            {monthStr.slice(0, 10)} - {month.amount} birr
+                          </option>
+                        );
+                      })}
+                    </select>
+                    {errors.penalty_month && (
+                      <span className="text-red-500 text-xs">
+                        Penalty month is required
+                      </span>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <button
                     type="button"
@@ -613,7 +711,10 @@ export default function ContributionTemplate({
                     type="submit"
                     className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={
-                      !imageReady || loading || !selectedMember || !isValid
+                      !imageReady ||
+                      loading ||
+                      !selectedMember ||
+                      loadingPenaltyMonths
                     }
                   >
                     {loading ? (
