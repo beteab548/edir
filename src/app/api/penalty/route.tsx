@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
       where: {
         member_id: Number(memberId),
         generated: "manually",
-        is_paid: false
+        is_paid: false,
       },
       select: {
         missed_month: true,
@@ -38,6 +38,47 @@ export async function GET(req: NextRequest) {
     console.error(error);
     return NextResponse.json(
       { error: "Failed to fetch penalty months with amounts" },
+      { status: 500 }
+    );
+  }
+}
+
+
+
+export async function PATCH(request: Request) {
+  try {
+    // Extract penalty ID from request body
+    const { penaltyId } = await request.json();
+
+    if (!penaltyId || isNaN(Number(penaltyId))) {
+      return NextResponse.json(
+        { error: "Valid penalty ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Update the penalty in database
+    const updatedPenalty = await prisma.penalty.update({
+      where: { id: Number(penaltyId) },
+      data: {
+        waived: true,
+        resolved_at: new Date(),
+      },
+      include: {
+        member: {
+          select: {
+            first_name: true,
+            last_name: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(updatedPenalty);
+  } catch (error) {
+    console.error("Error waiving penalty:", error);
+    return NextResponse.json(
+      { error: "Failed to waive penalty" },
       { status: 500 }
     );
   }

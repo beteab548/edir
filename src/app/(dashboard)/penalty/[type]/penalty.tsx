@@ -83,7 +83,30 @@ export default function PenaltyManagement({ members, penalties }: Props) {
       console.error("Failed to add penalty type:", err);
     }
   };
+  const handleWaivePenalty = async (penaltyId: number) => {
+    try {
+      const response = await fetch("/api/penalty", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ penaltyId }),
+      });
 
+      if (!response.ok) {
+        throw new Error("Failed to waive penalty");
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  };
+  
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     if (term === "") {
@@ -438,14 +461,26 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                   Cancel
                 </button>
                 <button
-                  onClick={() => {
-                    // Here you would call your API to waive the penalty
-                    // For example: waivePenalty(selectedPenalty.id);
-                    toast.success(
-                      `Penalty waived for ${selectedPenalty.member.first_name}`
-                    );
-                    setIsWaiveModalOpen(false);
-                    // You might want to refresh the data here
+                  onClick={async () => {
+                    if (!selectedPenalty) return;
+                    try {
+                      const result = await handleWaivePenalty(
+                        selectedPenalty.id
+                      );
+                      if (result.success) {
+                        toast.success(
+                          `Penalty waived for ${selectedPenalty.member.first_name}`
+                        );
+                        router.refresh(); // Refresh the page to show updated status
+                      } else {
+                        toast.error(result.error || "Failed to waive penalty");
+                      }
+                    } catch (error) {
+                      toast.error("Failed to waive penalty");
+                      console.error("Error waiving penalty:", error);
+                    } finally {
+                      setIsWaiveModalOpen(false);
+                    }
                   }}
                   className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
                 >
