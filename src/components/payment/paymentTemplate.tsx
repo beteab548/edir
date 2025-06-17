@@ -32,13 +32,13 @@ type ContributionType = {
 type PaymentRecord = {
   id: number;
   member_id: number;
-  contribution_id?: number | null;
+  contribution_Type_id?: number | null;
   payment_method: string;
   payment_date: Date;
   document_reference: string;
   total_paid_amount: Prisma.Decimal;
   member: Member;
-  contribution?: Contribution;
+  contributionType?: ContributionType|null;
   remaining_balance?: Prisma.Decimal | null;
   payments?: Payment[];
 };
@@ -94,6 +94,7 @@ export default function ContributionTemplate({
     },
     mode: "onChange",
   });
+  console.log(payments);
   const [state, formAction] = useFormState(
     type === "automatically" ? createPaymentAction : PenaltyPaymentAction,
     { success: false, error: false }
@@ -216,7 +217,7 @@ export default function ContributionTemplate({
             (data as penaltyPaymentFormSchemaType).penalty_month
           ),
         };
-        console.log("Submitting automatic payment data:", penaltyData);
+        console.log("Submitting manual payment data:", penaltyData);
 
         formAction(penaltyData);
       }
@@ -358,7 +359,7 @@ export default function ContributionTemplate({
                       {type === "automatically" && (
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="text-sm text-gray-600">
-                            {payment.contribution?.type_name}
+                            {payment.contributionType?.name}
                           </span>
                         </td>
                       )}

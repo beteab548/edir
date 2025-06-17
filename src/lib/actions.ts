@@ -796,7 +796,7 @@ export const PenaltyPaymentAction = async (
     await prisma.paymentRecord.create({
       data: {
         member_id: data.member_id,
-        contribution_id: penalty.contribution_id,
+        contribution_Type_id: penalty.contribution_id,
         total_paid_amount: new Decimal(Number(data.paid_amount)),
         payment_date: new Date(),
         payment_method: data.payment_method || "Cash",

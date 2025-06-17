@@ -1,6 +1,5 @@
 "use client";
-
-import Image from "next/image";
+import { useEffect, useState } from "react";
 import {
   LineChart,
   Line,
@@ -12,112 +11,151 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const data = [
-  {
-    name: "Jan",
-    income: 4000,
-    expense: 2400,
-  },
-  {
-    name: "Feb",
-    income: 3000,
-    expense: 1398,
-  },
-  {
-    name: "Mar",
-    income: 2000,
-    expense: 9800,
-  },
-  {
-    name: "Apr",
-    income: 2780,
-    expense: 3908,
-  },
-  {
-    name: "May",
-    income: 1890,
-    expense: 4800,
-  },
-  {
-    name: "Jun",
-    income: 2390,
-    expense: 3800,
-  },
-  {
-    name: "Jul",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Aug",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Sep",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Oct",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Nov",
-    income: 3490,
-    expense: 4300,
-  },
-  {
-    name: "Dec",
-    income: 3490,
-    expense: 4300,
-  },
-];
+interface ChartData {
+  name: string;
+  expected: number;
+  paid: number;
+}
 
-const FinanceChart = () => {
+interface ContributionType {
+  name: string;
+}
+
+interface FinanceChartProps {
+  contributionTypes: ContributionType[];
+}
+
+const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedType, setSelectedType] = useState("all");
+  const [data, setData] = useState<ChartData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Generate type options with dynamic values
+  const typeOptions = [
+    { name: "All Contributions", value: "all" },
+    ...contributionTypes.map(type => ({
+      name: type.name,
+      value: type.name
+    }))
+  ];
+
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        const url = `/api/reports/monthly?year=${selectedYear}${
+          selectedType !== "all" ? `&type=${selectedType}` : ""
+        }`;
+        console.log(url);
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Failed to fetch data");
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An unknown error occurred");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [selectedYear, selectedType]);
+
   return (
-    <div className="bg-white rounded-xl w-full h-full p-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-semibold">Finance</h1>
-        <Image src="/moreDark.png" alt="" width={20} height={20} />
+    <div className="bg-white rounded-xl w-full h-full p-6 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-800">Monthly Contributions Report</h1>
+          <p className="text-sm text-gray-500">{selectedYear} Fiscal Year</p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          {/* Year Selector */}
+          <div className="relative">
+            <select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
+              className="appearance-none bg-gray-50 border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg"
+            >
+              {Array.from({ length: 5 }, (_, i) => currentYear - i).map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+          
+          {/* Type Selector */}
+          <div className="relative">
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="appearance-none bg-gray-50 border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg"
+            >
+              {typeOptions.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
       </div>
-      <ResponsiveContainer width="100%" height="90%">
-        <LineChart
-          width={500}
-          height={300}
-          data={data}
-          margin={{
-            top: 5,
-            right: 30,
-            left: 20,
-            bottom: 5,
-          }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#ddd" />
-          <XAxis
-            dataKey="name"
-            axisLine={false}
-            tick={{ fill: "#d1d5db" }}
-            tickLine={false}
-            tickMargin={10}
-          />
-          <YAxis axisLine={false} tick={{ fill: "#d1d5db" }} tickLine={false}  tickMargin={20}/>
-          <Tooltip />
-          <Legend
-            align="center"
-            verticalAlign="top"
-            wrapperStyle={{ paddingTop: "10px", paddingBottom: "30px" }}
-          />
-          <Line
-            type="monotone"
-            dataKey="income"
-            stroke="#C3EBFA"
-            strokeWidth={5}
-          />
-          <Line type="monotone" dataKey="expense" stroke="#CFCEFF" strokeWidth={5}/>
-        </LineChart>
-      </ResponsiveContainer>
+      
+      {/* Chart Area */}
+      <div className="h-[calc(100%-120px)]">
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="animate-pulse text-gray-400">Loading data...</div>
+          </div>
+        ) : error ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-red-500">Error: {error}</div>
+          </div>
+        ) : data.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-gray-400">No data available</div>
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fill: "#6b7280" }} 
+                tickLine={false}
+                axisLine={{ stroke: "#e5e7eb" }}
+              />
+              <YAxis 
+                tick={{ fill: "#6b7280" }} 
+                tickLine={false}
+                axisLine={{ stroke: "#e5e7eb" }}
+                tickFormatter={(value) => `$${value}`}
+              />
+              <Tooltip />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="expected"
+                stroke="#f59e0b"
+                strokeWidth={3}
+                name="Expected"
+              />
+              <Line
+                type="monotone"
+                dataKey="paid"
+                stroke="#10b981"
+                strokeWidth={3}
+                name="Paid"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </div>
     </div>
   );
 };

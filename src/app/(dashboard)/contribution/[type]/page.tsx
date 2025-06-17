@@ -15,12 +15,10 @@ export default async function ContributionPage({ params }: PageProps) {
   const { type } = await params;
   const decodedType = decodeURIComponent(type);
   const updatedType = decodedType.replace(/%20/g, " ");
-
+  console.log("type is ", updatedType);
   const types = await prisma.contributionType.findUnique({
     where: { name: updatedType ?? undefined },
   });
-  const members= await getMembersWithPenalties();
-  console.log("members", members);
   if (updatedType.toLowerCase() === "penalties") {
     return (
       <div className="contribution-page">
@@ -38,14 +36,29 @@ export default async function ContributionPage({ params }: PageProps) {
       </div>
     );
   }
-  const payments = await prisma.paymentRecord.findMany({
-    where: { contribution_id: types?.id ?? undefined ,penalty_type_payed_for:"automatically"},
-    include: { member: true, contribution: true, payments: true },
+  const paymentsRaw = await prisma.paymentRecord.findMany({
+    where: { contribution_Type_id: types?.id ?? undefined ,penalty_type_payed_for:"automatically"},
+    include: { member: true, contributionType: true, payments: true },
     orderBy: {
       payment_date: "desc",
     },
   });
-  console.log(payments);
+
+  // Convert Decimal fields to number in contributionType
+  const payments = paymentsRaw.map(payment => ({
+    ...payment,
+    contributionType: payment.contributionType
+      ? {
+          ...payment.contributionType,
+          amount: Number(payment.contributionType.amount),
+          penalty_amount: payment.contributionType.penalty_amount !== null
+            ? Number(payment.contributionType.penalty_amount)
+            : null,
+        }
+      : null,
+  }));
+
+  console.log("payments are", payments);
   if (type) {
     const members = await prisma.member.findMany({
       where: {
@@ -70,10 +83,7 @@ export default async function ContributionPage({ params }: PageProps) {
         <ContributionTemplate
           ContributionType={updatedTypes}
           members={members}
-          payments={payments.map(payment => ({
-            ...payment,
-            contribution: payment.contribution === null ? undefined : payment.contribution,
-          }))}
+          payments={payments}
           type="automatically"
         />
       </div>

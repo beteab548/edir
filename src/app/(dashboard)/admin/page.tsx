@@ -7,12 +7,14 @@ import EventCalendar from "@/components/EventCalendar";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
 import FinanceChart from "@/components/FinanceChart";
 import UserCard from "@/components/UserCard";
+import prisma from "@/lib/prisma";
 
-const AdminPage = ({
+const AdminPage = async ({
   searchParams,
 }: {
   searchParams: { [keys: string]: string | undefined };
 }) => {
+  const contributionTypes = await prisma.contributionType.findMany({select: { name: true } });
   return (
     <div className="p-4 flex gap-4 flex-col md:flex-row">
       {/* LEFT */}
@@ -37,7 +39,7 @@ const AdminPage = ({
         </div>
         {/* BOTTOM CHART */}
         <div className="w-full h-[500px]">
-          <FinanceChart />
+          <FinanceChart contributionTypes={contributionTypes}/>
         </div>
       </div>
       {/* RIGHT */}

@@ -77,7 +77,6 @@ model Contribution {
   Balance            Balance[]
   Penalty            Penalty[]
   ContributionSchedule ContributionSchedule[]
-  PaymentRecord PaymentRecord[]
 }
 
 model ContributionType {
@@ -94,12 +93,14 @@ model ContributionType {
   mode           ContributionMode @default(OneTimeWindow) 
   period_months  Int?            
   contributions  Contribution[]
+
+  PaymentRecord PaymentRecord[]
 }
 
 model PaymentRecord {
   id                Int       @id @default(autoincrement())
   member_id         Int
-  contribution_id   Int?
+  contribution_Type_id   Int?
   payment_date      DateTime  @default(now())
   payment_method    String
   document_reference String   @default("-") //correct his one to be nullable
@@ -107,7 +108,7 @@ model PaymentRecord {
   remaining_balance Decimal?
   penalty_type_payed_for PenaltyType? @default(automatically) // Default to automatically if not specified
   member            Member      @relation(fields: [member_id], references: [id])
-  contribution      Contribution? @relation(fields: [contribution_id], references: [id])
+  contributionType      ContributionType? @relation(fields: [contribution_Type_id], references: [id])
   payments          Payment[]    
   created_at        DateTime    @default(now())
 }
@@ -150,7 +151,7 @@ model Penalty {
   generated PenaltyType? @default(automatically) 
   penalty_type             String?
   reason                   String
-  amount                   Decimal
+  amount                   Decimal  //change this to expected_amount
   paid_amount              Decimal               @default(0) // <-- Add this
   missed_month             DateTime
   is_paid                  Boolean               @default(false)

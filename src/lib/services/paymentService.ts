@@ -84,7 +84,7 @@ export async function applyCatchUpPayment({
       const paymentRecord = await tx.paymentRecord.create({
         data: {
           member_id: memberId,
-          contribution_id: contribution.id,
+          contribution_Type_id: contributionId,
           payment_date: new Date(),
           payment_method: paymentMethod,
           document_reference: documentReference,
