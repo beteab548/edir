@@ -226,10 +226,7 @@ export async function applyCatchUpPayment({
           throw new PaymentProcessingError("No unpaid schedules found");
         }
 
-        const monthlyAmount =
-          contribution.contributionType.mode === "OpenEndedRecurring"
-            ? contribution.amount
-            : contribution.amount.dividedBy(schedules.length);
+        const monthlyAmount = contribution.amount;
 
         for (const sched of schedules) {
           if (remaining.lte(0)) break;
