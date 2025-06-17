@@ -44,7 +44,7 @@ export default function PenaltiesOverviewPage({
       }
       acc[type.mode].count++;
       acc[type.mode].totalAmount +=
-        Number(penalty.amount) - Number(penalty.paid_amount);
+        Number(penalty.expected_amount) - Number(penalty.paid_amount);
       return acc;
     }, {} as Record<string, { count: number; totalAmount: number; typeName: string }> );
   };

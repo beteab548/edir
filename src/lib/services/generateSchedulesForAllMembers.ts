@@ -39,6 +39,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
     contribution_id: number;
     member_id: number;
     month: Date;
+    expected_amount: number;
     paid_amount: number;
     is_paid: boolean;
   }[] = [];
@@ -72,6 +73,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             month: startDate,
             paid_amount: 0,
             is_paid: false,
+            expected_amount: contributionAmount,
           });
 
           const key = `${member.id}-${contribution.id}`;
@@ -117,6 +119,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             month,
             paid_amount: 0,
             is_paid: false,
+            expected_amount: contributionAmount,
           });
         }
 
@@ -173,6 +176,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             month,
             paid_amount: 0,
             is_paid: false,
+            expected_amount: contributionAmount,
           });
         }
 
@@ -246,7 +250,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
     contribution_id: number;
     contribution_schedule_id: number;
     reason: string;
-    amount: number;
+    expected_amount: number;
     missed_month: Date;
     is_paid: boolean;
     applied_at: Date;
@@ -275,11 +279,11 @@ export async function generateContributionSchedulesForAllActiveMembers() {
       const existingUnpaidPenalty = schedule.penalties.find((p) => !p.is_paid);
 
       if (existingUnpaidPenalty) {
-        if (Number(existingUnpaidPenalty.amount) < calculatedPenaltyAmount) {
+        if (Number(existingUnpaidPenalty.expected_amount) < calculatedPenaltyAmount) {
           await prisma.penalty.update({
             where: { id: existingUnpaidPenalty.id },
             data: {
-              amount: calculatedPenaltyAmount,
+              expected_amount: calculatedPenaltyAmount,
               applied_at: new Date(), // Optional: refresh applied date
               reason: `Missed payment for ${schedule.month
                 .toISOString()
@@ -295,7 +299,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
           reason: `Missed payment for ${schedule.month
             .toISOString()
             .slice(0, 7)}`,
-          amount: calculatedPenaltyAmount,
+          expected_amount: calculatedPenaltyAmount,
           missed_month: schedule.month,
           is_paid: false,
           applied_at: new Date(),

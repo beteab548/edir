@@ -13,6 +13,7 @@ datasource db {
 }
 model Member {
   id           Int     @id @default(autoincrement())
+  custom_id   String  @unique
   first_name   String
   second_name  String
   last_name    String
@@ -151,8 +152,8 @@ model Penalty {
   generated PenaltyType? @default(automatically) 
   penalty_type             String?
   reason                   String
-  amount                   Decimal  //change this to expected_amount
-  paid_amount              Decimal               @default(0) // <-- Add this
+  expected_amount           Decimal  
+  paid_amount              Decimal               @default(0) 
   missed_month             DateTime
   is_paid                  Boolean               @default(false)
   applied_at               DateTime              @default(now())
@@ -173,6 +174,7 @@ model ContributionSchedule {
   contribution_id Int
   member_id       Int
   month           DateTime  
+  expected_amount Decimal 
   paid_amount     Decimal   @default(0.0)
   is_paid         Boolean    @default(false)
   paid_at         DateTime?

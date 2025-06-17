@@ -242,7 +242,7 @@ export async function applyCatchUpPayment({
             },
           });
 
-          const penaltyAmount = penalty ? penalty.amount : new Decimal(0);
+          const penaltyAmount = penalty ? penalty.expected_amount : new Decimal(0);
 
           if (penalty && penaltyAmount.gt(0)) {
             const penaltyPaidAmount = penalty.paid_amount ?? new Decimal(0);

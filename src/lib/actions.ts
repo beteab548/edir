@@ -37,6 +37,7 @@ export const createMember = async (
     const result = await prisma.$transaction(async (tx) => {
       const createdMember = await tx.member.create({
         data: {
+          custom_id: "EDM-000",
           first_name: data.member.first_name,
           second_name: data.member.second_name,
           last_name: data.member.last_name,
@@ -104,6 +105,11 @@ export const createMember = async (
         },
       });
 
+      const formattedId = `EDM-${createdMember.id.toString().padStart(3, "0")}`;
+      await tx.member.update({
+        where: { id: createdMember.id },
+        data: { custom_id: formattedId },
+      });
       // If new member, assign contributions
       if (createdMember.member_type === "New") {
         const today = new Date();
@@ -683,7 +689,7 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
       data: {
         is_paid: true,
         resolved_at: new Date(),
-        paid_amount: penalty.amount,
+        paid_amount: penalty.expected_amount,
         waived: true,
       },
     });
@@ -712,10 +718,8 @@ export async function getMembersWithPenalties() {
   const members = await prisma.member.findMany({
     where: {
       Penalty: {
-      
         some: {
           generated: "automatically",
-          
         },
       },
     },
