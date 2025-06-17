@@ -85,12 +85,11 @@ export async function generateContributionSchedulesForAllActiveMembers() {
       }
 
       if (contributionType.mode === "Recurring") {
-        if (!contributionType.end_date) continue;
+        if (!contribution.start_date || !contributionType.end_date) continue;
 
-        const months = generateMonthlyDates(
-          startDate,
-          contributionType.end_date
-        );
+        const recurringStart = normalizeToMonthStart(contribution.start_date);
+        const recurringEnd = normalizeToMonthStart(contributionType.end_date);
+        const months = generateMonthlyDates(recurringStart, recurringEnd);
 
         const existingSchedules = await prisma.contributionSchedule.findMany({
           where: {
@@ -102,10 +101,13 @@ export async function generateContributionSchedulesForAllActiveMembers() {
         });
 
         const existingMonthsSet = new Set(
-          existingSchedules.map((s) => s.month.toISOString())
+          existingSchedules.map((s) =>
+            normalizeToMonthStart(s.month).toISOString()
+          )
         );
+
         const missingMonths = months.filter(
-          (m) => !existingMonthsSet.has(m.toISOString())
+          (m) => !existingMonthsSet.has(normalizeToMonthStart(m).toISOString())
         );
 
         for (const month of missingMonths) {
@@ -127,15 +129,17 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             amount: totalAmount,
           });
         }
+
         continue;
       }
+
       if (contributionType.mode === "OpenEndedRecurring") {
         const recurringStart = normalizeToMonthStart(
           contribution.start_date ?? startDate
         );
         // Only generate up to 12 months ahead of current month
         const endDate = addMonths(now, 11);
-          // const oneYearFromNow = addMonths(now, 11);
+        // const oneYearFromNow = addMonths(now, 11);
 
         const months = generateMonthlyDates(recurringStart, endDate);
 

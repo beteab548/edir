@@ -22,7 +22,7 @@ export const memberSchema = z.object({
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),
   phone_number: z.string().min(1, { message: "Phone number is required!" }),
   phone_number_2: z.string().optional(),
-  bank_name: z.string().optional(),
+  bank_name: z.string(),
   bank_account_number: z.string().optional(),
   bank_account_name: z.string().optional(),
   email: z.string().email({ message: "Invalid email address!" }).optional(),

@@ -106,10 +106,16 @@ export const createMember = async (
 
       // If new member, assign contributions
       if (createdMember.member_type === "New") {
+        const today = new Date();
+
         const activeContributionTypes = await tx.contributionType.findMany({
           where: {
             is_active: true,
             is_for_all: true,
+            OR: [
+              { end_date: null }, // No end date (open-ended)
+              { end_date: { gte: today } }, // End date is in the future or today
+            ],
           },
           select: {
             id: true,
@@ -119,6 +125,7 @@ export const createMember = async (
             end_date: true,
           },
         });
+        console.log(`Active contribution types:`, activeContributionTypes);
 
         const contributionsData = activeContributionTypes.map((type) => ({
           contribution_type_id: type.id,
@@ -353,6 +360,8 @@ export const updateContribution = async (
             amount: updatedType.amount,
             ...(typeNameChanged && {
               type_name: updatedType.name,
+              start_date: updatedType.start_date || new Date(),
+              end_date: updatedType.end_date || new Date(),
             }),
           },
         })
@@ -378,7 +387,7 @@ export const updateContribution = async (
               member_id: member.id,
               type_name: updatedType.name,
               amount: updatedType.amount,
-              start_date: updatedType.start_date || new Date(),
+              start_date: new Date(),
               end_date: updatedType.end_date || new Date(),
             })),
           })
@@ -433,7 +442,7 @@ export const updateContribution = async (
                 member_id,
                 type_name: updatedType.name,
                 amount: updatedType.amount,
-                start_date: updatedType.start_date || new Date(),
+                start_date: new Date(),
                 end_date: updatedType.end_date || new Date(),
               })),
             })
@@ -801,7 +810,7 @@ export const PenaltyPaymentAction = async (
         payment_date: new Date(),
         payment_method: data.payment_method || "Cash",
         document_reference: data.receipt || undefined,
-        penalty_type_payed_for:"manually"
+        penalty_type_payed_for: "manually",
       },
     });
     return { success: true, error: false, penalty: updatedPenalty };
