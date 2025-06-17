@@ -312,7 +312,7 @@ export const updateContribution = async (
   }
 ) => {
   try {
-    console.log("data send for update are", data);
+    console.log("data sent for update are", data);
 
     const currentType = await prisma.contributionType.findUnique({
       where: { id: data.id },
@@ -327,12 +327,22 @@ export const updateContribution = async (
       select: { member_id: true, id: true },
     });
 
+    const newStartDate = data.start_date ? new Date(data.start_date) : null;
+    const keepOldStartDate =
+      newStartDate &&
+      currentType.start_date &&
+      newStartDate < currentType.start_date;
+
+    const effectiveStartDate = keepOldStartDate
+      ? currentType.start_date
+      : newStartDate ?? new Date();
+
     const updatedType = await prisma.contributionType.update({
       where: { id: data.id },
       data: {
         amount: data.amount,
         name: data.type_name,
-        start_date: data.start_date ?? new Date(),
+        start_date: newStartDate ?? new Date(), // Use raw input to store type definition
         end_date: data.end_date,
         is_active: data.is_active,
         is_for_all: data.is_for_all,
@@ -351,18 +361,29 @@ export const updateContribution = async (
 
     const amountChanged = currentType.amount !== Decimal(data.amount);
     const typeNameChanged = currentType.name !== data.type_name;
+    const startDateChanged =
+      currentType.start_date?.toISOString() !== data.start_date?.toISOString();
+    const endDateChanged =
+      currentType.end_date?.toISOString() !== data.end_date?.toISOString();
 
-    if (amountChanged || typeNameChanged) {
+    console.log(
+      `startDateChanged: ${startDateChanged}, endDateChanged: ${endDateChanged}`
+    );
+
+    if (
+      amountChanged ||
+      typeNameChanged ||
+      startDateChanged ||
+      endDateChanged
+    ) {
       transactionOps.push(
         prisma.contribution.updateMany({
           where: { type_name: currentType.name },
           data: {
             amount: updatedType.amount,
-            ...(typeNameChanged && {
-              type_name: updatedType.name,
-              start_date: updatedType.start_date || new Date(),
-              end_date: updatedType.end_date || new Date(),
-            }),
+            type_name: updatedType.name,
+            start_date: effectiveStartDate,
+            end_date: updatedType.end_date || new Date(),
           },
         })
       );
@@ -461,6 +482,7 @@ export const updateContribution = async (
     return { success: false, error: true };
   }
 };
+
 export const createContributionType = async (data: {
   name: string;
   amount: number;

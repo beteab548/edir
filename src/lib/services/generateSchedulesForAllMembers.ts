@@ -3,7 +3,7 @@ import { addMonths, isAfter, differenceInMonths } from "date-fns";
 
 const test = true;
 const realCurrentDate = new Date();
-const simulatedMonthsToAdd = 5;
+const simulatedMonthsToAdd = 6;
 const currentMonthStart = normalizeToMonthStart(
   test ? addMonths(realCurrentDate, simulatedMonthsToAdd) : realCurrentDate
 );
