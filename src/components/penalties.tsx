@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ContributionMode, Member, Penalty } from "@prisma/client";
-// Define the props type including the initial data
+
 interface PenaltiesOverviewPageProps {
   initialMembers: (Member & {
     Penalty: (Penalty & {
@@ -25,7 +25,6 @@ export default function PenaltiesOverviewPage({
   );
   const [members, setMembers] = useState(initialMembers);
 
-  // Filter members based on selected contribution type
   const filteredMembers = members.filter((member) => {
     if (selectedType === "all") return true;
     return member.Penalty.some(
@@ -33,7 +32,6 @@ export default function PenaltiesOverviewPage({
     );
   });
 
-  // Group penalties by type for each member
   const getPenaltiesByType = (member: (typeof members)[0]) => {
     return member.Penalty.reduce((acc, penalty) => {
       const type = penalty.contribution.contributionType;
@@ -48,7 +46,7 @@ export default function PenaltiesOverviewPage({
       acc[type.mode].totalAmount +=
         Number(penalty.amount) - Number(penalty.paid_amount);
       return acc;
-    }, {} as Record<string, { count: number; totalAmount: number; typeName: string }>);
+    }, {} as Record<string, { count: number; totalAmount: number; typeName: string }> );
   };
 
   return (
@@ -57,7 +55,7 @@ export default function PenaltiesOverviewPage({
         Members with Penalties
       </h1>
 
-      {/* Contribution Type Filters - Now client-side */}
+      {/* Filter buttons */}
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setSelectedType("all")}
@@ -86,7 +84,7 @@ export default function PenaltiesOverviewPage({
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
-        <thead className="bg-gray-50">
+          <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Member
@@ -101,6 +99,9 @@ export default function PenaltiesOverviewPage({
                 Penalty Details
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                All Penalty Paid
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -109,7 +110,7 @@ export default function PenaltiesOverviewPage({
             {filteredMembers.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-6 py-8 text-center text-gray-500 text-lg"
                 >
                   No member with a penalty for this contribution type exists.
@@ -118,10 +119,12 @@ export default function PenaltiesOverviewPage({
             ) : (
               filteredMembers.map((member) => {
                 const penaltiesByType = getPenaltiesByType(member);
+                const allPenaltiesPaid = member.Penalty.every(
+                  (p) => p.is_paid
+                );
 
                 return (
                   <tr key={member.id} className="hover:bg-gray-50">
-                    {/* Table cells remain the same */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
                         {member.first_name} {member.last_name}
@@ -168,10 +171,21 @@ export default function PenaltiesOverviewPage({
                         )}
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {allPenaltiesPaid ? (
+                        <span className="text-green-600 font-medium">True</span>
+                      ) : (
+                        <span className="text-red-600 font-medium">False</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link
                         href={`/list/members/${member.id}/penalties`}
-                        className="text-indigo-600 hover:text-indigo-900"
+                        className={`${
+                          allPenaltiesPaid
+                            ? "text-gray-400 cursor-not-allowed pointer-events-none"
+                            : "text-indigo-600 hover:text-indigo-900"
+                        }`}
                       >
                         Manage
                       </Link>
@@ -187,10 +201,9 @@ export default function PenaltiesOverviewPage({
   );
 }
 
-// Helper function to format the contribution mode
 function formatContributionMode(mode: ContributionMode): string {
   return mode
     .split(/(?=[A-Z])/)
     .join(" ")
-    .replace("Winow", "Window"); // Fix typo in enum if needed
+    .replace("Winow", "Window");
 }

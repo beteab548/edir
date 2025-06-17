@@ -712,8 +712,10 @@ export async function getMembersWithPenalties() {
   const members = await prisma.member.findMany({
     where: {
       Penalty: {
+      
         some: {
           generated: "automatically",
+          
         },
       },
     },
