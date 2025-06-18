@@ -32,7 +32,7 @@ export const memberSchema = z.object({
   image_url: z.string().optional(),
   image_file_id: z.string().optional(),
   remark: z.string().optional(),
-  status: z.enum(["Active", "Inactive"], { message: "Status is required!" }),
+  status: z.enum(["Active", "Inactive","Deceased"], { message: "Member Status is required!" }),
   member_type: z.enum(["New", "Existing"], {
     message: "member status is required!",
   }),
@@ -201,7 +201,7 @@ export const paymentFormSchema = z.object({
   contribution_type: z.string(),
   member_id: z.number().min(1, "Member is required"),
   payment_method: z.string().min(1, "Payment method is required"),
-  receipt: z.string().min(1, "Receipt is required"),
+  receipt: z.string().optional(),
   paid_amount: z.string(),
   payment_date: z.string(),
   penalty_month: z.string(),

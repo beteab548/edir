@@ -30,7 +30,7 @@ model Member {
   kebele        String? 
   sex          Sex
   phone_number String  @unique
-  phone_number_2 String @unique @default("null")
+  phone_number_2 String @unique 
   member_type MemberType 
   bank_name    String?
   bank_account_number String? @unique
@@ -42,6 +42,8 @@ model Member {
   document     String?
   document_file_id     String?
   remark String?
+  created_at       DateTime  @default(now())     
+  status_updated_at DateTime? 
   status Status 
   relative  Relative[]
   Payment Payment[]
@@ -50,6 +52,7 @@ model Member {
   Contribution Contribution[]
 
   PaymentRecord PaymentRecord[]
+
 }
 
 model Relative{
@@ -61,6 +64,8 @@ model Relative{
   relation_type String
   status RelativeStatus
   member Member @relation(fields: [member_id],references: [id],onDelete: Cascade)
+  created_at       DateTime  @default(now())     
+  status_updated_at DateTime? 
 }
 
 model Contribution {
@@ -191,6 +196,7 @@ enum Sex {
 enum Status {
   Active
   Inactive
+  Deceased
 }
  enum RelativeStatus {
   Alive 
@@ -213,6 +219,7 @@ enum Status {
 enum MemberType {
   New 
   Existing
+  
  }
 enum ContributionMode {
   Recurring 

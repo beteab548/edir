@@ -82,7 +82,6 @@ export default function ConfigureExistingContribution({
   const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (
     data
   ) => {
-    console.log(data);
     if (!editingId) return;
     setLoading(true);
     const formData = {
@@ -143,6 +142,7 @@ export default function ConfigureExistingContribution({
       setToDelete(null);
     }
   };
+
   const onError = (formErrors: typeof errors) => {
     console.error("Validation errors:", formErrors);
   };
@@ -150,7 +150,7 @@ export default function ConfigureExistingContribution({
   useEffect(() => {
     if (watchMode === "OpenEndedRecurring") {
       setValue("end_date", "");
-      setValue("period_months", undefined); // Explicitly clear period_months
+      setValue("period_months", undefined);
     } else if (watchMode === "OneTimeWindow") {
       setValue("end_date", "");
     }
@@ -180,28 +180,44 @@ export default function ConfigureExistingContribution({
 
     fetchExistingMembers();
   }, [editingId]);
-  console.log("Watch mode:", watchMode);
 
   return (
-    <div className="bg-base-100 p-6 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-6">
+    <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">
         Configure Existing Contributions
       </h2>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && toDelete && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg p-6 shadow-lg max-w-sm w-full">
-            <h3 className="text-lg font-semibold mb-4 text-center">
-              Permanently remove "{toDelete.name}"?
-            </h3>
-            <p className="mb-6 text-center text-gray-600">
-              This will permanently remove the "{toDelete.name}" contribution
-              type and cannot be undone.
-            </p>
-            <div className="flex justify-end gap-2">
+          <div className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg
+                  className="h-6 w-6 text-red-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Delete "{toDelete.name}"?
+              </h3>
+              <p className="text-gray-600 mb-6">
+                This will permanently remove the contribution type and cannot be
+                undone.
+              </p>
+            </div>
+            <div className="flex justify-center gap-3">
               <button
-                className="btn btn-ghost"
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                 onClick={() => {
                   setShowDeleteModal(false);
                   setToDelete(null);
@@ -209,8 +225,11 @@ export default function ConfigureExistingContribution({
               >
                 Cancel
               </button>
-              <button className="btn btn-error" onClick={handleDelete}>
-                OK
+              <button
+                className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                onClick={handleDelete}
+              >
+                Delete
               </button>
             </div>
           </div>
@@ -229,23 +248,26 @@ export default function ConfigureExistingContribution({
           onCancel={() => setShowMemberSelection(false)}
         />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {contributionTypes.map((contribution) => (
             <div
               key={contribution.id}
-              className="border p-4 rounded-lg hover:bg-gray-50 transition-colors"
+              className={`border border-gray-200 p-5 rounded-lg transition-all ${
+                editingId === contribution.id ? "bg-gray-50" : "bg-white"
+              }`}
             >
               {editingId === contribution.id ? (
                 <form
                   onSubmit={handleSubmit(onSubmit, onError)}
                   className="space-y-4"
                 >
-                  <div className="flex flex-wrap gap-4 items-end">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField
                       label="Contribution Name"
                       name="type_name"
                       register={register}
                       error={errors.type_name}
+                      containerClass="bg-gray-50 p-4 rounded-lg"
                     />
 
                     <InputField
@@ -254,6 +276,7 @@ export default function ConfigureExistingContribution({
                       type="number"
                       register={register}
                       error={errors.amount}
+                      containerClass="bg-gray-50 p-4 rounded-lg"
                       inputProps={{
                         step: "0.01",
                         onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -261,6 +284,23 @@ export default function ConfigureExistingContribution({
                         },
                       }}
                     />
+
+                    {/* { <div className="bg-gray-50 p-4 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Contribution Mode
+                      </label>
+                      <select
+                        {...register("mode")}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                      >
+                        <option value="Recurring">Recurring</option>
+                        <option value="OpenEndedRecurring">
+                          Open-Ended Recurring
+                        </option>
+                        <option value="OneTimeWindow">One-Time Window</option>
+                      </select>
+                    </div>} */}
+
                     {watchMode === "OneTimeWindow" ? (
                       <InputField
                         label="Months Before Inactivation"
@@ -268,6 +308,7 @@ export default function ConfigureExistingContribution({
                         type="number"
                         register={register}
                         error={errors.months_before_inactivation}
+                        containerClass="bg-gray-50 p-4 rounded-lg"
                         inputProps={{
                           min: 1,
                           step: 1,
@@ -284,6 +325,7 @@ export default function ConfigureExistingContribution({
                         type="number"
                         register={register}
                         error={errors.penalty_amount}
+                        containerClass="bg-gray-50 p-4 rounded-lg"
                         inputProps={{
                           step: "0.01",
                           onChange: (
@@ -298,28 +340,6 @@ export default function ConfigureExistingContribution({
                       />
                     )}
 
-                    <div className="form-control w-48">
-                      <label className="label">
-                        <span className="label-text">Mode</span>
-                      </label>
-                      <select
-                        key={contribution.id}
-                        {...register("mode")}
-                        className="select select-bordered"
-                      >
-                        <option value="Recurring">Recurring</option>
-                        <option value="OpenEndedRecurring">
-                          Open-Ended Recurring
-                        </option>
-                        <option value="OneTimeWindow">One-Time Window</option>
-                      </select>
-                      {errors.mode && (
-                        <p className="text-error text-sm">
-                          {errors.mode.message}
-                        </p>
-                      )}
-                    </div>
-
                     {watchMode === "OneTimeWindow" && (
                       <InputField
                         label="Period Months"
@@ -327,6 +347,7 @@ export default function ConfigureExistingContribution({
                         type="number"
                         register={register}
                         error={errors.period_months}
+                        containerClass="bg-gray-50 p-4 rounded-lg"
                         inputProps={{
                           min: 1,
                           step: "1",
@@ -348,6 +369,7 @@ export default function ConfigureExistingContribution({
                           type="date"
                           register={register}
                           error={errors.start_date}
+                          containerClass="bg-gray-50 p-4 rounded-lg"
                         />
                         {watchMode === "Recurring" && (
                           <InputField
@@ -356,29 +378,35 @@ export default function ConfigureExistingContribution({
                             type="date"
                             register={register}
                             error={errors.end_date}
+                            containerClass="bg-gray-50 p-4 rounded-lg"
                           />
                         )}
                       </>
                     )}
 
-                    <div className="form-control">
-                      <label className="label cursor-pointer gap-2">
-                        <span className="label-text">Active</span>
+                    <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">
+                        Active
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
-                          className="toggle toggle-primary"
+                          className="sr-only peer"
                           {...register("is_active")}
                           defaultChecked={contribution.is_active}
                         />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
 
-                    <div className="form-control">
-                      <label className="label cursor-pointer gap-2">
-                        <span className="label-text">For All Members</span>
+                    <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                      <label className="text-sm font-medium text-gray-700">
+                        For All Members
+                      </label>
+                      <label className="relative inline-flex items-center cursor-pointer">
                         <input
                           type="checkbox"
-                          className="toggle toggle-primary"
+                          className="sr-only peer"
                           checked={isForAllLocal}
                           onChange={(e) => {
                             setIsForAllLocal(e.target.checked);
@@ -388,90 +416,158 @@ export default function ConfigureExistingContribution({
                             }
                           }}
                         />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
                       </label>
                     </div>
 
                     {!isForAllLocal && (
-                      <div className="w-full">
+                      <div className="bg-gray-50 p-4 rounded-lg">
                         <button
                           type="button"
-                          className="btn btn-outline btn-sm"
+                          className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                           onClick={() => setShowMemberSelection(true)}
                         >
                           {selectedMemberIds.length > 0
                             ? `${selectedMemberIds.length} members selected`
                             : "Select Members"}
                         </button>
+                        {selectedMemberIds.length > 0 && (
+                          <div className="mt-3 bg-white p-3 rounded-md border border-gray-200">
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">
+                              Selected Members
+                            </h4>
+                            <ul className="text-sm text-gray-600 space-y-1 max-h-40 overflow-y-auto">
+                              {members
+                                .filter((m) => selectedMemberIds.includes(m.id))
+                                .map((m) => (
+                                  <li key={m.id} className="flex items-center">
+                                    <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                    {m.first_name} {m.last_name}
+                                  </li>
+                                ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      className="btn btn-primary btn-sm"
-                      disabled={loading}
-                    >
-                      {loading ? "Saving..." : "Save"}
-                    </button>
+                  <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                     <button
                       type="button"
-                      className="btn btn-ghost btn-sm"
                       onClick={() => setEditingId(null)}
+                      className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
                       Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <>
+                          <svg
+                            className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        "Save Changes"
+                      )}
                     </button>
                   </div>
                 </form>
               ) : (
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="font-medium">{contribution.name}</h3>
-                    <div className="text-sm text-gray-600 space-x-2">
-                      <span>Amount: {contribution.amount}</span>|
-                      <span>
-                        Status: {contribution.is_active ? "Active" : "Inactive"}
-                      </span>
-                      |
-                      <span>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-gray-800">
+                      {contribution.name}
+                    </h3>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                        Amount: {contribution.amount}
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                        Status:{" "}
+                        <span
+                          className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+                            contribution.is_active
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {contribution.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                         Scope:{" "}
                         {contribution.is_for_all
                           ? "All Members"
                           : "Selected Members"}
-                      </span>
-                      |<span>Mode: {contribution.mode}</span>|
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                        Mode: {contribution.mode}
+                      </div>
                       {contribution.mode === "OneTimeWindow" ? (
-                        <span>
+                        <div className="flex items-center">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                           Months Before Inactivation:{" "}
                           {contribution.months_before_inactivation ?? "N/A"}
-                        </span>
+                        </div>
                       ) : (
-                        <span>Penalty: {contribution.penalty_amount}</span>
+                        <div className="flex items-center">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                          Penalty: {contribution.penalty_amount}
+                        </div>
                       )}
-                      |
-                      <span>
+                      <div className="flex items-center">
+                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                         Start:{" "}
                         {contribution.start_date?.toLocaleDateString() || "N/A"}
-                      </span>
-                      |
-                      {contribution.mode !== "OneTimeWindow" && contribution.mode !=="OpenEndedRecurring" && (
-                        <span>
-                          End:{" "}
-                          {contribution.end_date?.toLocaleDateString() || "N/A"}
-                        </span>
-                      )}
-                      |
+                      </div>
+                      {contribution.mode !== "OneTimeWindow" &&
+                        contribution.mode !== "OpenEndedRecurring" && (
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                            End:{" "}
+                            {contribution.end_date?.toLocaleDateString() ||
+                              "N/A"}
+                          </div>
+                        )}
                       {contribution.mode === "OneTimeWindow" && (
-                        <span>
-                         Months of Duration: {contribution.period_months ?? "N/A"}
-                        </span>
+                        <div className="flex items-center">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                          Duration: {contribution.period_months ?? "N/A"} months
+                        </div>
                       )}
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(contribution)}
-                      className="btn btn-outline btn-sm"
+                      className="px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                     >
                       Edit
                     </button>
@@ -480,7 +576,7 @@ export default function ConfigureExistingContribution({
                         setShowDeleteModal(true);
                         setToDelete(contribution);
                       }}
-                      className="btn btn-error btn-sm"
+                      className="px-3 py-1.5 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
                     >
                       Delete
                     </button>

@@ -44,7 +44,7 @@ const menuItems = [
       {
         icon: "/report.png",
         label: "Reports",
-        href: "/list/reportss",
+        href: "/admin",
         visible: ["admin"],
       },
     ],

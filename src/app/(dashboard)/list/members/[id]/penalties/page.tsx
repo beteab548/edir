@@ -107,7 +107,7 @@ export default async function MemberPenaltiesPage({
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {penalty.amount.toFixed(2)}
+                    {penalty.expected_amount.toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {penalty.paid_amount.toFixed(2)}

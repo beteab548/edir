@@ -11,8 +11,10 @@ import { createContributionType } from "@/lib/actions";
 import { Member } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import { ContributionTypeSchema } from "@/lib/formValidationSchemas";
+import { set } from "date-fns";
 
 type ContributionTypeForm = z.infer<typeof ContributionTypeSchema>;
+
 export default function CreateNewContribution({
   members,
 }: {
@@ -21,6 +23,7 @@ export default function CreateNewContribution({
   const [showMemberSelection, setShowMemberSelection] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const router = useRouter();
+
   const {
     register,
     handleSubmit,
@@ -88,10 +91,11 @@ export default function CreateNewContribution({
   };
 
   return (
-    <div className="bg-base-100 p-6 rounded-lg shadow-md w-full">
-      <h2 className="text-xl font-semibold mb-6">
+    <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-4xl mx-auto border border-gray-100">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">
         Create New Contribution Type
       </h2>
+
       {showMemberSelection ? (
         <SelectableMembersList
           members={members}
@@ -103,183 +107,243 @@ export default function CreateNewContribution({
           onCancel={() => setShowMemberSelection(false)}
         />
       ) : (
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="flex flex-wrap gap-4 items-end"
-        >
-          <InputField
-            label="Name"
-            name="name"
-            register={register}
-            error={errors.name}
-          />
-          <InputField
-            label="Amount"
-            name="amount"
-            type="number"
-            register={register}
-            error={errors.amount}
-            inputProps={{
-              step: "0.01",
-              ...register("amount", {
-                setValueAs: (v) => (v === "" ? undefined : Number(v)),
-              }),
-            }}
-          />
-
-          {/* Show Penalty Amount or Months Before Inactivation depending on mode */}
-          {mode === "OneTimeWindow" ? (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InputField
-              label="Months Before Inactivation"
-              name="months_before_inactivation"
-              type="number"
+              label="Name"
+              name="name"
               register={register}
-              error={errors.months_before_inactivation}
-              inputProps={{
-                min: 1,
-                step: 1,
-                ...register("months_before_inactivation", {
-                  setValueAs: (v) => (v === "" ? undefined : Number(v)),
-                }),
-              }}
+              error={errors.name}
+              containerClass="bg-gray-50 p-4 rounded-lg"
             />
-          ) : (
+
             <InputField
-              label="Penalty Amount"
-              name="penalty_amount"
+              label="Amount"
+              name="amount"
               type="number"
               register={register}
-              error={errors.penalty_amount}
+              error={errors.amount}
+              containerClass="bg-gray-50 p-4 rounded-lg"
               inputProps={{
                 step: "0.01",
-                ...register("penalty_amount", {
+                ...register("amount", {
                   setValueAs: (v) => (v === "" ? undefined : Number(v)),
                 }),
               }}
             />
-          )}
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Mode</span>
-            </label>
-            <select
-              {...register("mode")}
-              className="select select-bordered"
-              defaultValue="Recurring"
-            >
-              <option value="Recurring">Recurring</option>
-              <option value="OpenEndedRecurring">
-                Open Ended Recurring (No End Date)
-              </option>
-              <option value="OneTimeWindow">One-Time (Fixed Months)</option>
-            </select>
-          </div>
+            {/* Mode Selection */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contribution Mode
+              </label>
+              <select
+                {...register("mode")}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+              >
+                <option value="Recurring">Recurring</option>
+                <option value="OpenEndedRecurring">
+                  Open Ended Recurring (No End Date)
+                </option>
+                <option value="OneTimeWindow">One-Time (Fixed Months)</option>
+              </select>
+            </div>
 
-          {mode === "Recurring" && (
-            <>
+            {/* Conditional Fields */}
+            {mode === "OneTimeWindow" ? (
+              <InputField
+                label="Months Before Inactivation"
+                name="months_before_inactivation"
+                type="number"
+                register={register}
+                error={errors.months_before_inactivation}
+                containerClass="bg-gray-50 p-4 rounded-lg"
+                inputProps={{
+                  min: 1,
+                  step: 1,
+                  ...register("months_before_inactivation", {
+                    setValueAs: (v) => (v === "" ? undefined : Number(v)),
+                  }),
+                }}
+              />
+            ) : (
+              <InputField
+                label="Penalty Amount"
+                name="penalty_amount"
+                type="number"
+                register={register}
+                error={errors.penalty_amount}
+                containerClass="bg-gray-50 p-4 rounded-lg"
+                inputProps={{
+                  step: "0.01",
+                  ...register("penalty_amount", {
+                    setValueAs: (v) => (v === "" ? undefined : Number(v)),
+                  }),
+                }}
+              />
+            )}
+
+            {mode === "Recurring" && (
+              <>
+                <InputField
+                  label="Start Date"
+                  name="start_date"
+                  type="date"
+                  register={register}
+                  error={errors.start_date}
+                  containerClass="bg-gray-50 p-4 rounded-lg"
+                />
+                <InputField
+                  label="End Date"
+                  name="end_date"
+                  type="date"
+                  register={register}
+                  error={errors.end_date}
+                  containerClass="bg-gray-50 p-4 rounded-lg"
+                />
+              </>
+            )}
+
+            {mode === "OpenEndedRecurring" && (
               <InputField
                 label="Start Date"
                 name="start_date"
                 type="date"
                 register={register}
                 error={errors.start_date}
+                containerClass="bg-gray-50 p-4 rounded-lg"
               />
+            )}
 
+            {mode === "OneTimeWindow" && (
               <InputField
-                label="End Date"
-                name="end_date"
-                type="date"
+                label="Number of Months"
+                name="period_months"
+                type="number"
                 register={register}
-                error={errors.end_date}
-              />
-            </>
-          )}
-          {mode === "OpenEndedRecurring" && (
-            <InputField
-              label="Start Date"
-              name="start_date"
-              type="date"
-              register={register}
-              error={errors.start_date}
-            />
-          )}
-          {mode === "OneTimeWindow" && (
-            <InputField
-              label="Number of Months"
-              name="period_months"
-              type="number"
-              register={register}
-              error={errors.period_months}
-              inputProps={{
-                min: 1,
-                step: 1,
-                ...register("period_months", {
-                  setValueAs: (v) => (v === "" ? undefined : Number(v)),
-                }),
-              }}
-            />
-          )}
-
-          <div className="form-control">
-            <label className="label cursor-pointer gap-2">
-              <span className="label-text">For All Members</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-primary"
-                {...register("is_for_all")}
-                checked={isForAll}
-                onChange={(e) => {
-                  setValue("is_for_all", e.target.checked);
-                  if (e.target.checked) setSelectedMemberIds([]);
+                error={errors.period_months}
+                containerClass="bg-gray-50 p-4 rounded-lg"
+                inputProps={{
+                  min: 1,
+                  step: 1,
+                  ...register("period_months", {
+                    setValueAs: (v) => (v === "" ? undefined : Number(v)),
+                  }),
                 }}
               />
-            </label>
-          </div>
+            )}
 
-          <div className="form-control">
-            <label className="label cursor-pointer gap-2">
-              <span className="label-text">Active</span>
-              <input
-                type="checkbox"
-                className="toggle toggle-primary"
-                {...register("is_active")}
-                checked={isActive}
-                onChange={(e) => setValue("is_active", e.target.checked)}
-              />
-            </label>
-          </div>
-
-          {!isForAll && (
-            <div>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => setShowMemberSelection(true)}
-              >
-                {selectedMemberIds.length > 0
-                  ? `${selectedMemberIds.length} members selected`
-                  : "Select Members"}
-              </button>
+            {/* Toggle Switches */}
+            <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">
+                For All Members
+              </label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  {...register("is_for_all")}
+                  checked={isForAll}
+                  onChange={(e) => {
+                    setValue("is_for_all", e.target.checked);
+                    if (e.target.checked) setSelectedMemberIds([]);
+                  }}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
             </div>
-          )}
-          {selectedMemberIds.length > 0 && (
-            <ul className="text-sm mt-2">
-              {members
-                .filter((m) => selectedMemberIds.includes(m.id))
-                .map((m) => (
-                  <li key={m.id}>{m.first_name}</li>
-                ))}
-            </ul>
-          )}
 
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? "Saving..." : "Create"}
-          </button>
+            <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+              <label className="text-sm font-medium text-gray-700">
+                Active
+              </label>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  {...register("is_active")}
+                  checked={isActive}
+                  onChange={(e) => setValue("is_active", e.target.checked)}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              </label>
+            </div>
+
+            {/* Member Selection */}
+            {!isForAll && (
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <button
+                  type="button"
+                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onClick={() => setShowMemberSelection(true)}
+                >
+                  {selectedMemberIds.length > 0
+                    ? `${selectedMemberIds.length} members selected`
+                    : "Select Members"}
+                </button>
+                {selectedMemberIds.length > 0 && (
+                  <div className="mt-3 bg-white p-3 rounded-md border border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                      Selected Members
+                    </h4>
+                    <ul className="text-sm text-gray-600 space-y-1 max-h-40 overflow-y-auto">
+                      {members
+                        .filter((m) => selectedMemberIds.includes(m.id))
+                        .map((m) => (
+                          <li key={m.id} className="flex items-center">
+                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                            {m.first_name} {m.last_name}
+                          </li>
+                        ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end space-x-4 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={() => reset()}
+              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Reset
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Creating...
+                </>
+              ) : (
+                "Create Contribution Type"
+              )}
+            </button>
+          </div>
         </form>
       )}
     </div>

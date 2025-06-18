@@ -22,14 +22,14 @@ export async function GET(req: NextRequest) {
       },
       select: {
         missed_month: true,
-        amount: true,
+        expected_amount: true,
       },
     });
 
     // Return the raw DateTime without conversion
     const monthsWithAmount = penalties.map((penalty) => ({
       month: penalty.missed_month, // Keep as DateTime
-      amount: penalty.amount,
+      amount: penalty.expected_amount,
     }));
 
     console.log(monthsWithAmount);
@@ -42,8 +42,6 @@ export async function GET(req: NextRequest) {
     );
   }
 }
-
-
 
 export async function PATCH(request: Request) {
   try {

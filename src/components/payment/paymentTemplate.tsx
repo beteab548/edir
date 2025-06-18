@@ -38,7 +38,7 @@ type PaymentRecord = {
   document_reference: string;
   total_paid_amount: Prisma.Decimal;
   member: Member;
-  contributionType?: ContributionType|null;
+  contributionType?: ContributionType | null;
   remaining_balance?: Prisma.Decimal | null;
   payments?: Payment[];
 };
@@ -71,6 +71,10 @@ export default function ContributionTemplate({
   const [selectedContributionTypeFormat, setSelectedContributionTypeFormat] =
     useState<ContributionType | undefined>(ContributionType);
   const [openPaymentId, setOpenPaymentId] = useState<number | null>(null);
+  const [state, formAction] = useFormState(
+    type === "automatically" ? createPaymentAction : PenaltyPaymentAction,
+    { success: false, error: false }
+  );
   const [isAmountLocked, setIsAmountLocked] = useState(false);
   const {
     register,
@@ -95,10 +99,6 @@ export default function ContributionTemplate({
     mode: "onChange",
   });
   console.log(payments);
-  const [state, formAction] = useFormState(
-    type === "automatically" ? createPaymentAction : PenaltyPaymentAction,
-    { success: false, error: false }
-  );
   const paymentMethod = watch("payment_method"); // <-- add this
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
     try {
@@ -167,6 +167,22 @@ export default function ContributionTemplate({
       setSearchResults([]);
     }
   }, [searchTerm, selectedMember, members]);
+  const resetValues = () => {
+    setShowAddModal(false);
+    setSearchResults([]);
+    setSelectedMember(null);
+    setSearchTerm("");
+    setImageUrl(null);
+    setIsAmountLocked(false);
+    setValue("paid_amount", "", { shouldValidate: true });
+    setValue("payment_method", "Cash", { shouldValidate: true });
+    setValue("payment_date", new Date().toISOString().split("T")[0], {
+      shouldValidate: true,
+    });
+    setValue("penalty_month", "", { shouldValidate: true });
+    setValue("receipt", "", { shouldValidate: true });
+    return;
+  };
   const toggleDetails = (id: number) => {
     setOpenPaymentId((prev) => (prev === id ? null : id));
   };
@@ -230,17 +246,12 @@ export default function ContributionTemplate({
   };
   useEffect(() => {
     if (state.success) {
-      toast(` Payment created successfully!`);
+      toast.success(` Payment created successfully!`);
       type === "automatically"
         ? router.push(`/contribution/${ContributionType?.name}`)
         : router.push("/penalty/payment");
       router.refresh();
-      if (type === "automatically") {
-        setShowAddModal(false);
-        setSelectedMember(null);
-        setSearchTerm("");
-        reset();
-      }
+      return resetValues();
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router, type]);
@@ -308,7 +319,7 @@ export default function ContributionTemplate({
                     Member
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Amount
+                    Paid Amount
                   </th>
                   {type === "automatically" && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -321,7 +332,7 @@ export default function ContributionTemplate({
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Payment Method
                   </th>
-                  {type==="automatically" && (
+                  {type === "automatically" && (
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Balance
                     </th>

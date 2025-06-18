@@ -55,8 +55,9 @@ export function WaivePenaltyButton({
             <h3 className="text-lg font-semibold mb-4 text-center">
               Waive this penalty?
             </h3>
-            <p className="mb-6 text-center text-gray-600">
-              Are you sure you want to waive this penalty? This action cannot be
+            <p className="mb-6 text-center text-gray-600 text-wrap">
+              Are you sure you want to waive this penalty?
+               This action cannot be
               undone.
             </p>
             {error && (

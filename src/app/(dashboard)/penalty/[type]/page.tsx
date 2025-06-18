@@ -26,6 +26,7 @@ export default async function PenaltyPage({ params }: PageProps) {
             first_name: true,
             second_name: true,
             last_name: true,
+            custom_id: true,
           },
         },
       },
@@ -37,9 +38,9 @@ export default async function PenaltyPage({ params }: PageProps) {
   const penaltiesWithNumberAmount = penalties.map((penalty) => ({
     ...penalty,
     amount:
-      typeof penalty.amount === "object" && "toNumber" in penalty.amount
-        ? penalty.amount.toNumber()
-        : penalty.amount,
+      typeof penalty.expected_amount === "object" && "toNumber" in penalty.expected_amount
+        ? penalty.expected_amount.toNumber()
+        : penalty.expected_amount,
     paid_amount:
       typeof penalty.paid_amount === "object" &&
       "toNumber" in penalty.paid_amount

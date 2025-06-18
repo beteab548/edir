@@ -12,7 +12,9 @@ import { toast } from "react-toastify";
 import UploadFile from "../FileUpload/page";
 import Image from "next/image";
 import SelectField from "../SelectField";
-const tabs = ["Member Info", "Address", "Relatives"];
+
+const tabs = ["Principal Info", "Address", "Relatives"];
+
 const MemberForm = ({
   type,
   data,
@@ -41,6 +43,7 @@ const MemberForm = ({
     status: "Alive",
     relation_type: "Mother",
   });
+
   const {
     register,
     handleSubmit,
@@ -49,6 +52,7 @@ const MemberForm = ({
   } = useForm<CombinedSchema>({
     resolver: zodResolver(combinedSchema),
   });
+
   const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
     null
   );
@@ -63,16 +67,16 @@ const MemberForm = ({
     type === "create" ? createMember : updateMember,
     { success: false, error: false }
   );
+
   useEffect(() => {
     if (data) {
       setRelatives(data.relative || []);
     }
   }, [data, reset]);
-  console.log("data", data);
+
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
     try {
       if (data?.image_url && data?.image_url !== newImage.Url) {
-        console.log("existing image data to be deleted", data?.image_url);
         await fetch("/api/imageKit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -87,6 +91,7 @@ const MemberForm = ({
       console.error("Failed to handle image:", err);
     }
   };
+
   const getDocument = async (newImage: { Url: string; fileId: string }) => {
     try {
       if (data?.document && data?.document !== document?.Url) {
@@ -104,6 +109,7 @@ const MemberForm = ({
       console.error("Failed to handle image:", err);
     }
   };
+
   const onSubmit = handleSubmit(
     (formData) => {
       const submissionData = {
@@ -116,27 +122,27 @@ const MemberForm = ({
         },
         relatives: relatives,
       };
-      console.log("Submitting:", submissionData);
+      console.log(submissionData);
       formAction(submissionData);
     },
     (errors) => {
       console.error("Validation errors:", errors);
     }
   );
+
   const router = useRouter();
   useEffect(() => {
     if (state.success) {
-      toast(`Member has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(`Member has been ${type === "create" ? "created" : "updated"}!`);
       router.push("/list/members");
-              router.refresh();
-
+      router.refresh();
       if (type === "update") {
-        router.refresh();
         setOpen(false);
       }
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router, type]);
+
   // Relative management functions
   const openRelativesDialog = (index?: number) => {
     if (typeof index === "number") {
@@ -209,16 +215,17 @@ const MemberForm = ({
     setConfirmDeleteIndex(null);
     deleteDialogRef.current?.close();
   };
+
   return (
-    <div className="max-h-[80vh] overflow-y-auto">
-      <div className="sticky top-0 bg-white pt-4 pb-2 z-10">
-        <div className="flex gap-4 border-b">
+    <div className="max-h-[80vh] overflow-y-auto bg-gray-50 rounded-lg">
+      <div className="sticky top-0 bg-white pt-4 pb-2 z-10 border-b border-gray-200">
+        <div className="flex gap-4 px-6">
           {tabs.map((tab, index) => (
             <button
               key={tab}
-              className={`pb-2 px-4 transition-colors text-sm font-medium ${
+              className={`pb-3 px-1 transition-colors text-sm font-medium relative ${
                 tabIndex === index
-                  ? "border-b-2 border-blue-500 text-blue-600"
+                  ? "text-blue-600 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-600"
                   : "text-gray-500 hover:text-gray-700"
               }`}
               onClick={() => setTabIndex(index)}
@@ -229,15 +236,16 @@ const MemberForm = ({
         </div>
       </div>
 
-      <form className="flex flex-col p-6" onSubmit={onSubmit}>
+      <form className="flex flex-col p-6 w-full" onSubmit={onSubmit}>
         {tabIndex === 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <InputField
               label="First Name"
               name="member.first_name"
               register={register}
               error={errors?.member?.first_name}
               defaultValue={data?.first_name}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
             <InputField
               label="Second Name"
@@ -245,6 +253,7 @@ const MemberForm = ({
               register={register}
               error={errors?.member?.second_name}
               defaultValue={data?.second_name}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
             <InputField
               label="Last Name"
@@ -252,6 +261,7 @@ const MemberForm = ({
               register={register}
               error={errors?.member?.last_name}
               defaultValue={data?.last_name}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
             <InputField
               label="Birth Date"
@@ -260,40 +270,48 @@ const MemberForm = ({
               register={register}
               defaultValue={formatDate(data?.birth_date)}
               error={errors?.member?.birth_date}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <label className="text-sm font-medium text-gray-700">Sex</label>
               <select
                 {...register("member.sex")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 defaultValue={data?.sex}
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
               </select>
             </div>
+
             <InputField
               label="Title"
               name="member.title"
               register={register}
               error={errors.member?.title}
               defaultValue={data?.title}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Job/Business"
               name="member.job_business"
               register={register}
               error={errors.member?.job_business}
               defaultValue={data?.job_business}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Profession"
               name="member.profession"
               register={register}
               error={errors.member?.profession}
               defaultValue={data?.profession}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Joined Date"
               name="member.joined_date"
@@ -301,6 +319,7 @@ const MemberForm = ({
               register={register}
               error={errors.member?.joined_date}
               defaultValue={formatDate(data?.joined_date)}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
             <InputField
               label="End Date"
@@ -308,19 +327,22 @@ const MemberForm = ({
               type="date"
               register={register}
               error={errors.member?.end_date}
-              defaultValue={data?.first_name}
+              defaultValue={formatDate(data?.end_date)}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
-            <div className="flex flex-col gap-1">
+
+            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <label className="text-sm font-medium text-gray-700">
                 Status
               </label>
               <select
                 {...register("member.status")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 defaultValue={data?.status ?? "Active"}
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
+                <option value="Deceased">Deceased</option>
               </select>
               {errors.member?.status && (
                 <p className="text-xs text-red-500 mt-1">
@@ -328,13 +350,14 @@ const MemberForm = ({
                 </p>
               )}
             </div>
-            <div className="flex flex-col gap-1">
+
+            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <label className="text-sm font-medium text-gray-700">
                 Member Type
               </label>
               <select
                 {...register("member.member_type")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 defaultValue={data?.member_type || "New"}
               >
                 <option value="New">New</option>
@@ -346,6 +369,7 @@ const MemberForm = ({
                 </p>
               )}
             </div>
+
             {data && (
               <InputField
                 label=""
@@ -359,21 +383,23 @@ const MemberForm = ({
           </div>
         )}
         <div className={tabIndex === 1 ? "" : "hidden"}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <InputField
               label="ID Number"
               name="member.id_number"
               register={register}
               error={errors.member?.id_number}
               defaultValue={data?.id_number}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
-            <div className="flex flex-col gap-1">
+
+            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <label className="text-sm font-medium text-gray-700">
                 Citizen
               </label>
               <select
                 {...register("member.citizen")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                 defaultValue={data?.citizen}
               >
                 <option value="">Select a country</option>
@@ -389,62 +415,76 @@ const MemberForm = ({
                 </p>
               )}
             </div>
+
             <InputField
               label="Phone Number"
               name="member.phone_number"
               register={register}
               error={errors.member?.phone_number}
               defaultValue={data?.phone_number}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
-              label="Second Phone Number "
+              label="Second Phone Number"
               name="member.phone_number_2"
               register={register}
               error={errors.member?.phone_number_2}
               defaultValue={data?.phone_number_2}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
-              label="Email "
+              label="Email"
               name="member.email"
               register={register}
               error={errors.member?.email}
               defaultValue={data?.email}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
-              label="Email "
+              label="Second Email"
               name="member.email_2"
               register={register}
               error={errors.member?.email_2}
               defaultValue={data?.email_2}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Wereda"
               name="member.wereda"
               register={register}
               error={errors.member?.wereda}
               defaultValue={data?.wereda}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Zone / District"
               name="member.zone_or_district"
               register={register}
               error={errors.member?.zone_or_district}
               defaultValue={data?.zone_or_district}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Kebele"
               name="member.kebele"
               register={register}
               error={errors.member?.kebele}
               defaultValue={data?.kebele}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
-            {/* //bank name should be a select field with options  */}
 
             <SelectField
               label="Bank Name"
               name="member.bank_name"
               register={register}
               error={errors.member?.bank_name}
+              defaultValue={data?.bank_name || ""}
               options={[
                 { value: "", label: "Select Bank Name" },
                 {
@@ -494,76 +534,97 @@ const MemberForm = ({
               ]}
               selectProps={{
                 className:
-                  "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                  "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white",
               }}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Bank Account Number"
               name="member.bank_account_number"
               register={register}
               error={errors.member?.bank_account_number}
               defaultValue={data?.bank_account_number}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
+
             <InputField
               label="Bank Account Name"
               name="member.bank_account_name"
               register={register}
               error={errors.member?.bank_account_name}
               defaultValue={data?.bank_account_name}
+              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
 
-            {/* Image preview if imageUrl exists */}
-            {data?.image_url && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Current Profile Image
-                </label>
-                <Image
-                  width={200}
-                  height={200}
-                  src={data?.image_url ?? "profile image"}
-                  alt="Profile preview"
-                  className="mt-2 h-32 w-32 object-cover rounded-full border"
-                />
-              </div>
-            )}
+            {/* Image upload section */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Profile Image
+              </label>
+              {data?.image_url && (
+                <div className="mb-4 flex items-center gap-4">
+                  <Image
+                    width={80}
+                    height={80}
+                    src={data?.image_url}
+                    alt="Profile preview"
+                    className="h-20 w-20 object-cover rounded-full border-2 border-gray-200"
+                  />
+                  <span className="text-sm text-gray-500">
+                    Current profile image
+                  </span>
+                </div>
+              )}
+              <UploadFile
+                text="Upload new profile image"
+                getImageUrl={getImageUrl}
+                setImageReady={setImageReady}
+              />
+            </div>
 
-            {/* Upload file component - pass getImageUrl to update imageUrl */}
-            <UploadFile
-              text="profile"
-              getImageUrl={getImageUrl}
-              setImageReady={setImageReady}
-            />
-            {/* Image preview if imageUrl exists */}
-            {data?.document && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700">
-                  Current Document
-                </label>
-                <Image
-                  width={200}
-                  height={200}
-                  src={data?.document ?? "profile image"}
-                  alt="Profile preview"
-                  className="mt-2 h-32 w-32 object-cover rounded-full border"
-                />
-              </div>
-            )}
+            {/* Document upload section */}
+            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Document
+              </label>
+              {data?.document && (
+                <div className="mb-4 flex items-center gap-4">
+                  <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
+                    <svg
+                      className="w-8 h-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    Current document
+                  </span>
+                </div>
+              )}
+              <UploadFile
+                text="Upload new document"
+                getImageUrl={getDocument}
+                setImageReady={setDocumentReady}
+              />
+            </div>
 
-            {/* Upload file component - pass getImageUrl to update imageUrl */}
-            <UploadFile
-              text="document"
-              getImageUrl={getDocument}
-              setImageReady={setDocumentReady}
-            />
-            <div className="md:col-span-2 flex flex-col gap-1">
+            <div className="md:col-span-2 flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
               <label className="text-sm font-medium text-gray-700">
                 Remark
               </label>
               <textarea
                 {...register("member.remark")}
                 rows={3}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 defaultValue={data?.remark}
               />
               {errors.member?.remark && (
@@ -575,115 +636,194 @@ const MemberForm = ({
           </div>
         </div>
         {tabIndex === 2 && (
-          <div className="w-full relative">
+          <div className="w-full relative bg-white p-6 rounded-lg shadow-sm border border-gray-200">
             <button
               type="button"
               onClick={() => openRelativesDialog()}
-              className="absolute top-0 right-0 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors"
+              className="absolute top-6 right-6 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-1"
             >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                ></path>
+              </svg>
               Add Relative
             </button>
 
-            <div className="mt-12 overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      No
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      First Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Second Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Last Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Relation
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {relatives.map((relative, index) => (
-                    <tr key={index}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {index + 1}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {relative.first_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {relative.second_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {relative.last_name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {relative.relation_type}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {relative.status}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            className="text-blue-600 hover:text-blue-900"
-                            onClick={() => openRelativesDialog(index)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            type="button"
-                            className="text-red-600 hover:text-red-900"
-                            onClick={() => openDeleteDialog(index)}
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {relatives.length === 0 && (
+            <div className="mt-8 overflow-x-auto">
+              {relatives.length === 0 ? (
+                <div className="text-center py-8">
+                  <svg
+                    className="mx-auto h-12 w-12 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="1"
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                    ></path>
+                  </svg>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    No relatives
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Add a relative to get started.
+                  </p>
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <td
-                        colSpan={7}
-                        className="px-6 py-4 text-center text-sm text-gray-500"
-                      >
-                        No relatives added yet
-                      </td>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        No
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Relation
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {relatives.map((relative, index) => (
+                      <tr key={index} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {index + 1}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900 font-medium">
+                            {relative.first_name} {relative.last_name}
+                          </div>
+                          {relative.second_name && (
+                            <div className="text-sm text-gray-500">
+                              {relative.second_name}
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {relative.relation_type}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              relative.status === "Alive"
+                                ? "bg-green-100 text-green-800"
+                                : relative.status === "Deceased"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {relative.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              className="text-blue-600 hover:text-blue-900 flex items-center gap-1"
+                              onClick={() => openRelativesDialog(index)}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                ></path>
+                              </svg>
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              className="text-red-600 hover:text-red-900 flex items-center gap-1"
+                              onClick={() => openDeleteDialog(index)}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth="2"
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                ></path>
+                              </svg>
+                              Remove
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
 
             {/* Add/Edit Relative Dialog */}
             <dialog
               ref={relativesDialogRef}
-              className="modal backdrop:bg-black/50 rounded-lg shadow-xl"
+              className="modal backdrop:bg-black/30 rounded-lg shadow-xl"
             >
-              <div className="modal-box max-w-md">
-                <h2 className="text-lg font-semibold mb-4">
-                  {editIndex !== null ? "Edit Relative" : "Add New Relative"}
-                </h2>
+              <div className="modal-box bg-white p-6 rounded-lg max-w-none w-full">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {editIndex !== null ? "Edit Relative" : "Add New Relative"}
+                  </h2>
+                  <button
+                    onClick={closeRelativesDialog}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <svg
+                      className="h-6 w-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      ></path>
+                    </svg>
+                  </button>
+                </div>
 
-                <div className="flex flex-col gap-4">
-                  <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-4">
+                  {/* Horizontal row for name fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        First name
+                        First name <span className="text-red-500">*</span>
                       </label>
                       <input
-                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         type="text"
                         name="first_name"
                         value={relativeFormData.first_name}
@@ -691,12 +831,13 @@ const MemberForm = ({
                         placeholder="First name"
                       />
                     </div>
+
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
                         Second name
                       </label>
                       <input
-                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         type="text"
                         name="second_name"
                         value={relativeFormData.second_name}
@@ -704,12 +845,13 @@ const MemberForm = ({
                         placeholder="Second name"
                       />
                     </div>
+
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        Last name
+                        Last name <span className="text-red-500">*</span>
                       </label>
                       <input
-                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         type="text"
                         name="last_name"
                         value={relativeFormData.last_name}
@@ -719,53 +861,55 @@ const MemberForm = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4">
+                  {/* Horizontal row for relation/status */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        Relation
+                        Relation <span className="text-red-500">*</span>
                       </label>
                       <select
                         name="relation_type"
                         value={relativeFormData.relation_type}
                         onChange={handleRelativeChange}
-                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="" disabled>
-                          Select relation
-                        </option>
-                        <option>Mother</option>
-                        <option>Father</option>
-                        <option>Sister</option>
-                        <option>Brother</option>
-                        <option>Son</option>
-                        <option>Daughter</option>
-                        <option>Spouse</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Father">Father</option>
+                        <option value="Sister">Sister</option>
+                        <option value="Brother">Brother</option>
+                        <option value="Son">Son</option>
+                        <option value="Daughter">Daughter</option>
+                        <option value="Spouse">Spouse</option>
+                        <option value="Spouse_Mother">Spouse Mother</option>
+                        <option value="Spouse_Father">Spouse Father</option>
+                        <option value="Spouse_Sister">Spouse Sister</option>
+                        <option value="Spouse_Brother">Spouse Brother</option>
                       </select>
                     </div>
+
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
-                        Status
+                        Status <span className="text-red-500">*</span>
                       </label>
                       <select
                         name="status"
                         value={relativeFormData.status}
                         onChange={handleRelativeChange}
-                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-blue-500 focus:border-blue-500"
+                        className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="" disabled>
-                          Select status
-                        </option>
-                        <option>Alive</option>
-                        <option>Deceased</option>
-                        <option>Sick</option>
+                        <option value="Alive">Alive</option>
+                        <option value="Deceased">Deceased</option>
+                        <option value="Sick">Sick</option>
                       </select>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-6 flex justify-end gap-2">
+                <div className="mt-6 flex justify-end gap-3">
                   {relativeError && (
-                    <p className="text-red-500 text-sm">{relativeError}</p>
+                    <p className="text-red-500 text-sm mr-auto">
+                      {relativeError}
+                    </p>
                   )}
                   <button
                     type="button"
@@ -779,29 +923,52 @@ const MemberForm = ({
                     onClick={saveRelative}
                     className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
                   >
-                    Save
+                    {editIndex !== null ? "Update" : "Add"} Relative
                   </button>
                 </div>
               </div>
             </dialog>
 
             {/* Delete Confirmation Dialog */}
-            <dialog ref={deleteDialogRef} className="modal">
-              <div className="modal-box">
-                <h3 className="font-bold text-lg">Confirm Delete</h3>
-                <p className="py-4">
-                  Are you sure you want to delete this relative?
-                </p>
-                <div className="modal-action">
+            <dialog
+              ref={deleteDialogRef}
+              className="modal backdrop:bg-black/30"
+            >
+              <div className="modal-box bg-white p-6 rounded-lg max-w-sm">
+                <div className="flex flex-col items-center">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <svg
+                      className="h-6 w-6 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                      ></path>
+                    </svg>
+                  </div>
+                  <h3 className="mt-3 text-lg font-medium text-gray-900">
+                    Delete relative
+                  </h3>
+                  <div className="mt-2 text-sm text-gray-500 text-center">
+                    Are you sure you want to delete this relative? This action
+                    cannot be undone.
+                  </div>
+                </div>
+                <div className="mt-5 flex justify-center gap-3">
                   <button
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 w-24"
                     onClick={cancelDelete}
                     type="button"
                   >
                     Cancel
                   </button>
                   <button
-                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700"
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 w-24"
                     onClick={confirmDelete}
                     type="button"
                   >
@@ -813,28 +980,53 @@ const MemberForm = ({
           </div>
         )}
 
-        <div className="mt-6 flex justify-end border-t pt-4">
+        <div className="mt-6 flex justify-end border-t border-gray-200 pt-4 gap-3">
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             Cancel
           </button>
           <button
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
             disabled={!imageReady || !documentReady || isSubmitting}
             type="submit"
           >
-            {isSubmitting
-              ? "Processing..."
-              : type === "create"
-              ? "Create Member"
-              : "Update Member"}
+            {isSubmitting ? (
+              <>
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Processing...
+              </>
+            ) : type === "create" ? (
+              "Create Member"
+            ) : (
+              "Update Member"
+            )}
           </button>
         </div>
       </form>
     </div>
   );
 };
+
 export default MemberForm;

@@ -22,6 +22,7 @@ type Penalty = {
   id: number;
   member: {
     id: number;
+    custom_id:string;
     first_name: string;
     second_name: string;
     last_name: string;
@@ -164,6 +165,9 @@ export default function PenaltyManagement({ members, penalties }: Props) {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Id
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Member
               </th>
               {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -173,7 +177,7 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                 Reason
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Amount
+                Expected Amount
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Paid
@@ -184,14 +188,15 @@ export default function PenaltyManagement({ members, penalties }: Props) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+              
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {penalties.map((penalty) => (
               <tr key={penalty.id}>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {penalty.member.custom_id}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {penalty.member.first_name} {penalty.member.second_name}{" "}
                   {penalty.member.last_name}
@@ -219,19 +224,7 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                     ? "Waived"
                     : "Pending"}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {!penalty.is_paid && !penalty.waived && (
-                    <button
-                      onClick={() => {
-                        setSelectedPenalty(penalty);
-                        setIsWaiveModalOpen(true);
-                      }}
-                      className="text-blue-600 hover:text-blue-800"
-                    >
-                      Waive
-                    </button>
-                  )}
-                </td>
+                
               </tr>
             ))}
             {penalties.length === 0 && (

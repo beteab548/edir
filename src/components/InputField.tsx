@@ -1,5 +1,6 @@
 // components/InputField.tsx
 import { FieldError, UseFormRegister } from "react-hook-form";
+import { ReactNode } from "react";
 
 interface InputFieldProps {
   label: string;
@@ -8,8 +9,11 @@ interface InputFieldProps {
   register: UseFormRegister<any>;
   error?: FieldError;
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
-defaultValue?: string | number;
-hidden?: boolean;
+  defaultValue?: string | number;
+  hidden?: boolean;
+  containerClass?: string;
+  required?: boolean;
+  icon?: ReactNode;
 }
 
 export default function InputField({
@@ -21,24 +25,46 @@ export default function InputField({
   inputProps = {},
   defaultValue = "",
   hidden = false,
+  containerClass = "",
+  required = false,
+  icon,
 }: InputFieldProps) {
   return (
-    <div className="flex flex-col w-48">
-      <label htmlFor={name} className="mb-1 font-medium">
-        {label}
-      </label>
-      <input
-        id={name}
-        type={type}
-        hidden={hidden}
-        {...register(name)}
-        {...inputProps}
-        defaultValue={defaultValue}
-        className={`input input-bordered w-full ${
-          error ? "input-error" : ""
-        }`}
-      />
-      {error && <p className="text-red-500 text-xs mt-1">{error.message}</p>}
+    <div className={`flex flex-col gap-1 ${containerClass} ${hidden ? "hidden" : ""}`}>
+      {label && (
+        <label htmlFor={name} className="text-sm font-medium text-gray-700">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      <div className={`relative ${icon ? "flex items-center" : ""}`}>
+        {icon && (
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            {icon}
+          </div>
+        )}
+        <input
+          id={name}
+          type={type}
+          {...register(name)}
+          {...inputProps}
+          defaultValue={defaultValue}
+          className={`w-full px-3 py-2 border ${
+            error ? "border-red-500" : "border-gray-300"
+          } rounded-md shadow-sm focus:outline-none focus:ring-2 focus:${
+            error ? "ring-red-500" : "ring-blue-500"
+          } focus:border-${
+            error ? "red-500" : "blue-500"
+          } ${icon ? "pl-10" : ""} ${
+            inputProps.className ? inputProps.className : ""
+          }`}
+        />
+      </div>
+      {error && (
+        <p className="text-xs text-red-500 mt-1">
+          {error.message}
+        </p>
+      )}
     </div>
   );
 }

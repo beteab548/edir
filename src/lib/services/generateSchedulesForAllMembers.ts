@@ -3,7 +3,7 @@ import { addMonths, isAfter, differenceInMonths } from "date-fns";
 
 const test = true;
 const realCurrentDate = new Date();
-const simulatedMonthsToAdd = 6;
+const simulatedMonthsToAdd = 5;
 const currentMonthStart = normalizeToMonthStart(
   test ? addMonths(realCurrentDate, simulatedMonthsToAdd) : realCurrentDate
 );
@@ -279,7 +279,10 @@ export async function generateContributionSchedulesForAllActiveMembers() {
       const existingUnpaidPenalty = schedule.penalties.find((p) => !p.is_paid);
 
       if (existingUnpaidPenalty) {
-        if (Number(existingUnpaidPenalty.expected_amount) < calculatedPenaltyAmount) {
+        if (
+          Number(existingUnpaidPenalty.expected_amount) <
+          calculatedPenaltyAmount
+        ) {
           await prisma.penalty.update({
             where: { id: existingUnpaidPenalty.id },
             data: {
@@ -349,7 +352,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
     if (isAfter(currentMonthStart, deadline)) {
       await prisma.member.update({
         where: { id: contribution.member_id },
-        data: { status: "Inactive" },
+        data: { status: "Inactive", end_date: new Date() },
       });
     }
   }
@@ -388,7 +391,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
     if (isAfter(currentMonthStart, deadline)) {
       await prisma.member.update({
         where: { id: contribution.member_id },
-        data: { status: "Inactive" },
+        data: { status: "Inactive", end_date: new Date() },
       });
     }
   }

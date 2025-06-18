@@ -4,7 +4,8 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
-import { ContributionMode, PenaltyTypeModel } from "@prisma/client";
+import { ContributionMode, MemberType, PenaltyTypeModel } from "@prisma/client";
+import { deleteImageFromImageKit } from "./deleteImageFile";
 type Payment = {
   amount?: number;
   paid_amount?: Number;
@@ -62,6 +63,7 @@ export const createMember = async (
             : {}),
 
           phone_number: data.member.phone_number,
+          phone_number_2: data.member.phone_number_2 ?? "",
           wereda: data.member.wereda,
           kebele: data.member.kebele,
           zone_or_district: data.member.zone_or_district,
@@ -164,6 +166,11 @@ export const updateMember = async (
   data: CombinedSchema
 ) => {
   console.log("Update data:", data);
+  const existingMember = await prisma.member.findUnique({
+    where: { id: data.member.id },
+    select: { status: true },
+  });
+  const memberStatusChanged = existingMember?.status !== data.member.status;
   if (!data.member?.id) return { success: false, error: true };
 
   try {
@@ -211,11 +218,13 @@ export const updateMember = async (
             ? { image_file_id: data.member.image_file_id }
             : {}),
           phone_number: data.member.phone_number,
+          phone_number_2: data.member.phone_number_2 ?? "",
           wereda: data.member.wereda,
           kebele: data.member.kebele,
           zone_or_district: data.member.zone_or_district,
           sex: data.member.sex,
           status: data.member.status,
+          ...(memberStatusChanged && { status_updated_at: new Date() }),
           remark: data.member.remark ?? "",
           member_type: data.member.member_type,
         },
@@ -256,26 +265,73 @@ export const updateMember = async (
           }
         }
       }
-
-      // 3. Handle relatives
-      await prisma.relative.deleteMany({
+      // 3. Handle relatives update without deleting all
+      const existingRelatives = await prisma.relative.findMany({
         where: { member_id: data.member.id },
       });
 
-      if (Array.isArray(data.relatives) && data.relatives.length > 0) {
-        await prisma.relative.createMany({
-          data: data.relatives.map((relative) => ({
-            member_id: data.member.id as number,
+      const existingMap = new Map(existingRelatives.map((r) => [r.id, r]));
+      const inputRelatives = Array.isArray(data.relatives)
+        ? data.relatives
+        : [];
+      const inputIds = inputRelatives
+        .filter((r) => typeof r.id === "number")
+        .map((r) => r.id as number);
+
+      // Delete relatives removed in the update
+      await prisma.relative.deleteMany({
+        where: {
+          member_id: data.member.id,
+          id: {
+            notIn: inputIds.length > 0 ? inputIds : [0], // delete all if none
+          },
+        },
+      });
+
+      // Update existing and create new relatives
+      for (const relative of inputRelatives) {
+        if (relative.id && existingMap.has(relative.id)) {
+          // Update existing relative
+          const existing = existingMap.get(relative.id);
+          const updateData: any = {
             first_name: relative.first_name,
             second_name: relative.second_name,
             last_name: relative.last_name,
             relation_type: relative.relation_type,
-            status: relative.status,
-          })),
-        });
+          };
+
+          // Update status only if changed, and update status_updated_at timestamp
+          if (relative.status !== existing?.status) {
+            updateData.status = relative.status;
+            updateData.status_updated_at = new Date();
+          }
+
+          await prisma.relative.update({
+            where: { id: relative.id },
+            data: updateData,
+          });
+        } else {
+          // Create new relative
+          if (typeof data.member.id === "number") {
+            await prisma.relative.create({
+              data: {
+                member_id: data.member.id,
+                first_name: relative.first_name,
+                second_name: relative.second_name,
+                last_name: relative.last_name,
+                relation_type: relative.relation_type,
+                status: relative.status,
+                status_updated_at: new Date(),
+              },
+            });
+          } else {
+            throw new Error(
+              "member_id is undefined when creating a new relative."
+            );
+          }
+        }
       }
     });
-
     return { success: true, error: false };
   } catch (err) {
     console.error("Update error:", err);
@@ -289,6 +345,22 @@ export const deleteMember = async (
 ) => {
   const id = parseInt(data.get("id") as string);
   try {
+    //delete the doucment file and images files if existing
+    const member = await prisma.member.findUnique({
+      where: { id },
+      select: {
+        document_file_id: true,
+        image_file_id: true,
+      },
+    });
+    if (member) {
+      if (member.document_file_id) {
+        await deleteImageFromImageKit(member.document_file_id);
+      }
+      if (member.image_file_id) {
+        await deleteImageFromImageKit(member.image_file_id);
+      }
+    }
     await prisma.member.delete({
       where: { id },
     });
@@ -776,7 +848,7 @@ export const createPenalty = async (
       return { success: false, error: true, message: "penalty type not found" };
     }
     const penaltyData: any = {
-      amount: new Decimal(data.amount),
+      expected_amount: new Decimal(data.amount),
       member_id: data.member_id,
       reason: data.reason ?? "",
       missed_month: data.missed_month,

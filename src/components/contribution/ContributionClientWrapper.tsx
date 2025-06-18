@@ -14,16 +14,20 @@ export default function ContributionClientWrapper({
   const [showAdd, setShowAdd] = useState(false);
 
   return (
-    <div className="min-h-screen bg-base-200 p-8 space-y-8">
+    <div className="min-h-screen bg-gray-100 p-8 space-y-8">
       <div className="flex justify-end mb-4">
         <button
-          className="btn btn-primary"
+          className={`px-4 py-2 rounded-md text-white font-semibold transition-colors ${
+            showAdd ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
+          }`}
           onClick={() => setShowAdd((prev) => !prev)}
         >
           {showAdd ? "Cancel" : "Add New Contribution"}
         </button>
       </div>
+
       {showAdd && <CreateNewContribution members={members} />}
+
       <ConfigureExistingContribution
         contributionTypes={contributionTypes}
         members={members}
