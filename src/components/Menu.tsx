@@ -10,8 +10,6 @@ const fetchTypes = async () => {
   const data = await prisma.contributionType.findMany();
   return data;
 };
-
-// Menu config with role-based visibility
 const menuItems = [
   {
     title: "MENU",

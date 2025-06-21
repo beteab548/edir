@@ -27,8 +27,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/lib/seed.js",
-    "src/app/(dashboard)/penalty/[type]/penalty.tsx",
-    "src/app/(dashboard)/penalty/[type]/page.tsx"
+    "src/app/(dashboard)/configure-setting/penalty.tsx",
+    "src/app/(dashboard)/penalty/page.tsx"
   ],
   "exclude": ["node_modules"]
 }

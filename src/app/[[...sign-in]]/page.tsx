@@ -27,7 +27,6 @@ const LoginPage = () => {
       }
     }
   }, [user, router]);
-  console.log(isAuthenticating);
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center p-4">
       <motion.div

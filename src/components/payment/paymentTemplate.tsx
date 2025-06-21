@@ -85,7 +85,6 @@ export default function ContributionTemplate({
     watch,
   } = useForm<
     PaymentFormSchemaType | penaltyPaymentFormSchemaType
-    // @ts-ignore - allow union for resolver
   >({
     resolver: zodResolver(
       type === "automatically" ? paymentFormSchema : penaltyPaymentFormSchema
