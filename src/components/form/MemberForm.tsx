@@ -403,6 +403,7 @@ const MemberForm = ({
                 defaultValue={data?.citizen}
               >
                 <option value="">Select a country</option>
+                {/* <option value="">Select a country</option> */}
                 {countryList.map(({ code, name }) => (
                   <option key={code} value={name}>
                     {name}

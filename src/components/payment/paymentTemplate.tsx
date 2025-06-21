@@ -255,7 +255,6 @@ export default function ContributionTemplate({
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router, type]);
-  console.log("penaltyMonths", penaltyMonths);
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">

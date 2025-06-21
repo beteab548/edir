@@ -360,7 +360,7 @@ export const deleteMember = async (
       if (member.image_file_id) {
         await deleteImageFromImageKit(member.image_file_id);
       }
-    }
+    } 
     await prisma.member.delete({
       where: { id },
     });

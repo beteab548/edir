@@ -3,49 +3,50 @@ import prisma from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import Image from "next/image";
 import Link from "next/link";
-import ContributionDropdown from "./ContributionDropdown"; // <-- client component
-import PenaltyDropdown from "./penaltyDropdown"; // <-- client component
+import ContributionDropdown from "./ContributionDropdown";
+import PenaltyDropdown from "./penaltyDropdown";
 
 const fetchTypes = async () => {
   const data = await prisma.contributionType.findMany();
   return data;
 };
 
+// Menu config with role-based visibility
 const menuItems = [
   {
     title: "MENU",
     items: [
       {
         icon: "/home.png",
-        label: "Home",
+        label: "Dashboard",
         href: "/",
-        visible: ["admin"],
+        visible: ["admin", "secretary", "chairman"],
       },
       {
         icon: "/members.png",
         label: "Members",
         href: "/list/members",
-        visible: ["admin"],
+        visible: ["admin", "secretary"],
       },
       {
         icon: "/contribution.png",
         label: "Contribution",
         href: "/Contribution",
-        visible: ["admin"],
+        visible: ["admin", "chairman"],
         hasDropdown: true,
       },
       {
         icon: "/penalty.png",
         label: "Penalty",
         href: "/penalty",
-        visible: ["admin"],
+        visible: ["admin", "chairman"],
         hasDropdown: true,
       },
       {
         icon: "/report.png",
         label: "Reports",
         href: "/admin",
-        visible: ["admin"],
+        visible: ["admin", "chairman", "secretary"],
       },
     ],
   },
@@ -56,19 +57,19 @@ const menuItems = [
         icon: "/profile.png",
         label: "Profile",
         href: "/profile",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "chairman", "secretary"],
       },
       {
         icon: "/setting.png",
         label: "Settings",
-        href: "/settings",
-        visible: ["admin", "teacher", "student", "parent"],
+        href: "/configure-setting",
+        visible: ["admin", "chairman", "secretary"],
       },
       {
         icon: "/logout.png",
         label: "Logout",
         href: "/logout",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "chairman", "secretary"],
       },
     ],
   },
@@ -77,17 +78,27 @@ const menuItems = [
 const Menu = async () => {
   const user = await currentUser();
   const role = user?.publicMetadata.role as string;
+
+  // Optional: hide whole menu if no role or user
+  if (!user || !role) return null;
+
   const contributionTypes = await fetchTypes();
 
   return (
     <div className="mt-4 text-sm">
-      {menuItems.map((group) => (
-        <div className="flex flex-col gap-2" key={group.title}>
-          <span className="hidden lg:block text-gray-400 font-light my-4">
-            {group.title}
-          </span>
-          {group.items.map((item) => {
-            if (item.visible.includes(role)) {
+      {menuItems.map((group) => {
+        const visibleItems = group.items.filter((item) =>
+          item.visible.includes(role)
+        );
+
+        if (visibleItems.length === 0) return null;
+
+        return (
+          <div className="flex flex-col gap-2" key={group.title}>
+            <span className="hidden lg:block text-gray-400 font-light my-4">
+              {group.title}
+            </span>
+            {visibleItems.map((item) => {
               if (item.hasDropdown && item.label === "Contribution") {
                 return (
                   <ContributionDropdown
@@ -98,6 +109,7 @@ const Menu = async () => {
                   />
                 );
               }
+
               if (item.hasDropdown && item.label === "Penalty") {
                 return (
                   <PenaltyDropdown
@@ -107,6 +119,7 @@ const Menu = async () => {
                   />
                 );
               }
+
               return (
                 <Link
                   href={item.href}
@@ -117,10 +130,10 @@ const Menu = async () => {
                   <span className="hidden lg:block">{item.label}</span>
                 </Link>
               );
-            }
-          })}
-        </div>
-      ))}
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 };
