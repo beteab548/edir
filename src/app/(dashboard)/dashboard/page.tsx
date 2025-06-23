@@ -1,7 +1,7 @@
 import { currentUser } from "@clerk/nextjs/server";
 import Announcements from "@/components/Announcements";
-import AttendanceChart from "@/components/penaltyBarChart";
-import CountChart from "@/components/CountChart";
+import PenaltyChart from "@/components/penaltyBarChart";
+import MemberDistribution from "@/components/CountChart";
 import EventCalendar from "@/components/EventCalendar";
 import FinanceChart from "@/components/ContributionChart";
 import UserCard from "@/components/UserCard";
@@ -27,15 +27,6 @@ const AdminPage = async ({
       },
     },
   });
-  const lastMonthNewMembers = await prisma.member.count({
-    where: {
-      joined_date: {
-        gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
-        lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      },
-    },
-  });
-
   const isSecretary = role === "secretary";
   const isChairman = role === "chairman";
 
@@ -45,26 +36,27 @@ const AdminPage = async ({
       <div className="w-full lg:w-2/3 flex flex-col gap-8">
         {/* USER CARDS (SECRETARY ONLY) */}
         {isSecretary && (
-          <div className="flex gap-4 justify-between flex-wrap">
-            <UserCard type="New Members" />
-            <UserCard type="Left Members" />
-            <UserCard type="total members" />
-            <UserCard type="Deceased members" />
-          </div>
+          <>
+            <div className="flex gap-4 justify-between flex-wrap">
+              <UserCard type="New Members" />
+              <UserCard type="Left Members" />
+              <UserCard type="total members" />
+              <UserCard type="Deceased members" />
+            </div>
+            <div className="flex gap-4 flex-col lg:flex-row">
+              <div className="w-full lg:w-1/3 h-[350px]">
+                <MemberDistribution />
+              </div>
+            </div>
+          </>
         )}
-
-        {/* CHARTS (CHAIRMAN ONLY) */}
         {isChairman && (
           <>
             <div className="flex gap-4 flex-col lg:flex-row">
-              <div className="w-full lg:w-1/3 h-[450px]">
-                <CountChart />
-              </div>
-              <div className="w-full lg:w-2/3 h-[450px]">
-                <AttendanceChart />
+              <div className="w-full  h-[450px]">
+                <PenaltyChart />
               </div>
             </div>
-
             <div className="w-full h-[600px]">
               <FinanceChart contributionTypes={contributionTypes} />
             </div>

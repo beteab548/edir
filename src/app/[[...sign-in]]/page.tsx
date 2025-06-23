@@ -16,10 +16,10 @@ const LoginPage = () => {
       setIsAuthenticating(true);
       switch (role) {
         case "secretary":
-          router.push("/list/members");
+          router.push("/dashboard");
           break;
         case "chairman":
-          router.push("/contribution");
+          router.push("/dashboard");
           break;
         default:
           router.push("/unauthorized");
