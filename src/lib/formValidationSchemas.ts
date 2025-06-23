@@ -32,7 +32,7 @@ export const memberSchema = z.object({
   image_url: z.string().optional(),
   image_file_id: z.string().optional(),
   remark: z.string().optional(),
-  status: z.enum(["Active", "Inactive","Deceased"], { message: "Member Status is required!" }),
+  status: z.enum(["Active", "Inactive","Deceased","Left"], { message: "Member Status is required!" }),
   member_type: z.enum(["New", "Existing"], {
     message: "member status is required!",
   }),

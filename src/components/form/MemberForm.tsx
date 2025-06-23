@@ -12,8 +12,9 @@ import { toast } from "react-toastify";
 import UploadFile from "../FileUpload/page";
 import Image from "next/image";
 import SelectField from "../SelectField";
+import Link from "next/link";
 
-const tabs = ["Principal Info", "Address", "Relatives"];
+const tabs = ["Principal Info", "Principal detail", "Principal Relatives"];
 
 const MemberForm = ({
   type,
@@ -22,7 +23,7 @@ const MemberForm = ({
 }: {
   type: "create" | "update";
   data?: any;
-  setOpen: Dispatch<SetStateAction<boolean>>;
+  setOpen?: Dispatch<SetStateAction<boolean>>;
 }) => {
   const formatDate = (dateStr?: string) =>
     dateStr ? new Date(dateStr).toISOString().split("T")[0] : "";
@@ -133,11 +134,13 @@ const MemberForm = ({
   const router = useRouter();
   useEffect(() => {
     if (state.success) {
-      toast.success(`Member has been ${type === "create" ? "created" : "updated"}!`);
+      toast.success(
+        `Member has been ${type === "create" ? "created" : "updated"}!`
+      );
       router.push("/list/members");
       router.refresh();
       if (type === "update") {
-        setOpen(false);
+        if (setOpen) setOpen(false);
       }
     }
     if (state.error) toast.error("Something went wrong");
@@ -215,10 +218,13 @@ const MemberForm = ({
     setConfirmDeleteIndex(null);
     deleteDialogRef.current?.close();
   };
-
   return (
-    <div className="max-h-[80vh] overflow-y-auto bg-gray-50 rounded-lg">
-      <div className="sticky top-0 bg-white pt-4 pb-2 z-10 border-b border-gray-200">
+    <div
+      className={`${
+        type === "update" ? "h-[590px] w-[770px]" : ""
+      } overflow-y-hidden rounded-lg bg-white`}
+    >
+      <div className="sticky top-0  pt-4 pb-2 z-10 border-b border-gray-200">
         <div className="flex gap-4 px-6">
           {tabs.map((tab, index) => (
             <button
@@ -245,7 +251,6 @@ const MemberForm = ({
               register={register}
               error={errors?.member?.first_name}
               defaultValue={data?.first_name}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
             <InputField
               label="Second Name"
@@ -253,7 +258,6 @@ const MemberForm = ({
               register={register}
               error={errors?.member?.second_name}
               defaultValue={data?.second_name}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
             <InputField
               label="Last Name"
@@ -261,7 +265,6 @@ const MemberForm = ({
               register={register}
               error={errors?.member?.last_name}
               defaultValue={data?.last_name}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
             <InputField
               label="Birth Date"
@@ -270,10 +273,9 @@ const MemberForm = ({
               register={register}
               defaultValue={formatDate(data?.birth_date)}
               error={errors?.member?.birth_date}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
 
-            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex flex-col gap-2 ">
               <label className="text-sm font-medium text-gray-700">Sex</label>
               <select
                 {...register("member.sex")}
@@ -291,7 +293,6 @@ const MemberForm = ({
               register={register}
               error={errors.member?.title}
               defaultValue={data?.title}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
 
             <InputField
@@ -300,7 +301,6 @@ const MemberForm = ({
               register={register}
               error={errors.member?.job_business}
               defaultValue={data?.job_business}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
 
             <InputField
@@ -309,7 +309,6 @@ const MemberForm = ({
               register={register}
               error={errors.member?.profession}
               defaultValue={data?.profession}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
 
             <InputField
@@ -318,8 +317,7 @@ const MemberForm = ({
               type="date"
               register={register}
               error={errors.member?.joined_date}
-              defaultValue={formatDate(data?.joined_date)}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
+              defaultValue={formatDate(data?.joined_date ?? new Date())}
             />
             <InputField
               label="End Date"
@@ -328,10 +326,9 @@ const MemberForm = ({
               register={register}
               error={errors.member?.end_date}
               defaultValue={formatDate(data?.end_date)}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
             />
 
-            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex flex-col gap-2 ">
               <label className="text-sm font-medium text-gray-700">
                 Status
               </label>
@@ -343,6 +340,7 @@ const MemberForm = ({
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
                 <option value="Deceased">Deceased</option>
+                <option value="Left">Left</option>
               </select>
               {errors.member?.status && (
                 <p className="text-xs text-red-500 mt-1">
@@ -351,7 +349,7 @@ const MemberForm = ({
               )}
             </div>
 
-            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+            <div className="flex flex-col gap-2">
               <label className="text-sm font-medium text-gray-700">
                 Member Type
               </label>
@@ -383,261 +381,252 @@ const MemberForm = ({
           </div>
         )}
         <div className={tabIndex === 1 ? "" : "hidden"}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <InputField
-              label="ID Number"
-              name="member.id_number"
-              register={register}
-              error={errors.member?.id_number}
-              defaultValue={data?.id_number}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <div className="flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <label className="text-sm font-medium text-gray-700">
-                Citizen
-              </label>
-              <select
-                {...register("member.citizen")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                defaultValue={data?.citizen}
-              >
-                <option value="">Select a country</option>
-                {/* <option value="">Select a country</option> */}
-                {countryList.map(({ code, name }) => (
-                  <option key={code} value={name}>
-                    {name}
-                  </option>
-                ))}
-              </select>
-              {errors.member?.citizen && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.member?.citizen?.message?.toString()}
-                </p>
-              )}
-            </div>
-
-            <InputField
-              label="Phone Number"
-              name="member.phone_number"
-              register={register}
-              error={errors.member?.phone_number}
-              defaultValue={data?.phone_number}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Second Phone Number"
-              name="member.phone_number_2"
-              register={register}
-              error={errors.member?.phone_number_2}
-              defaultValue={data?.phone_number_2}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Email"
-              name="member.email"
-              register={register}
-              error={errors.member?.email}
-              defaultValue={data?.email}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Second Email"
-              name="member.email_2"
-              register={register}
-              error={errors.member?.email_2}
-              defaultValue={data?.email_2}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Wereda"
-              name="member.wereda"
-              register={register}
-              error={errors.member?.wereda}
-              defaultValue={data?.wereda}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Zone / District"
-              name="member.zone_or_district"
-              register={register}
-              error={errors.member?.zone_or_district}
-              defaultValue={data?.zone_or_district}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Kebele"
-              name="member.kebele"
-              register={register}
-              error={errors.member?.kebele}
-              defaultValue={data?.kebele}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <SelectField
-              label="Bank Name"
-              name="member.bank_name"
-              register={register}
-              error={errors.member?.bank_name}
-              defaultValue={data?.bank_name || ""}
-              options={[
-                { value: "", label: "Select Bank Name" },
-                {
-                  value: "Commercial Bank of Ethiopia",
-                  label: "Commercial Bank of Ethiopia",
-                },
-                { value: "Dashen Bank", label: "Dashen Bank" },
-                { value: "Awash Bank", label: "Awash Bank" },
-                {
-                  value: "Nib International Bank",
-                  label: "Nib International Bank",
-                },
-                { value: "Wegagen Bank", label: "Wegagen Bank" },
-                { value: "United Bank", label: "United Bank" },
-                { value: "Bank of Abyssinia", label: "Bank of Abyssinia" },
-                { value: "Zemen Bank", label: "Zemen Bank" },
-                { value: "Berhan Bank", label: "Berhan Bank" },
-                {
-                  value: "Cooperative Bank of Oromia",
-                  label: "Cooperative Bank of Oromia",
-                },
-                {
-                  value: "Lion International Bank",
-                  label: "Lion International Bank",
-                },
-                { value: "Enat Bank", label: "Enat Bank" },
-                {
-                  value: "Addis International Bank",
-                  label: "Addis International Bank",
-                },
-                {
-                  value: "Bunna International Bank",
-                  label: "Bunna International Bank",
-                },
-                { value: "Debub Global Bank", label: "Debub Global Bank" },
-                { value: "Abay Bank", label: "Abay Bank" },
-                {
-                  value: "Oromia International Bank",
-                  label: "Oromia International Bank",
-                },
-                { value: "Hijra Bank", label: "Hijra Bank" },
-                { value: "ZamZam Bank", label: "ZamZam Bank" },
-                { value: "Goh Betoch Bank", label: "Goh Betoch Bank" },
-                { value: "Siinqee Bank", label: "Siinqee Bank" },
-                { value: "Shabelle Bank", label: "Shabelle Bank" },
-                { value: "Tsedey Bank", label: "Tsedey Bank" },
-              ]}
-              selectProps={{
-                className:
-                  "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white",
-              }}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Bank Account Number"
-              name="member.bank_account_number"
-              register={register}
-              error={errors.member?.bank_account_number}
-              defaultValue={data?.bank_account_number}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            <InputField
-              label="Bank Account Name"
-              name="member.bank_account_name"
-              register={register}
-              error={errors.member?.bank_account_name}
-              defaultValue={data?.bank_account_name}
-              containerClass="bg-white p-4 rounded-lg shadow-sm border border-gray-200"
-            />
-
-            {/* Image upload section */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Profile Image
-              </label>
-              {data?.image_url && (
-                <div className="mb-4 flex items-center gap-4">
-                  <Image
-                    width={80}
-                    height={80}
-                    src={data?.image_url}
-                    alt="Profile preview"
-                    className="h-20 w-20 object-cover rounded-full border-2 border-gray-200"
-                  />
-                  <span className="text-sm text-gray-500">
-                    Current profile image
-                  </span>
-                </div>
-              )}
-              <UploadFile
-                text="Upload new profile image"
-                getImageUrl={getImageUrl}
-                setImageReady={setImageReady}
+          <div className={`max-h-[400px] overflow-y-auto custom-scrollbar`}>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+              <InputField
+                label="ID Number"
+                name="member.id_number"
+                register={register}
+                error={errors.member?.id_number}
+                defaultValue={data?.id_number}
               />
-            </div>
 
-            {/* Document upload section */}
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Document
-              </label>
-              {data?.document && (
-                <div className="mb-4 flex items-center gap-4">
-                  <div className="h-20 w-20 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
-                    <svg
-                      className="w-8 h-8 text-gray-400"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                      ></path>
-                    </svg>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Citizen
+                </label>
+                <select
+                  {...register("member.citizen")}
+                  className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  defaultValue={data?.citizen ?? "Ethiopia"}
+                >
+                  <option value="">Select a country</option>
+                  {countryList.map(({ code, name }) => (
+                    <option key={code} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                {errors.member?.citizen && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.member?.citizen?.message?.toString()}
+                  </p>
+                )}
+              </div>
+              <InputField
+                label="Phone Number"
+                name="member.phone_number"
+                register={register}
+                error={errors.member?.phone_number}
+                defaultValue={data?.phone_number}
+              />
+
+              <InputField
+                label="Second Phone Number"
+                name="member.phone_number_2"
+                register={register}
+                error={errors.member?.phone_number_2}
+                defaultValue={data?.phone_number_2}
+              />
+
+              <InputField
+                label="Email"
+                name="member.email"
+                register={register}
+                error={errors.member?.email}
+                defaultValue={data?.email}
+              />
+
+              <InputField
+                label="Second Email"
+                name="member.email_2"
+                register={register}
+                error={errors.member?.email_2}
+                defaultValue={data?.email_2}
+              />
+
+              <InputField
+                label="Wereda"
+                name="member.wereda"
+                register={register}
+                error={errors.member?.wereda}
+                defaultValue={data?.wereda}
+              />
+
+              <InputField
+                label="Zone / District"
+                name="member.zone_or_district"
+                register={register}
+                error={errors.member?.zone_or_district}
+                defaultValue={data?.zone_or_district}
+              />
+
+              <InputField
+                label="Kebele"
+                name="member.kebele"
+                register={register}
+                error={errors.member?.kebele}
+                defaultValue={data?.kebele}
+              />
+
+              <SelectField
+                label="Bank Name"
+                name="member.bank_name"
+                register={register}
+                error={errors.member?.bank_name}
+                defaultValue={data?.bank_name || ""}
+                options={[
+                  { value: "", label: "Select Bank Name" },
+                  {
+                    value: "Commercial Bank of Ethiopia",
+                    label: "Commercial Bank of Ethiopia",
+                  },
+                  { value: "Dashen Bank", label: "Dashen Bank" },
+                  { value: "Awash Bank", label: "Awash Bank" },
+                  {
+                    value: "Nib International Bank",
+                    label: "Nib International Bank",
+                  },
+                  { value: "Wegagen Bank", label: "Wegagen Bank" },
+                  { value: "United Bank", label: "United Bank" },
+                  { value: "Bank of Abyssinia", label: "Bank of Abyssinia" },
+                  { value: "Zemen Bank", label: "Zemen Bank" },
+                  { value: "Berhan Bank", label: "Berhan Bank" },
+                  {
+                    value: "Cooperative Bank of Oromia",
+                    label: "Cooperative Bank of Oromia",
+                  },
+                  {
+                    value: "Lion International Bank",
+                    label: "Lion International Bank",
+                  },
+                  { value: "Enat Bank", label: "Enat Bank" },
+                  {
+                    value: "Addis International Bank",
+                    label: "Addis International Bank",
+                  },
+                  {
+                    value: "Bunna International Bank",
+                    label: "Bunna International Bank",
+                  },
+                  { value: "Debub Global Bank", label: "Debub Global Bank" },
+                  { value: "Abay Bank", label: "Abay Bank" },
+                  {
+                    value: "Oromia International Bank",
+                    label: "Oromia International Bank",
+                  },
+                  { value: "Hijra Bank", label: "Hijra Bank" },
+                  { value: "ZamZam Bank", label: "ZamZam Bank" },
+                  { value: "Goh Betoch Bank", label: "Goh Betoch Bank" },
+                  { value: "Siinqee Bank", label: "Siinqee Bank" },
+                  { value: "Shabelle Bank", label: "Shabelle Bank" },
+                  { value: "Tsedey Bank", label: "Tsedey Bank" },
+                ]}
+                selectProps={{
+                  className:
+                    "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white",
+                }}
+              />
+
+              <InputField
+                label="Bank Account Number"
+                name="member.bank_account_number"
+                register={register}
+                error={errors.member?.bank_account_number}
+                defaultValue={data?.bank_account_number}
+              />
+
+              <InputField
+                label="Bank Account Name"
+                name="member.bank_account_name"
+                register={register}
+                error={errors.member?.bank_account_name}
+                defaultValue={data?.bank_account_name}
+              />
+
+              {/* Image upload section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Image
+                </label>
+                {data?.image_url && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <Image
+                      width={50}
+                      height={50}
+                      src={data?.image_url}
+                      alt="Profile preview"
+                      className="h-10 w-10 object-cover"
+                    />
+                    <span className="text-sm text-gray-500">
+                      Current profile image
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-500">
-                    Current document
-                  </span>
-                </div>
-              )}
-              <UploadFile
-                text="Upload new document"
-                getImageUrl={getDocument}
-                setImageReady={setDocumentReady}
-              />
-            </div>
+                )}
+                <UploadFile
+                  text="Upload new profile image"
+                  getImageUrl={getImageUrl}
+                  setImageReady={setImageReady}
+                />
+              </div>
 
-            <div className="md:col-span-2 flex flex-col gap-2 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <label className="text-sm font-medium text-gray-700">
-                Remark
-              </label>
-              <textarea
-                {...register("member.remark")}
-                rows={3}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                defaultValue={data?.remark}
-              />
-              {errors.member?.remark && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.member?.remark?.message?.toString()}
-                </p>
-              )}
+              {/* Document upload section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Document
+                </label>
+                {data?.document && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
+                      <Link href={data.document} target="blanck">
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          ></path>
+                        </svg>
+                      </Link>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      Current document
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload new document"
+                  getImageUrl={getDocument}
+                  setImageReady={setDocumentReady}
+                />
+              </div>
+
+              <div className="md:col-span-1 flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Remark
+                </label>
+                <textarea
+                  {...register("member.remark")}
+                  rows={5}
+                  className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  defaultValue={data?.remark}
+                />
+                {errors.member?.remark && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.member?.remark?.message?.toString()}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
         {tabIndex === 2 && (
-          <div className="w-full relative bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div className="w-full bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-[400px] flex flex-col relative custom-scrollbar">
             <button
               type="button"
               onClick={() => openRelativesDialog()}
@@ -658,7 +647,6 @@ const MemberForm = ({
               </svg>
               Add Relative
             </button>
-
             <div className="mt-8 overflow-x-auto">
               {relatives.length === 0 ? (
                 <div className="text-center py-8">
@@ -785,11 +773,10 @@ const MemberForm = ({
                 </table>
               )}
             </div>
-
             {/* Add/Edit Relative Dialog */}
             <dialog
               ref={relativesDialogRef}
-              className="modal backdrop:bg-black/30 rounded-lg shadow-xl"
+              className="modal backdrop:bg-black/30 rounded-lg shadow-xl "
             >
               <div className="modal-box bg-white p-6 rounded-lg max-w-none w-full">
                 <div className="flex justify-between items-center mb-4">
@@ -929,7 +916,6 @@ const MemberForm = ({
                 </div>
               </div>
             </dialog>
-
             {/* Delete Confirmation Dialog */}
             <dialog
               ref={deleteDialogRef}
@@ -984,7 +970,13 @@ const MemberForm = ({
         <div className="mt-6 flex justify-end border-t border-gray-200 pt-4 gap-3">
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              if (type === "update") {
+                return setOpen && setOpen(false);
+              } else {
+                return router.back();
+              }
+            }}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
             Cancel
@@ -1029,5 +1021,4 @@ const MemberForm = ({
     </div>
   );
 };
-
 export default MemberForm;

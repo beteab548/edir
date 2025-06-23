@@ -196,6 +196,7 @@ enum Sex {
 enum Status {
   Active
   Inactive
+  Left
   Deceased
 }
  enum RelativeStatus {
