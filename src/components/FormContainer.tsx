@@ -27,13 +27,13 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
     }
   }
   return (
-      <FormModal
-        table={table}
-        type={type}
-        data={data}
-        id={id}
-        relatedData={relatedData}
-      />
+    <FormModal
+      table={table}
+      type={type}
+      data={data}
+      id={id}
+      relatedData={relatedData}
+    />
   );
 };
 export default FormContainer;

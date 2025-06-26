@@ -44,7 +44,7 @@ export default async function ContributionPage() {
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">
                   {option.name}
                 </h2>
-                <p className="text-gray-600">description</p>
+               
               </div>
               <div className="px-6 py-4 bg-gray-50 text-right">
                 <span className="text-blue-600 font-medium hover:text-blue-800">

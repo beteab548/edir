@@ -1,10 +1,11 @@
-import { currentUser } from "@clerk/nextjs/server";
+"use client";
+
+import { useEffect, useState } from "react";
 import ContributionTab from "../../../components/contribution/contributionPage";
-import { getMembersWithPenalties } from "@/lib/actions";
 import ContributionPenaltyTab from "@/components/penalties";
-import { redirect } from "next/navigation";
-import prisma from "@/lib/prisma";
 import Penalty from "./penalty";
+import { useUser } from "@clerk/nextjs";
+
 type Tab = "contribution" | "contributionPenalty" | "penalty";
 
 interface TabData {
@@ -13,68 +14,50 @@ interface TabData {
   component: JSX.Element;
 }
 
-interface Props {
-  searchParams: { tab?: string };
-}
+export default function ContributionTabs() {
+  const [activeTab, setActiveTab] = useState<Tab>("contribution");
+  const { user } = useUser();
+  const [initialMembers, setInitialMembers] = useState([]);
+  const [penaltiesWithNumberAmount, setPenaltiesWithNumberAmount] = useState(
+    []
+  );
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<{ message: string }>({ message: "" });
 
-export default async function ContributionTabs({ searchParams }: Props) {
-  const tabFromParams = searchParams.tab as Tab;
-  const activeTab: Tab = tabFromParams ?? "contribution";
-  const user = await currentUser();
+  // Load data on component mount
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        const res = await fetch("/api/fetchSettingDatas");
+        if (!res.ok) throw new Error("Failed to fetch data");
 
-  const initialMembers = (await getMembersWithPenalties()).map((member) => ({
-    ...member,
-    Penalty: member.Penalty.filter(
-      (penalty) => penalty.contribution !== null
-    ).map((penalty) => ({
-      ...penalty,
-      contribution: penalty.contribution!,
-    })),
-  }));
-  const [members, penalties] = await Promise.all([
-    prisma.member.findMany({
-      where: {
-        status: "Active",
-      },
-    }),
-    prisma.penalty.findMany({
-      where: { generated: "manually" },
-      include: {
-        member: {
-          select: {
-            id: true,
-            first_name: true,
-            second_name: true,
-            last_name: true,
-            custom_id: true,
-          },
-        },
-      },
-      orderBy: {
-        applied_at: "desc",
-      },
-    }),
-  ]);
-  const penaltiesWithNumberAmount = penalties.map((penalty) => ({
-    ...penalty,
-    amount:
-      typeof penalty.expected_amount === "object" &&
-      "toNumber" in penalty.expected_amount
-        ? penalty.expected_amount.toNumber()
-        : penalty.expected_amount,
-    paid_amount:
-      typeof penalty.paid_amount === "object" &&
-      "toNumber" in penalty.paid_amount
-        ? penalty.paid_amount.toNumber()
-        : penalty.paid_amount,
-    penalty_type: penalty.penalty_type ?? "",
-  }));
+        const { initialMembers, penalties } = await res.json();
+        setInitialMembers(initialMembers);
+        setPenaltiesWithNumberAmount(penalties);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError({ message: err.message });
+        } else {
+          setError({ message: "An unknown error occurred." });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
 
   if (!user) {
-    return redirect("/sign-in");
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
+        <div className="text-center py-10">
+          <h3 className="text-lg font-medium text-gray-900">Please sign in</h3>
+        </div>
+      </div>
+    );
   }
   const role = user.publicMetadata.role as string;
-  console.log("role is", role);
   const isChairman = role && role.includes("chairman");
   if (!isChairman) {
     return (
@@ -88,7 +71,27 @@ export default async function ContributionTabs({ searchParams }: Props) {
       </div>
     );
   }
-
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
+        <div className="text-center py-10">
+          <h3 className="text-lg font-medium text-gray-900">Loading...</h3>
+        </div>
+      </div>
+    );
+  }
+  if (error.message !== "") {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
+        <div className="text-center py-10">
+          <h3 className="text-lg font-medium text-gray-900">
+            Error loading data
+          </h3>
+          <p className="mt-2 text-sm text-red-500">{error.message}</p>
+        </div>
+      </div>
+    );
+  }
   const allTabs: TabData[] = [
     {
       id: "contribution",
@@ -102,7 +105,7 @@ export default async function ContributionTabs({ searchParams }: Props) {
     },
     {
       id: "penalty",
-      label: " Penalty",
+      label: "Penalty",
       component: (
         <Penalty
           members={initialMembers}
@@ -111,7 +114,6 @@ export default async function ContributionTabs({ searchParams }: Props) {
       ),
     },
   ];
-
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
       <div className="mb-6">
@@ -124,9 +126,9 @@ export default async function ContributionTabs({ searchParams }: Props) {
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           {allTabs.map((tab) => (
-            <a
+            <button
               key={tab.id}
-              href={`?tab=${tab.id}`}
+              onClick={() => setActiveTab(tab.id)}
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? "border-blue-500 text-blue-600"
@@ -134,11 +136,10 @@ export default async function ContributionTabs({ searchParams }: Props) {
               }`}
             >
               {tab.label}
-            </a>
+            </button>
           ))}
         </nav>
       </div>
-
       <div className="mt-6 p-4 bg-gray-50 rounded-lg min-h-[200px]">
         {allTabs.find((tab) => tab.id === activeTab)?.component}
       </div>

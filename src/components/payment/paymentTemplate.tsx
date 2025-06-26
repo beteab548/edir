@@ -83,9 +83,7 @@ export default function ContributionTemplate({
     reset,
     formState: { errors, isValid },
     watch,
-  } = useForm<
-    PaymentFormSchemaType | penaltyPaymentFormSchemaType
-  >({
+  } = useForm<PaymentFormSchemaType | penaltyPaymentFormSchemaType>({
     resolver: zodResolver(
       type === "automatically" ? paymentFormSchema : penaltyPaymentFormSchema
     ) as any,
@@ -97,8 +95,7 @@ export default function ContributionTemplate({
     },
     mode: "onChange",
   });
-  console.log(payments);
-  const paymentMethod = watch("payment_method"); // <-- add this
+  const paymentMethod = watch("payment_method");
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
     try {
       setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
@@ -132,10 +129,9 @@ export default function ContributionTemplate({
           setValue("paid_amount", selectedMonth.amount.toString(), {
             shouldValidate: true,
           });
-          setIsAmountLocked(true); // Lock the amount after setting it
+          setIsAmountLocked(true);
         }
       }
-      // Unlock if month selection is cleared
       if (name === "penalty_month" && !value.penalty_month) {
         setIsAmountLocked(false);
       }
@@ -474,16 +470,7 @@ export default function ContributionTemplate({
       </div>
 
       {showAddModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowAddModal(false);
-              setSelectedMember(null);
-              setSearchTerm("");
-            }
-          }}
-        >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -498,7 +485,6 @@ export default function ContributionTemplate({
                     setSelectedMember(null);
                     setSearchTerm("");
                   }}
-                  aria-label="Close"
                 >
                   <svg
                     className="h-6 w-6"
@@ -516,84 +502,140 @@ export default function ContributionTemplate({
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit, onError)}>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Search and Select Member
-                  </label>
-                  <div className="relative">
-                    {selectedMember ? (
-                      <div className="flex items-center justify-between p-2 border border-gray-300 rounded-md bg-gray-50">
-                        <span>
-                          {selectedMember.first_name}{" "}
-                          {selectedMember.second_name}{" "}
-                          {selectedMember.last_name} (
-                          {selectedMember.phone_number})
-                        </span>
-                        <button
-                          type="button"
-                          onClick={clearSelectedMember}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
+              <form
+                onSubmit={handleSubmit(onSubmit, onError)}
+                className="space-y-6"
+              >
+                {/* Row 1: Dynamic first row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Member Select */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Select Member
+                    </label>
+                    <div className="relative">
+                      {selectedMember ? (
+                        <div className="flex items-center justify-between p-2 border border-gray-300 rounded-md bg-gray-50">
+                          <span>
+                            {selectedMember.first_name}{" "}
+                            {selectedMember.second_name}{" "}
+                            {selectedMember.last_name} (
+                            {selectedMember.phone_number})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={clearSelectedMember}
+                            className="text-red-500 hover:text-red-700"
                           >
-                            <path
-                              fillRule="evenodd"
-                              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <input
-                          type="text"
-                          placeholder="Type member name or phone number..."
-                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                          value={searchTerm}
-                          onChange={handleSearchChange}
-                        />
-                        {searchResults.length > 0 && (
-                          <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto border border-gray-200">
-                            {searchResults.map((member) => (
-                              <li key={member.id}>
-                                <button
-                                  type="button"
-                                  onClick={() => handleMemberSelect(member)}
-                                  className="w-full text-left px-4 py-2 hover:bg-gray-100 flex justify-between items-center"
-                                >
-                                  <span>
-                                    {member.first_name} {member.second_name}{" "}
-                                    {member.last_name} ({member.phone_number})
-                                  </span>
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    className="h-5 w-5 text-blue-500"
-                                    viewBox="0 0 20 20"
-                                    fill="currentColor"
+                            <svg
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <input
+                            type="text"
+                            placeholder="Type member name or phone number..."
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                          />
+                          {searchResults.length > 0 && (
+                            <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto border border-gray-200">
+                              {searchResults.map((member) => (
+                                <li key={member.id}>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleMemberSelect(member)}
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex justify-between items-center"
                                   >
-                                    <path
-                                      fillRule="evenodd"
-                                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
-                                      clipRule="evenodd"
-                                    />
-                                  </svg>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
+                                    <span>
+                                      {member.first_name} {member.second_name}{" "}
+                                      {member.last_name} ({member.phone_number})
+                                    </span>
+                                    <svg
+                                      className="h-5 w-5 text-blue-500"
+                                      viewBox="0 0 20 20"
+                                      fill="currentColor"
+                                    >
+                                      <path
+                                        fillRule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                                        clipRule="evenodd"
+                                      />
+                                    </svg>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Right Side */}
+                  <div>
+                    {type === "automatically" ? (
+                      <InputField
+                        label="Contribution Type"
+                        name="contribution_type"
+                        register={register}
+                        inputProps={{
+                          value: selectedContributionTypeFormat?.name,
+                          disabled: true,
+                          className:
+                            "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
+                        }}
+                      />
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Penalty Month
+                        </label>
+                        <select
+                          {...register("penalty_month", { required: true })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          disabled={
+                            loadingPenaltyMonths || penaltyMonths.length === 0
+                          }
+                        >
+                          <option value="">Select a month</option>
+                          {penaltyMonths.map((month) => {
+                            const monthStr =
+                              typeof month.month === "string"
+                                ? month.month
+                                : `${month.month.getFullYear()}-${String(
+                                    month.month.getMonth() + 1
+                                  ).padStart(2, "0")}`;
+                            return (
+                              <option key={monthStr} value={monthStr}>
+                                {monthStr.slice(0, 10)} - {month.amount} birr
+                              </option>
+                            );
+                          })}
+                        </select>
+                        {errors.penalty_month && (
+                          <span className="text-red-500 text-xs">
+                            Penalty month is required
+                          </span>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {/* Row 2 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <InputField
                     label="Amount"
                     name="paid_amount"
@@ -605,32 +647,20 @@ export default function ContributionTemplate({
                       min: "0",
                       placeholder: "0.00",
                       required: true,
-                      readOnly: isAmountLocked, // Make it read-only when locked
+                      readOnly: isAmountLocked,
                       className: `w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${
                         isAmountLocked ? "bg-gray-100 cursor-not-allowed" : ""
                       }`,
                     }}
                   />
-                  <input
-                    type="hidden"
-                    {...register("contribution_id")}
-                    value={
-                      selectedContributionTypeFormat?.id || ContributionType?.id
-                    }
-                  />
-                  {type === "automatically" && (
-                    <InputField
-                      label="Contribution Type"
-                      name="contribution_type"
-                      register={register}
-                      inputProps={{
-                        value: selectedContributionTypeFormat?.name,
-                        disabled: true,
-                        className:
-                          "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
-                      }}
+                     <input
+                      type="hidden"
+                      {...register("contribution_id")}
+                      value={
+                        selectedContributionTypeFormat?.id ||
+                        ContributionType?.id
+                      }
                     />
-                  )}
                   <InputField
                     label="Payment Date"
                     name="payment_date"
@@ -639,18 +669,13 @@ export default function ContributionTemplate({
                     inputProps={{
                       required: true,
                       className:
-                        "w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100",
+                        "w-full px-3 py-2 border border-gray-300 rounded-md",
                     }}
                   />
-                  {paymentMethod !== "Cash" && (
-                    <div className="col-span-2">
-                      <UploadFile
-                        text="receipt"
-                        getImageUrl={getImageUrl}
-                        setImageReady={setImageReady}
-                      />
-                    </div>
-                  )}
+                </div>
+
+                {/* Row 3 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <SelectField
                     label="Payment Method"
                     name="payment_method"
@@ -667,44 +692,16 @@ export default function ContributionTemplate({
                         "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
                     }}
                   />
+                  {paymentMethod !== "Cash" && (
+                    <UploadFile
+                      text="receipt"
+                      getImageUrl={getImageUrl}
+                      setImageReady={setImageReady}
+                    />
+                  )}
                 </div>
 
-                {type === "manually" && (
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Select Penalty Month
-                    </label>
-                    <select
-                      {...register("penalty_month", { required: true })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      disabled={
-                        loadingPenaltyMonths || penaltyMonths.length === 0
-                      }
-                    >
-                      <option value="">Select a month</option>
-                      {penaltyMonths.map((month) => {
-                        // Convert Date to "YYYY-MM"
-                        const monthStr =
-                          typeof month.month === "string"
-                            ? month.month
-                            : `${month.month.getFullYear()}-${String(
-                                month.month.getMonth() + 1
-                              ).padStart(2, "0")}`;
-                        return (
-                          <option key={monthStr} value={monthStr}>
-                            {monthStr.slice(0, 10)} - {month.amount} birr
-                          </option>
-                        );
-                      })}
-                    </select>
-                    {errors.penalty_month && (
-                      <span className="text-red-500 text-xs">
-                        Penalty month is required
-                      </span>
-                    )}
-                  </div>
-                )}
-
+                {/* Row 4 */}
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <button
                     type="button"

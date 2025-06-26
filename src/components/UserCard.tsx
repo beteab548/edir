@@ -7,9 +7,6 @@ interface CardData {
 }
 
 const UserCard = ({ type }: { type: string }) => {
-  const [showDateSelector, setShowDateSelector] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [cardData, setCardData] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +22,6 @@ const UserCard = ({ type }: { type: string }) => {
   };
 
   const isOdd = Math.random() > 0.5;
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const yearOptions = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -34,13 +29,7 @@ const UserCard = ({ type }: { type: string }) => {
         setLoading(true);
         setError(null);
 
-        const params = new URLSearchParams({
-          type: type.toLowerCase(),
-          year: selectedYear.toString(),
-          month: (selectedMonth + 1).toString(),
-        });
-
-        const res = await fetch(`/api/reports/metrics?${params}`);
+        const res = await fetch(`/api/reports/metrics?type=${type.toLowerCase()}`);
         if (!res.ok) throw new Error("Failed to fetch");
 
         const data: CardData = await res.json();
@@ -54,17 +43,7 @@ const UserCard = ({ type }: { type: string }) => {
     };
 
     fetchData();
-  }, [type, selectedYear, selectedMonth]);
-
-  const toggleDateSelector = () => setShowDateSelector(!showDateSelector);
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
-    setShowDateSelector(false);
-  };
-  const handleMonthChange = (month: number) => {
-    setSelectedMonth(month);
-    setShowDateSelector(false);
-  };
+  }, [type]);
 
   return (
     <div
@@ -73,63 +52,13 @@ const UserCard = ({ type }: { type: string }) => {
       } p-5 flex-1 min-w-[160px] max-w-[200px] relative`}
     >
       <div className="flex justify-between items-start">
-        <div className="relative">
-          <button
-            onClick={toggleDateSelector}
-            className={`text-xs font-medium ${
-              isOdd ? badgeVariants.odd : badgeVariants.even
-            } px-2.5 py-1 rounded-full hover:bg-opacity-80 transition-colors flex items-center`}
-            disabled={loading}
-          >
-            {monthNames[selectedMonth]} {selectedYear}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="ml-1"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-
-          {showDateSelector && (
-            <div className="absolute z-10 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 p-2 w-[180px]">
-              <div className="flex justify-between items-center mb-2">
-                <select
-                  value={selectedYear}
-                  onChange={(e) => handleYearChange(parseInt(e.target.value))}
-                  className="text-xs bg-gray-50 border border-gray-200 rounded px-2 py-1 focus:outline-none"
-                >
-                  {yearOptions.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-3 gap-1">
-                {monthNames.map((month, index) => (
-                  <button
-                    key={month}
-                    onClick={() => handleMonthChange(index)}
-                    className={`text-xs p-1 rounded hover:bg-gray-100 ${
-                      selectedMonth === index ? 'bg-purple-100 text-purple-800' : ''
-                    }`}
-                  >
-                    {month}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
+        <span
+          className={`text-xs font-medium ${
+            isOdd ? badgeVariants.odd : badgeVariants.even
+          } px-2.5 py-1 rounded-full`}
+        >
+          {type}
+        </span>
         <button className="text-gray-400 hover:text-gray-600 transition-colors">
           <svg
             xmlns="http://www.w3.org/2000/svg"

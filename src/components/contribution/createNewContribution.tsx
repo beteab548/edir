@@ -17,13 +17,13 @@ type ContributionTypeForm = z.infer<typeof ContributionTypeSchema>;
 
 export default function CreateNewContribution({
   members,
+  setRevalidate,
 }: {
   members: Member[];
+  setRevalidate: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [showMemberSelection, setShowMemberSelection] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
-  const router = useRouter();
-
   const {
     register,
     handleSubmit,
@@ -79,9 +79,9 @@ export default function CreateNewContribution({
       const result = await createContributionType(payload);
       if (result.success) {
         toast.success("Contribution type created!");
+        setRevalidate((prev) => !prev);
         reset();
         setSelectedMemberIds([]);
-        router.refresh();
       } else {
         toast.error("Failed to create contribution type");
       }
@@ -192,6 +192,7 @@ export default function CreateNewContribution({
                   register={register}
                   error={errors.start_date}
                   containerClass="bg-gray-50 p-4 rounded-lg"
+                  defaultValue={new Date().toISOString().split("T")[0]}
                 />
                 <InputField
                   label="End Date"

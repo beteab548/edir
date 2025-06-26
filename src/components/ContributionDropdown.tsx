@@ -3,48 +3,134 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Cog6ToothIcon, ScaleIcon } from "@heroicons/react/24/outline";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { usePathname } from "next/navigation";
 
 type ContributionDropdownProps = {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   contributionTypes: { id: number; name: string }[];
+  isActive: boolean;
+  isHovered?: boolean;
+  iconSrc?: string;  // <-- Add this prop for the icon image URL
 };
 
 export default function ContributionDropdown({
   icon,
   label,
   contributionTypes,
+  isActive,
+  isHovered = false,
+  iconSrc = "/default-icon.png",  // default icon path (replace as needed)
 }: ContributionDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
+
+  const isAnyTypeActive = contributionTypes.some(
+    (type) => pathname === `/contribution/${type.name}`
+  );
 
   return (
-    <div className="flex flex-col w-full">
-      <button
+    <motion.div
+      className={`relative flex flex-col w-full rounded-lg ${
+        isActive || isAnyTypeActive ? "bg-lamaSkyLight/30" : ""
+      }`}
+      whileHover={{ backgroundColor: "rgba(209, 233, 255, 0.3)" }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.button
         onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight w-full"
+        className={`flex items-center justify-between gap-4 py-3 px-3 rounded-lg w-full transition-colors
+          ${isActive || isAnyTypeActive ? "text-lama font-medium" : "text-gray-600 hover:text-gray-800"}
+        `}
+        whileTap={{ scale: 0.98 }}
       >
-        <Image src={icon} alt="" width={20} height={20} />
-        <span className="hidden lg:block">{label}</span>
-      </button>
-
-      <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"
-        }`}
-      >
-        <div className="flex flex-col bg-white  rounded-md shadow-sm w-full px-4 py-2 gap-1">
-          {contributionTypes.map((type) => (
-            <Link
-              key={type.id}
-              href={`/contribution/${type.name}`}
-              className="text-sm text-gray-700 hover:bg-gray-100 px-2 py-1 rounded"
-            >
-              {type.name}
-            </Link>
-          ))}
+        <div className="flex items-center gap-4">
+          <motion.div
+            animate={{
+              scale: isActive || isHovered || isAnyTypeActive ? 1.1 : 1,
+              transition: { type: "spring", stiffness: 400, damping: 10 },
+            }}
+          >
+            {icon}
+          </motion.div>
+          <span className="hidden lg:block text-sm">{label}</span>
         </div>
-      </div>
-    </div>
+        <motion.div
+          animate={{
+            rotate: isOpen ? 180 : 0,
+            transition: { type: "spring", stiffness: 300, damping: 15 },
+          }}
+        >
+          <ChevronDownIcon className="w-4 h-4 text-current" />
+        </motion.div>
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{
+              height: "auto",
+              opacity: 1,
+              transition: {
+                height: { duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] },
+                opacity: { duration: 0.2, delay: 0.1 },
+              },
+            }}
+            exit={{
+              height: 0,
+              opacity: 0,
+              transition: {
+                height: { duration: 0.2, ease: [0.04, 0.62, 0.23, 0.98] },
+                opacity: { duration: 0.1 },
+              },
+            }}
+            className="overflow-hidden"
+          >
+            <div className="mt-1 ml-4 flex flex-col bg-white/80 backdrop-blur-sm rounded-md shadow-sm w-[90%] border border-gray-200 px-2 py-2 gap-1">
+              {contributionTypes.map((type) => (
+                <Link
+                  key={type.id}
+                  href={`/contribution/${type.name}`}
+                  className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
+                    ${
+                      pathname === `/contribution/${type.name}`
+                        ? "bg-lamaSkyLight/40 text-lama font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }
+                  `}
+                >
+                  {/* Image icon before name */}
+                  <Image
+                    src={iconSrc}
+                    alt="contribution icon"
+                    width={18}
+                    height={18}
+                    className="rounded-sm"
+                    priority={false}
+                  />
+                  <motion.span
+                    whileHover={{ x: 2 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {type.name}
+                  </motion.span>
+                  {pathname === `/contribution/${type.name}` && (
+                    <motion.span
+                      className="w-1.5 h-1.5 bg-lama rounded-full"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

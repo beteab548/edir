@@ -8,44 +8,50 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "react-toastify";
 import { deleteContributionType, updateContribution } from "../../lib/actions";
-import { useRouter } from "next/navigation";
 import SelectableMembersList from "../SelectableMembersList";
 import { Member } from "@prisma/client";
+import Decimal from "decimal.js";
+import useSWR from "swr";
 
 type ContributionType = {
   id: number;
   name: string;
-  amount: number;
+  amount: Decimal;
   is_active: boolean;
   is_for_all: boolean;
-  created_at: Date;
-  start_date: Date | null;
-  end_date: Date | null;
+  created_at: Date | string;
+  start_date: Date | string | null;
+  end_date: Date | string | null;
   mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
-  penalty_amount: number;
+  penalty_amount: Decimal | null;
   period_months: number | null;
   months_before_inactivation?: number;
 };
-
-type ConfigureExistingContributionProps = {
+type ApiResponse = {
   contributionTypes: ContributionType[];
   members: Member[];
 };
 
-export default function ConfigureExistingContribution({
-  contributionTypes,
-  members,
-}: ConfigureExistingContributionProps) {
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
+export default function ConfigureExistingContribution({  revalidate}:{revalidate: boolean}
+) {
+  // Fetch both contributions and members in one request
+  const {
+    data: apiData,
+    mutate: mutateData,
+    isLoading,
+    error,
+  } = useSWR<ApiResponse>("/api/contributions/contributionTypes", fetcher);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [showMemberSelection, setShowMemberSelection] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [existingMemberIds, setExistingMemberIds] = useState<number[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const [isForAllLocal, setIsForAllLocal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toDelete, setToDelete] = useState<ContributionType | null>(null);
-  const router = useRouter();
 
   const {
     register,
@@ -60,81 +66,96 @@ export default function ConfigureExistingContribution({
 
   const watchIsForAll = watch("is_for_all");
   const watchMode = watch("mode");
+  console.log(apiData);
+  // Destructure the data for easier access
+  const contributionTypes = apiData?.contributionTypes || [];
+  const members = apiData?.members || [];
 
   const handleEdit = (contribution: ContributionType) => {
     setEditingId(contribution.id);
     setIsForAllLocal(contribution.is_for_all);
     setSelectedMemberIds([]);
     reset({
-      amount: contribution.amount,
+      amount:
+        contribution.amount instanceof Decimal
+          ? contribution.amount.toNumber()
+          : Number(contribution.amount),
       type_name: contribution.name,
-      start_date: contribution.start_date?.toISOString().split("T")[0] || "",
-      end_date: contribution.end_date?.toISOString().split("T")[0] || "",
+      start_date: contribution.start_date
+        ? formatDateForInput(contribution.start_date)
+        : "",
+      end_date: contribution.end_date
+        ? formatDateForInput(contribution.end_date)
+        : "",
       is_active: contribution.is_active,
       is_for_all: contribution.is_for_all,
       mode: contribution.mode || "Recurring",
-      penalty_amount: contribution.penalty_amount ?? 0,
+      penalty_amount:
+        contribution.penalty_amount instanceof Decimal
+          ? contribution.penalty_amount.toNumber()
+          : Number(contribution.penalty_amount ?? 0),
       period_months: contribution.period_months ?? undefined,
       months_before_inactivation: contribution.months_before_inactivation ?? 1,
     });
   };
-
+  function formatDateForInput(date: Date | string | null): string {
+    if (!date) return "";
+    const d = typeof date === "string" ? new Date(date) : date;
+    return d.toISOString().split("T")[0];
+  }
+  function formatDateForDisplay(date: Date | string | null): string {
+    if (!date) return "N/A";
+    const d = typeof date === "string" ? new Date(date) : date;
+    return d.toLocaleDateString();
+  }
   const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (
     data
   ) => {
     if (!editingId) return;
     setLoading(true);
-    const formData = {
-      id: editingId,
-      amount: Number(data.amount),
-      type_name: data.type_name,
-      start_date: data.start_date ? new Date(data.start_date) : new Date(),
-      end_date:
-        data.mode === "Recurring" && data.end_date
-          ? new Date(data.end_date)
-          : null,
-      is_active: data.is_active,
-      is_for_all: data.is_for_all,
-      member_ids: data.is_for_all ? [] : selectedMemberIds,
-      mode: data.mode,
-      penalty_amount: Number(data.penalty_amount),
-      period_months:
-        data.mode === "OneTimeWindow" ? Number(data.period_months) : null,
-      months_before_inactivation:
-        data.mode === "OneTimeWindow"
-          ? Number(data.months_before_inactivation)
-          : undefined,
-    };
-    try {
-      const result = await updateContribution(
-        { success: false, error: false },
-        formData
-      );
 
-      if (result.success) {
-        router.refresh();
-        toast.success("Contribution updated!");
-      } else {
-        toast.error("Something went wrong");
-      }
+    try {
+      const formData = {
+        id: editingId,
+        amount: Number(data.amount),
+        type_name: data.type_name,
+        start_date: data.start_date ? new Date(data.start_date) : new Date(),
+        end_date:
+          data.mode === "Recurring" && data.end_date
+            ? new Date(data.end_date)
+            : null,
+        is_active: data.is_active,
+        is_for_all: data.is_for_all,
+        member_ids: data.is_for_all ? [] : selectedMemberIds,
+        mode: data.mode,
+        penalty_amount: Number(data.penalty_amount),
+        period_months:
+          data.mode === "OneTimeWindow" ? Number(data.period_months) : null,
+        months_before_inactivation:
+          data.mode === "OneTimeWindow"
+            ? Number(data.months_before_inactivation)
+            : undefined,
+      };
+
+      await updateContribution({ success: false, error: false }, formData);
+      mutateData();
+      toast.success("Contribution updated!");
+      setEditingId(null);
     } catch (e) {
       toast.error("Something went wrong");
     } finally {
       setLoading(false);
-      setEditingId(null);
     }
   };
-
+  useEffect(() => {
+    mutateData();
+  }, [revalidate]);
   const handleDelete = async () => {
     if (!toDelete) return;
     try {
-      const result = await deleteContributionType(toDelete.id);
-      if (result.success) {
-        toast.success("Contribution type deleted!");
-        router.refresh();
-      } else {
-        toast.error("Failed to delete contribution type");
-      }
+      await deleteContributionType(toDelete.id);
+      mutateData(); // Revalidate both contributions and members
+      toast.success("Contribution type deleted!");
     } catch (err) {
       toast.error("Something went wrong");
     } finally {
@@ -159,7 +180,7 @@ export default function ConfigureExistingContribution({
   useEffect(() => {
     const fetchExistingMembers = async () => {
       try {
-        setIsLoading(true);
+        setIsLoadingMembers(true);
         if (editingId === null) return;
 
         const response = await fetch(
@@ -174,7 +195,7 @@ export default function ConfigureExistingContribution({
       } catch (err) {
         console.error("Error:", err);
       } finally {
-        setIsLoading(false);
+        setIsLoadingMembers(false);
       }
     };
 
@@ -504,7 +525,7 @@ export default function ConfigureExistingContribution({
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
                       <div className="flex items-center">
                         <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                        Amount: {contribution.amount}
+                        Amount: {Number(contribution.amount)}
                       </div>
                       <div className="flex items-center">
                         <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
@@ -539,21 +560,24 @@ export default function ConfigureExistingContribution({
                       ) : (
                         <div className="flex items-center">
                           <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                          Penalty: {contribution.penalty_amount}
+                          Penalty: {Number(contribution.penalty_amount)}
                         </div>
                       )}
                       <div className="flex items-center">
                         <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                         Start:{" "}
-                        {contribution.start_date?.toLocaleDateString() || "N/A"}
+                        {contribution.start_date
+                          ? typeof contribution.start_date === "string"
+                            ? contribution.start_date
+                            : contribution.start_date.toLocaleDateString()
+                          : "N/A"}
                       </div>
                       {contribution.mode !== "OneTimeWindow" &&
                         contribution.mode !== "OpenEndedRecurring" && (
                           <div className="flex items-center">
                             <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                             End:{" "}
-                            {contribution.end_date?.toLocaleDateString() ||
-                              "N/A"}
+                            {contribution.end_date?.toLocaleString() || "N/A"}
                           </div>
                         )}
                       {contribution.mode === "OneTimeWindow" && (

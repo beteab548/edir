@@ -3,43 +3,140 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Cog6ToothIcon, ScaleIcon } from "@heroicons/react/24/outline";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+import { usePathname } from "next/navigation";
 
-type ContributionDropdownProps = {
-  icon: string;
+type PenaltyDropdownProps = {
+  icon: React.ReactNode;
   label: string;
+  isActive: boolean;
+  isHovered?: boolean;
+  iconSrc?: string; // Add this prop for image URL before each penalty item
 };
 
-export default function ContributionDropdown({
+const penaltyItems = [
+  { label: "Payment", href: "/penalty" },
+];
+
+export default function PenaltyDropdown({
   icon,
   label,
-}: ContributionDropdownProps) {
+  isActive,
+  isHovered = false,
+  iconSrc = "/default-penalty-icon.png", // default image path
+}: PenaltyDropdownProps) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  return (
-    <div className="flex flex-col w-full">
-      <button
-        onClick={() => setIsOpen((prev) => !prev)}
-        className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-lamaSkyLight w-full"
-      >
-        <Image src={icon} alt="" width={20} height={20} />
-        <span className="hidden lg:block">{label}</span>
-      </button>
+  const isAnyPenaltyActive = penaltyItems.some(
+    (item) => pathname === item.href
+  );
 
-      <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${
-          isOpen ? "max-h-96 opacity-100 mt-2" : "max-h-0 opacity-0"
-        }`}
+  return (
+    <motion.div
+      className={`relative flex flex-col w-full rounded-lg ${
+        isActive || isAnyPenaltyActive ? "bg-lamaSkyLight/30" : ""
+      }`}
+      whileHover={{ backgroundColor: "rgba(209, 233, 255, 0.3)" }}
+      transition={{ duration: 0.2 }}
+    >
+      <motion.button
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`flex items-center justify-between gap-4 py-3 px-3 rounded-lg w-full transition-colors
+          ${
+            isActive || isAnyPenaltyActive
+              ? "text-lama font-medium"
+              : "text-gray-600 hover:text-gray-800"
+          }
+        `}
+        whileTap={{ scale: 0.98 }}
       >
-        <div className="flex flex-col bg-white  rounded-md shadow-sm w-full px-4 py-2 gap-1">
-          <Link
-            href="/penalty"
-            className="text-sm text-gray-700 hover:bg-gray-100 px-2 py-1 rounded flex items-center gap-2"
+        <div className="flex items-center gap-4">
+          <motion.div
+            animate={{
+              scale: isActive || isHovered || isAnyPenaltyActive ? 1.1 : 1,
+              transition: { type: "spring", stiffness: 400, damping: 10 },
+            }}
           >
-            payment
-          </Link>
+            {icon}
+          </motion.div>
+          <span className="hidden lg:block text-sm">{label}</span>
         </div>
-      </div>
-    </div>
+        <motion.div
+          animate={{
+            rotate: isOpen ? 180 : 0,
+            transition: { type: "spring", stiffness: 300, damping: 15 },
+          }}
+        >
+          <ChevronDownIcon className="w-4 h-4 text-current" />
+        </motion.div>
+      </motion.button>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{
+              height: "auto",
+              opacity: 1,
+              transition: {
+                height: { duration: 0.3 },
+                opacity: { duration: 0.2, delay: 0.1 },
+              },
+            }}
+            exit={{
+              height: 0,
+              opacity: 0,
+              transition: {
+                height: { duration: 0.2 },
+                opacity: { duration: 0.1 },
+              },
+            }}
+            className="overflow-hidden"
+          >
+            <div className="mt-1 ml-4 flex flex-col bg-white/80 backdrop-blur-sm rounded-md shadow-sm w-[90%] border border-gray-200 px-2 py-2 gap-1">
+              {penaltyItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
+                    ${
+                      pathname === item.href
+                        ? "bg-lamaSkyLight/40 text-lama font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }
+                  `}
+                >
+                  {/* Image icon before penalty label */}
+                  <Image
+                    src={iconSrc}
+                    alt="penalty icon"
+                    width={18}
+                    height={18}
+                    className="rounded-sm"
+                    priority={false}
+                  />
+                  <motion.span
+                    whileHover={{ x: 2 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    {item.label}
+                  </motion.span>
+                  {pathname === item.href && (
+                    <motion.span
+                      className="w-1.5 h-1.5 bg-lama rounded-full"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.1 }}
+                    />
+                  )}
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }

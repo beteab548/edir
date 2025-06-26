@@ -1,8 +1,7 @@
-
 import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
 import Penalty from "../../../../components/penalties"; // adjust the import path as needed
-import { getMembersWithPenalties } from '@/lib/actions';
+import { getMembersWithPenalties } from "@/lib/actions";
 
 type PageProps = {
   params: Promise<{
@@ -22,22 +21,25 @@ export default async function ContributionPage({ params }: PageProps) {
   if (updatedType.toLowerCase() === "penalties") {
     return (
       <div className="contribution-page">
-        <Penalty initialMembers={
-          (await getMembersWithPenalties()).map(member => ({
+        <Penalty
+          initialMembers={(await getMembersWithPenalties()).map((member) => ({
             ...member,
-            Penalty: member.Penalty
-              .filter(penalty => penalty.contribution !== null)
-              .map(penalty => ({
-                ...penalty,
-                contribution: penalty.contribution!
-              }))
-          }))
-        } />
+            Penalty: member.Penalty.filter(
+              (penalty) => penalty.contribution !== null
+            ).map((penalty) => ({
+              ...penalty,
+              contribution: penalty.contribution!,
+            })),
+          }))}
+        />
       </div>
     );
   }
   const paymentsRaw = await prisma.paymentRecord.findMany({
-    where: { contribution_Type_id: types?.id ?? undefined ,penalty_type_payed_for:"automatically"},
+    where: {
+      contribution_Type_id: types?.id ?? undefined,
+      penalty_type_payed_for: "automatically",
+    },
     include: { member: true, contributionType: true, payments: true },
     orderBy: {
       payment_date: "desc",
@@ -45,15 +47,16 @@ export default async function ContributionPage({ params }: PageProps) {
   });
 
   // Convert Decimal fields to number in contributionType
-  const payments = paymentsRaw.map(payment => ({
+  const payments = paymentsRaw.map((payment) => ({
     ...payment,
     contributionType: payment.contributionType
       ? {
           ...payment.contributionType,
           amount: Number(payment.contributionType.amount),
-          penalty_amount: payment.contributionType.penalty_amount !== null
-            ? Number(payment.contributionType.penalty_amount)
-            : null,
+          penalty_amount:
+            payment.contributionType.penalty_amount !== null
+              ? Number(payment.contributionType.penalty_amount)
+              : null,
         }
       : null,
   }));
