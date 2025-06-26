@@ -221,7 +221,7 @@ const MemberForm = ({
   return (
     <div
       className={`${
-        type === "update" ? "h-[590px] w-[770px]" : ""
+        type === "update" ? "h-[570px] w-[770px]" : ""
       } overflow-y-hidden rounded-lg bg-white`}
     >
       <div className="sticky top-0  pt-4 pb-2 z-10 border-b border-gray-200">
@@ -229,7 +229,7 @@ const MemberForm = ({
           {tabs.map((tab, index) => (
             <button
               key={tab}
-              className={`pb-3 px-1 transition-colors text-sm font-medium relative ${
+              className={`pb-3 px-2 transition-colors text-sm font-medium relative ${
                 tabIndex === index
                   ? "text-blue-600 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-blue-600"
                   : "text-gray-500 hover:text-gray-700"
@@ -381,7 +381,7 @@ const MemberForm = ({
           </div>
         )}
         <div className={tabIndex === 1 ? "" : "hidden"}>
-          <div className={`max-h-[400px] overflow-y-auto custom-scrollbar`}>
+          <div className={`max-h-[400px] overflow-y-auto custom-scrollbar pr-4`}>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
               <InputField
                 label="ID Number"
@@ -630,7 +630,7 @@ const MemberForm = ({
             <button
               type="button"
               onClick={() => openRelativesDialog()}
-              className="absolute top-6 right-6 px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-1"
+              className="absolute top-3 right-6 px-4 py-2  bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-1"
             >
               <svg
                 className="w-4 h-4"
@@ -699,13 +699,9 @@ const MemberForm = ({
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-900 font-medium">
-                            {relative.first_name} {relative.last_name}
+                            {relative.first_name} {relative.second_name}{" "}
+                            {relative.last_name}
                           </div>
-                          {relative.second_name && (
-                            <div className="text-sm text-gray-500">
-                              {relative.second_name}
-                            </div>
-                          )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {relative.relation_type}
@@ -784,6 +780,7 @@ const MemberForm = ({
                     {editIndex !== null ? "Edit Relative" : "Add New Relative"}
                   </h2>
                   <button
+                  type="button"
                     onClick={closeRelativesDialog}
                     className="text-gray-400 hover:text-gray-500"
                   >
@@ -904,7 +901,7 @@ const MemberForm = ({
                     onClick={closeRelativesDialog}
                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                   >
-                    Cancel
+                    Close
                   </button>
                   <button
                     type="button"
@@ -979,7 +976,7 @@ const MemberForm = ({
             }}
             className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           >
-            Cancel
+            Close
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"

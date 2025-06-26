@@ -29,8 +29,8 @@ model Member {
   zone_or_district String?     
   kebele        String? 
   sex          Sex
-  phone_number String  @unique
-  phone_number_2 String @unique 
+  phone_number String  
+  phone_number_2 String  
   member_type MemberType 
   bank_name    String?
   bank_account_number String? @unique

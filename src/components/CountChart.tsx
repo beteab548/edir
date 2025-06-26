@@ -49,14 +49,8 @@ const CountChart = () => {
   }, []);
 
   return (
-    <div className="bg-white shadow-md rounded-2xl w-full h-full p-6 flex flex-col justify-between">
-      {/* TITLE */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-semibold text-gray-800">Members Distribution</h1>
-        <Image src="/moreDark.png" alt="Options" width={20} height={20} />
-      </div>
-
-      {/* CHART */}
+    <div className=" rounded-2xl w-full h-full p-6 flex flex-col justify-between">
+     
       <div className="relative w-full h-64 mb-6">
         {loading ? (
           <div className="flex items-center justify-center h-full">

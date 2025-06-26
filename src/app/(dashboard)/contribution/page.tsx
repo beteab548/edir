@@ -1,5 +1,4 @@
 // app/contribute/page.tsx
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import prisma from "@/lib/prisma"; // Adjust according to your project setup
 import Image from "next/image";
@@ -11,7 +10,6 @@ export default async function ContributionPage() {
       name: true,
     },
   });
-
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-12">

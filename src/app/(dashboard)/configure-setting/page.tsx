@@ -5,6 +5,13 @@ import ContributionTab from "../../../components/contribution/contributionPage";
 import ContributionPenaltyTab from "@/components/penalties";
 import Penalty from "./penalty";
 import { useUser } from "@clerk/nextjs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  ExclamationTriangleIcon,
+  LockClosedIcon,
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 
 type Tab = "contribution" | "contributionPenalty" | "penalty";
 
@@ -16,19 +23,21 @@ interface TabData {
 
 export default function ContributionTabs() {
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
-  const { user } = useUser();
+  const { isLoaded: userLoaded, user } = useUser();
   const [initialMembers, setInitialMembers] = useState([]);
   const [penaltiesWithNumberAmount, setPenaltiesWithNumberAmount] = useState(
     []
   );
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<{ message: string }>({ message: "" });
+  const [error, setError] = useState<{ message: string } | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   // Load data on component mount
   useEffect(() => {
     async function loadData() {
       try {
         setIsLoading(true);
+        setError(null);
         const res = await fetch("/api/fetchSettingDatas");
         if (!res.ok) throw new Error("Failed to fetch data");
 
@@ -39,59 +48,101 @@ export default function ContributionTabs() {
         if (err instanceof Error) {
           setError({ message: err.message });
         } else {
-          setError({ message: "An unknown error occurred." });
+          setError({
+            message: "An unknown error occurred while fetching data.",
+          });
         }
       } finally {
         setIsLoading(false);
       }
     }
     loadData();
-  }, []);
+  }, [retryCount]);
+
+  if (!userLoaded) {
+    return (
+      <div className="w-[800px] flex flex-col mx-auto p-10 space-y-4">
+        <div className=" w-full items-center ">
+          <Skeleton className="h-10 " />
+        </div>
+        <div className="flex space-x-8 justify-center">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-10 w-24" />
+          ))}
+        </div>
+        <Skeleton className="h-80 w-full" />
+      </div>
+    );
+  }
 
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
-        <div className="text-center py-10">
-          <h3 className="text-lg font-medium text-gray-900">Please sign in</h3>
-        </div>
+        <Alert variant="destructive">
+          <ExclamationTriangleIcon className="h-5 w-5" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription>
+            You need to sign in to access this section.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
+
   const role = user.publicMetadata.role as string;
   const isChairman = role && role.includes("chairman");
+
   if (!isChairman) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
-        <div className="text-center py-10">
-          <h3 className="text-lg font-medium text-gray-900">Access Denied</h3>
-          <p className="mt-2 text-sm text-gray-500">
-            Only a chairman can access this section.
-          </p>
-        </div>
+        <Alert>
+          <LockClosedIcon className="h-5 w-5" />
+          <AlertTitle>Access Restricted</AlertTitle>
+          <AlertDescription>
+            Only committee chairpersons can access this section.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
+
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
+        <Alert variant="destructive">
+          <ExclamationTriangleIcon className="h-5 w-5" />
+          <AlertTitle>Error Loading Data</AlertTitle>
+          <AlertDescription>
+            {error.message}
+            <button
+              onClick={() => setRetryCount(retryCount + 1)}
+              className="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <ArrowPathIcon className="h-4 w-4 mr-2" />
+              Retry
+            </button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
-        <div className="text-center py-10">
-          <h3 className="text-lg font-medium text-gray-900">Loading...</h3>
+      <div className="w-[800px] flex flex-col mx-auto p-10 space-y-4">
+        <div className=" w-full items-center ">
+          <Skeleton className="h-10 " />
         </div>
+        <div className="flex space-x-8 justify-center">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-10 w-24" />
+          ))}
+        </div>
+        <Skeleton className="h-80 w-full" />
       </div>
     );
   }
-  if (error.message !== "") {
-    return (
-      <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
-        <div className="text-center py-10">
-          <h3 className="text-lg font-medium text-gray-900">
-            Error loading data
-          </h3>
-          <p className="mt-2 text-sm text-red-500">{error.message}</p>
-        </div>
-      </div>
-    );
-  }
+
   const allTabs: TabData[] = [
     {
       id: "contribution",
@@ -114,22 +165,22 @@ export default function ContributionTabs() {
       ),
     },
   ];
+
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">
-          Contribution Management
+    <div className=" relative mt-1 bg-white rounded-xl shadow-md p-8">
+      <div className=" flex flex-col items-center justify-center">
+        <h2 className="text-2xl font-bold text-blue-400 mb-4 ">
+          View and manage contribution details
         </h2>
-        <p className="text-gray-600">View and manage contribution details</p>
       </div>
 
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
+      <div className="border-b ">
+        <nav className="-mb-px flex space-x-8 justify-center">
           {allTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${
+              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                 activeTab === tab.id
                   ? "border-blue-500 text-blue-600"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -140,7 +191,8 @@ export default function ContributionTabs() {
           ))}
         </nav>
       </div>
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg min-h-[200px]">
+
+      <div className="mt-2 p-4  rounded-lg min-h-[200px] transition-all duration-300">
         {allTabs.find((tab) => tab.id === activeTab)?.component}
       </div>
     </div>

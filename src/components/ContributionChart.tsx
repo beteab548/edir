@@ -121,16 +121,16 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row gap-1 w-full sm:w-auto">
           {/* Year Selector */}
           <div className="relative">
-            <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-1 pointer-events-none text-gray-400">
               <FiCalendar />
             </div>
             <select
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="bg-gray-50 border border-gray-300 text-gray-700 py-2 pl-8 pr-4 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full appearance-none"
+              className="bg-gray-50 border border-gray-300 text-gray-700 py-2 pl-6 pr-4  rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full appearance-none"
             >
               {yearOptions.map((year) => (
                 <option key={year} value={year}>
@@ -148,7 +148,7 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="bg-gray-50 border border-gray-300 text-gray-700 py-2 pl-8 pr-8 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full appearance-none"
+              className="bg-gray-50 border border-gray-300 text-gray-700 py-2 pl-8 pr-4 rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full appearance-none"
             >
               {typeOptions.map((option) => (
                 <option key={option.value} value={option.value}>

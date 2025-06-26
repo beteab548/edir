@@ -20,17 +20,13 @@ export default function ContributionPage() {
     fetchDatas();
   }, []);
   return (
-    <div className="min-h-screen bg-gray-100 p-8 space-y-8">
+    <div className="  min-h-screen  p-8 space-y-8 mt-6">
       <div className="flex justify-end mb-4">
         <button
-          className={`px-4 py-2 rounded-md text-white font-semibold transition-colors ${
-            showAdd
-              ? "bg-red-600 hover:bg-red-700"
-              : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          className={`px-4 py-2 rounded-md text-white font-semibold transition-colors bg-blue-600 hover:bg-blue-700`}
           onClick={() => setShowAdd((prev) => !prev)}
         >
-          {showAdd ? "Cancel" : "Add New Contribution"}
+          Add New Contribution
         </button>
       </div>
 
@@ -38,6 +34,7 @@ export default function ContributionPage() {
         <CreateNewContribution
           members={members}
           setRevalidate={setRevalidate}
+          onClose={() => setShowAdd(false)}
         />
       )}
 

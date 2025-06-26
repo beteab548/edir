@@ -136,7 +136,7 @@ const Menu = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-1"
               >
-                <span className="hidden lg:block uppercase text-xs tracking-wide text-gray-400 pl-2">
+                <span className="hidden lg:block uppercase text-xs font-bold tracking-wide text-blue-500 pl-2 mt-6 font-serif">
                   {title}
                 </span>
 

@@ -30,7 +30,6 @@ export default function ContributionDropdown({
   const isAnyTypeActive = contributionTypes.some(
     (type) => pathname === `/contribution/${type.name}`
   );
-
   return (
     <motion.div
       className={`relative flex flex-col w-full rounded-lg ${
@@ -94,7 +93,7 @@ export default function ContributionDropdown({
                 <Link
                   key={type.id}
                   href={`/contribution/${type.name}`}
-                  className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
+                  className={`text-sm px-1 py-2 rounded-md flex items-center gap-2 transition-colors
                     ${
                       pathname === `/contribution/${type.name}`
                         ? "bg-lamaSkyLight/40 text-lama font-medium"

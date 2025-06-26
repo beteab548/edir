@@ -8,17 +8,12 @@ import prisma from "@/lib/prisma";
 import RelativeRelationsChart from "@/components/relativesChart";
 import {
   FiUsers,
-  FiCalendar,
-  FiBell,
   FiPieChart,
   FiBarChart2,
-  FiDollarSign,
-  FiTrendingUp,
   FiUserCheck,
-  FiUserX,
-  FiHome,
 } from "react-icons/fi";
 import Link from "next/link";
+import Activity from "@/components/activity";
 
 const AdminPage = async ({}: {}) => {
   const user = await currentUser();
@@ -35,6 +30,10 @@ const AdminPage = async ({}: {}) => {
       },
     },
   });
+  const total = await prisma.member.count();
+  const active = await prisma.member.count({ where: { status: "Active" } });
+
+  const summary = `${active} / ${total}`;
   const isSecretary = role === "secretary";
   const isChairman = role === "chairman";
   generateContributionSchedulesForAllActiveMembers();
@@ -94,10 +93,6 @@ const AdminPage = async ({}: {}) => {
                     </p>
                   </div>
                 </div>
-                <div className="mt-3 flex items-center text-xs text-green-600">
-                  <FiTrendingUp className="mr-1" />
-                  <span>12% from last month</span>
-                </div>
               </div>
 
               <UserCard type="Left Members" />
@@ -113,12 +108,10 @@ const AdminPage = async ({}: {}) => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-500">Active</p>
-                    <p className="text-2xl font-semibold text-gray-800">87%</p>
+                    <p className="text-sm font-semibold pr-1 text-gray-800">
+                      {summary}
+                    </p>
                   </div>
-                </div>
-                <div className="mt-3 flex items-center text-xs text-green-600">
-                  <FiTrendingUp className="mr-1" />
-                  <span>3% from last quarter</span>
                 </div>
               </div>
             </div>
@@ -137,15 +130,12 @@ const AdminPage = async ({}: {}) => {
                         Member Distribution
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
-                        Breakdown by membership type
+                        Breakdown by Gender type
                       </p>
                     </div>
                     <div className="flex space-x-2">
-                      <button className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
-                        Monthly
-                      </button>
                       <button className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                        Annual
+                        All Time
                       </button>
                     </div>
                   </div>
@@ -154,25 +144,6 @@ const AdminPage = async ({}: {}) => {
                   </div>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="flex items-center justify-between mb-6">
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                        <div className="p-2 mr-3 rounded-lg bg-purple-100 text-purple-600">
-                          <FiHome className="w-5 h-5" />
-                        </div>
-                        Family Relations
-                      </h2>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Showing all family connections
-                      </p>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      <select className="bg-gray-100 border-0 rounded-lg px-3 py-1 focus:ring-2 focus:ring-indigo-500">
-                        <option>All Families</option>
-                        <option>Active Only</option>
-                      </select>
-                    </div>
-                  </div>
                   <div className="h-96">
                     <RelativeRelationsChart apiUrl="/api/reports/relatives" />
                   </div>
@@ -186,22 +157,20 @@ const AdminPage = async ({}: {}) => {
                     <div className="flex items-center justify-between mb-6">
                       <div>
                         <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                          <div className="p-2 mr-3 rounded-lg bg-green-100 text-green-600">
-                            <FiDollarSign className="w-5 h-5" />
-                          </div>
+                          <div className="p-2 mr-3 rounded-lg bg-green-100 text-green-600"></div>
                           Financial Contributions
                         </h2>
                         <p className="text-sm text-gray-500 mt-1">
-                          Year-to-date performance
+                          Monthly performance
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <button className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200">
+                        {/* <button className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200">
                           <FiCalendar className="w-4 h-4 text-gray-600" />
-                        </button>
-                        <button className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                        </button> */}
+                        {/* <button className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
                           Export Report
-                        </button>
+                        </button> */}
                       </div>
                     </div>
                     <div className="h-[500px]">
@@ -217,7 +186,7 @@ const AdminPage = async ({}: {}) => {
                         Penalty Analysis
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
-                        Current month overview
+                        Months Overview
                       </p>
                     </div>
                     <div className="flex items-center space-x-2">
@@ -265,85 +234,7 @@ const AdminPage = async ({}: {}) => {
               </button>
             </div>
           </div>
-
-          {/* Recent Activity */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="p-2 mr-2 rounded-lg bg-amber-100 text-amber-600">
-                <FiBell className="w-5 h-5" />
-              </div>
-              Recent Activity
-            </h3>
-            <div className="space-y-4">
-              {[1, 2, 3].map((item) => (
-                <div
-                  key={item}
-                  className="flex items-start pb-3 border-b border-gray-100 last:border-0"
-                >
-                  <div className="p-2 mt-1 mr-3 rounded-lg bg-gray-100 text-gray-600">
-                    <FiUserX className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800">
-                      New member registration
-                    </p>
-                    <p className="text-xs text-gray-500">2 hours ago</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button className="mt-4 w-full text-center text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-              View All Activity
-            </button>
-          </div>
-
-          {/* System Status */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="p-2 mr-2 rounded-lg bg-green-100 text-green-600">
-                <FiPieChart className="w-5 h-5" />
-              </div>
-              System Status
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Storage</span>
-                  <span className="font-medium">45% used</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-blue-600 h-2 rounded-full"
-                    style={{ width: "45%" }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">Memory</span>
-                  <span className="font-medium">78% used</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-green-600 h-2 rounded-full"
-                    style={{ width: "78%" }}
-                  ></div>
-                </div>
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">CPU</span>
-                  <span className="font-medium">32% used</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-purple-600 h-2 rounded-full"
-                    style={{ width: "32%" }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Activity />
         </div>
       </div>
     </div>
