@@ -411,7 +411,7 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                     }}
                     className="px-4 py-2 border rounded hover:bg-gray-100 transition-colors"
                   >
-                    Cancel
+                    Close
                   </button>
                   <button
                     type="submit"

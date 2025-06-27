@@ -6,12 +6,7 @@ import FinanceChart from "@/components/ContributionChart";
 import UserCard from "@/components/UserCard";
 import prisma from "@/lib/prisma";
 import RelativeRelationsChart from "@/components/relativesChart";
-import {
-  FiUsers,
-  FiPieChart,
-  FiBarChart2,
-  FiUserCheck,
-} from "react-icons/fi";
+import { FiUsers, FiPieChart, FiBarChart2, FiUserCheck } from "react-icons/fi";
 import Link from "next/link";
 import Activity from "@/components/activity";
 
@@ -234,7 +229,11 @@ const AdminPage = async ({}: {}) => {
               </button>
             </div>
           </div>
-          <Activity />
+          {isChairman ? (
+            <Activity type="chairman" />
+          ) : (
+            <Activity type="secretary" />
+          )}
         </div>
       </div>
     </div>

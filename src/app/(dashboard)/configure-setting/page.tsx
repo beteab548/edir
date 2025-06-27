@@ -135,7 +135,7 @@ export default function ContributionTabs() {
         </div>
         <div className="flex space-x-8 justify-center">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-10 w-24" />
+            <Skeleton key={i} className="h-10 w-full" />
           ))}
         </div>
         <Skeleton className="h-80 w-full" />
@@ -167,7 +167,7 @@ export default function ContributionTabs() {
   ];
 
   return (
-    <div className=" relative mt-1 bg-white rounded-xl shadow-md p-8">
+    <div className=" mt-1 bg-white rounded-xl shadow-md p-8">
       <div className=" flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold text-blue-400 mb-4 ">
           View and manage contribution details

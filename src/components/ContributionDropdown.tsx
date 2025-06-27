@@ -13,7 +13,7 @@ type ContributionDropdownProps = {
   contributionTypes: { id: number; name: string }[];
   isActive: boolean;
   isHovered?: boolean;
-  iconSrc?: string;  // <-- Add this prop for the icon image URL
+  iconSrc?: string;
 };
 
 export default function ContributionDropdown({
@@ -22,7 +22,7 @@ export default function ContributionDropdown({
   contributionTypes,
   isActive,
   isHovered = false,
-  iconSrc = "/default-icon.png",  // default icon path (replace as needed)
+  iconSrc = "/default-icon.png",
 }: ContributionDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
@@ -41,7 +41,11 @@ export default function ContributionDropdown({
       <motion.button
         onClick={() => setIsOpen((prev) => !prev)}
         className={`flex items-center justify-between gap-4 py-3 px-3 rounded-lg w-full transition-colors
-          ${isActive || isAnyTypeActive ? "text-lama font-medium" : "text-gray-600 hover:text-gray-800"}
+          ${
+            isActive || isAnyTypeActive
+              ? "text-lama font-medium"
+              : "text-gray-600 hover:text-gray-800"
+          }
         `}
         whileTap={{ scale: 0.98 }}
       >
