@@ -102,7 +102,7 @@ const AdminPage = async ({}: {}) => {
                     <FiPieChart className="w-5 h-5" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-500">Active</p>
+                    <p className="text-sm font-medium text-gray-500">Active Members</p>
                     <p className="text-sm font-semibold pr-1 text-gray-800">
                       {summary}
                     </p>

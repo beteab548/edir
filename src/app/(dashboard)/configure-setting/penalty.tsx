@@ -22,7 +22,7 @@ type Penalty = {
   id: number;
   member: {
     id: number;
-    custom_id:string;
+    custom_id: string;
     first_name: string;
     second_name: string;
     last_name: string;
@@ -63,7 +63,7 @@ export default function PenaltyManagement({ members, penalties }: Props) {
     },
   });
   const [penaltyTypes, setPenaltyTypes] = useState<string[]>([]);
-  const [newPenaltyType, setNewPenaltyType] = useState("");
+
   const [state, formAction] = useFormState(createPenalty, {
     success: false,
     error: false,
@@ -74,16 +74,6 @@ export default function PenaltyManagement({ members, penalties }: Props) {
     );
   }, []);
 
-  const handleAddPenaltyType = async () => {
-    if (!newPenaltyType.trim()) return;
-    try {
-      const result = await addPenaltyType(newPenaltyType);
-      setPenaltyTypes((prev) => Array.from(new Set([...prev, result.name])));
-      setNewPenaltyType("");
-    } catch (err) {
-      console.error("Failed to add penalty type:", err);
-    }
-  };
   const handleWaivePenalty = async (penaltyId: number) => {
     try {
       const response = await fetch("/api/penalty", {
@@ -107,7 +97,7 @@ export default function PenaltyManagement({ members, penalties }: Props) {
       };
     }
   };
-  
+
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     if (term === "") {
@@ -144,7 +134,6 @@ export default function PenaltyManagement({ members, penalties }: Props) {
   useEffect(() => {
     if (state.success) {
       toast.success(`peanlty has been created`);
-      router.push("/penalty/manage");
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router]);
@@ -188,7 +177,6 @@ export default function PenaltyManagement({ members, penalties }: Props) {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
-              
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -224,7 +212,6 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                     ? "Waived"
                     : "Pending"}
                 </td>
-                
               </tr>
             ))}
             {penalties.length === 0 && (
@@ -331,39 +318,6 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                       </option>
                     ))}
                   </select>
-
-                  <div className="mt-2 flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Add new type"
-                      value={newPenaltyType}
-                      onChange={(e) => setNewPenaltyType(e.target.value)}
-                      className="flex-1 p-2 border rounded"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddPenaltyType}
-                      className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-                    >
-                      Add
-                    </button>
-                  </div>
-                </div>
-
-                {/* Reason */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Reason</label>
-                  <input
-                    type="text"
-                    placeholder="Enter reason for penalty"
-                    {...form.register("reason")}
-                    className="w-full p-2 border rounded"
-                  />
-                  {form.formState.errors.reason && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.reason.message}
-                    </p>
-                  )}
                 </div>
 
                 {/* Amount */}

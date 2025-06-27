@@ -66,7 +66,6 @@ export default function ConfigureExistingContribution({  revalidate}:{revalidate
 
   const watchIsForAll = watch("is_for_all");
   const watchMode = watch("mode");
-  console.log(apiData);
   // Destructure the data for easier access
   const contributionTypes = apiData?.contributionTypes || [];
   const members = apiData?.members || [];

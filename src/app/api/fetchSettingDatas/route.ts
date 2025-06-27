@@ -3,7 +3,7 @@ import { getMembersWithPenalties } from "@/lib/actions";
 import prisma from "@/lib/prisma";
 export async function GET() {
   try {
-    const [membersData, penaltiesData] = await Promise.all([
+    const [membersData, penaltiesData, allMembers] = await Promise.all([
       getMembersWithPenalties(),
       prisma.penalty.findMany({
         where: { generated: "manually" },
@@ -22,6 +22,7 @@ export async function GET() {
           applied_at: "desc",
         },
       }),
+      prisma.member.findMany({ where: { status: "Active" } }),
     ]);
 
     const processedMembers = membersData.map((member) => ({
@@ -49,8 +50,9 @@ export async function GET() {
       penalty_type: penalty.penalty_type ?? "",
     }));
     return NextResponse.json({
-      initialMembers: processedMembers,
+      MembersWithPenalities: processedMembers,
       penalties: processedPenalties,
+      allMembers,
     });
   } catch (error) {
     console.error("Error in /api/contribution-data", error);

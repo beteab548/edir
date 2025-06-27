@@ -12,8 +12,13 @@ import {
   LockClosedIcon,
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+import AddNewPenaltyType from "@/components/AddNewPenaltyType";
 
-type Tab = "contribution" | "contributionPenalty" | "penalty";
+type Tab =
+  | "contribution"
+  | "contributionPenalty"
+  | "penalty"
+  | "configurePenalty";
 
 interface TabData {
   id: Tab;
@@ -24,7 +29,8 @@ interface TabData {
 export default function ContributionTabs() {
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
   const { isLoaded: userLoaded, user } = useUser();
-  const [initialMembers, setInitialMembers] = useState([]);
+  const [MembersWithPenalities, setMembersWithPenalities] = useState([]);
+  const [allMembers, setAllMembers] = useState([]);
   const [penaltiesWithNumberAmount, setPenaltiesWithNumberAmount] = useState(
     []
   );
@@ -40,10 +46,15 @@ export default function ContributionTabs() {
         setError(null);
         const res = await fetch("/api/fetchSettingDatas");
         if (!res.ok) throw new Error("Failed to fetch data");
+        const { MembersWithPenalities, penalties, allMembers } =
+          await res.json();
+        console.log("MembersWithPenalities", MembersWithPenalities);
+        console.log("penalties", penalties);
+        console.log("allmembers", allMembers);
 
-        const { initialMembers, penalties } = await res.json();
-        setInitialMembers(initialMembers);
+        setMembersWithPenalities(MembersWithPenalities);
         setPenaltiesWithNumberAmount(penalties);
+        setAllMembers(allMembers);
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError({ message: err.message });
@@ -74,7 +85,6 @@ export default function ContributionTabs() {
       </div>
     );
   }
-
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
@@ -88,10 +98,8 @@ export default function ContributionTabs() {
       </div>
     );
   }
-
   const role = user.publicMetadata.role as string;
   const isChairman = role && role.includes("chairman");
-
   if (!isChairman) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
@@ -146,28 +154,32 @@ export default function ContributionTabs() {
   const allTabs: TabData[] = [
     {
       id: "contribution",
-      label: "Contribution",
+      label: "Configure Contribution",
       component: <ContributionTab />,
     },
     {
       id: "contributionPenalty",
-      label: "Contribution Penalty",
-      component: <ContributionPenaltyTab initialMembers={initialMembers} />,
+      label: "Configure Contribution Penalty",
+      component: (
+        <ContributionPenaltyTab initialMembers={MembersWithPenalities} />
+      ),
     },
     {
       id: "penalty",
-      label: "Penalty",
+      label: "Create Penalty",
       component: (
-        <Penalty
-          members={initialMembers}
-          penalties={penaltiesWithNumberAmount}
-        />
+        <Penalty members={allMembers} penalties={penaltiesWithNumberAmount} />
       ),
+    },
+    {
+      id: "configurePenalty",
+      label: "Configure Penalty",
+      component: <AddNewPenaltyType />,
     },
   ];
 
   return (
-    <div className=" mt-1 bg-white rounded-xl shadow-md p-8">
+    <div className=" mt-1 bg-gray-50 rounded-xl  p-8">
       <div className=" flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold text-blue-400 mb-4 ">
           View and manage contribution details
