@@ -120,7 +120,7 @@ const Menu = () => {
   }
 
   return (
-    <div className="overflow-y-auto h-[550px]  pb-6 custom-scrollbar">
+    <div className="overflow-y-auto h-[550px] overflow-x-hidden   pb-6 custom-scrollbar">
       <div className="mt-4 text-sm space-y-6">
         <AnimatePresence mode="wait">
           {menuItems.map(({ title, items }) => {
@@ -193,7 +193,7 @@ const Menu = () => {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.05 * index }}
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.04 }}
                       whileTap={{ scale: 0.97 }}
                       onHoverStart={() => setHoveredItem(item.label)}
                       onHoverEnd={() => setHoveredItem(null)}
@@ -245,7 +245,7 @@ const Menu = () => {
 
                         {(isItemActive || isItemHovered) && (
                           <motion.div
-                            className="absolute right-3 w-1.5 h-1.5 bg-lama rounded-full"
+                            className="absolute right-4 w-1.5 h-1.5 bg-lama rounded-full"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.1 }}

@@ -15,16 +15,20 @@ interface PenaltyChartData {
   manual_collected: number;
 }
 
+const currentYear = new Date().getFullYear();
+const availableYears = [currentYear, currentYear - 1, currentYear - 2];
+
 export default function PenaltyChart() {
   const [data, setData] = useState<PenaltyChartData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
-  const fetchData = () => {
+  const fetchData = (year = selectedYear) => {
     setLoading(true);
     setError(null);
-    
-    fetch("/api/reports/penalty")
+
+    fetch(`/api/reports/penalty?year=${year}`)
       .then(res => {
         if (!res.ok) throw new Error("Failed to fetch data");
         return res.json();
@@ -39,23 +43,31 @@ export default function PenaltyChart() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedYear]);
 
   const handleExport = () => {
-    // Implement export functionality
     console.log("Exporting data...");
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 h-full flex flex-col">
+    <div className="bg-white rounded-xl shadow-sm  p-6 h-full flex flex-col">
       <div className="flex justify-between items-start mb-6">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Penalties Summary</h1>
-          <p className="text-sm text-gray-500 mt-1">Monthly penalty collection overview</p>
+          <p className="text-sm text-gray-500 mt-1">Penalty overview by year</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+            className="text-sm rounded px-3 py-1 bg-white shadow-sm"
+          >
+            {availableYears.map((year) => (
+              <option key={year} value={year}>{year}</option>
+            ))}
+          </select>
           <button 
-            onClick={fetchData}
+            onClick={() => fetchData()}
             className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 p-2 rounded-lg transition-colors"
             title="Refresh data"
             disabled={loading}
@@ -82,7 +94,7 @@ export default function PenaltyChart() {
           <p className="font-medium">Error loading data</p>
           <p className="text-sm text-center max-w-md">{error}</p>
           <button
-            onClick={fetchData}
+            onClick={() => fetchData()}
             className="mt-2 px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition flex items-center gap-2"
           >
             <FiRefreshCw size={16} />
@@ -93,7 +105,7 @@ export default function PenaltyChart() {
         <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray-400">
           <FiAlertCircle size={24} />
           <p className="font-medium">No data available</p>
-          <p className="text-sm">Try adjusting your filters or date range</p>
+          <p className="text-sm">Try selecting a different year</p>
         </div>
       ) : (
         <div className="flex-1">
@@ -101,14 +113,10 @@ export default function PenaltyChart() {
             <BarChart 
               data={data} 
               margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
-              barGap={12}  // Increased gap between bar groups
-              barCategoryGap={8}  // Gap between bars in same group
+              barGap={12}
+              barCategoryGap={8}
             >
-              <CartesianGrid 
-                strokeDasharray="3 3" 
-                vertical={false} 
-                stroke="#e5e7eb" 
-              />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
               <XAxis 
                 dataKey="name" 
                 tick={{ fill: "#6b7280", fontSize: 12 }}
@@ -137,34 +145,10 @@ export default function PenaltyChart() {
                   <span className="text-sm text-gray-600">{value}</span>
                 )}
               />
-              <Bar 
-                dataKey="auto_expected" 
-                fill="#f59e0b" 
-                name="Auto Expected" 
-                radius={[4, 4, 0, 0]}
-                barSize={28}  // Increased bar thickness
-              />
-              <Bar 
-                dataKey="auto_collected" 
-                fill="#10b981" 
-                name="Auto Collected" 
-                radius={[4, 4, 0, 0]}
-                barSize={28}
-              />
-              <Bar 
-                dataKey="manual_expected" 
-                fill="#ef4444" 
-                name="Manual Expected" 
-                radius={[4, 4, 0, 0]}
-                barSize={28}
-              />
-              <Bar 
-                dataKey="manual_collected" 
-                fill="#3b82f6" 
-                name="Manual Collected" 
-                radius={[4, 4, 0, 0]}
-                barSize={28}
-              />
+              <Bar dataKey="auto_expected" fill="#f59e0b" name="Auto Expected" radius={[4, 4, 0, 0]} barSize={28} />
+              <Bar dataKey="auto_collected" fill="#10b981" name="Auto Collected" radius={[4, 4, 0, 0]} barSize={28} />
+              <Bar dataKey="manual_expected" fill="#ef4444" name="Manual Expected" radius={[4, 4, 0, 0]} barSize={28} />
+              <Bar dataKey="manual_collected" fill="#3b82f6" name="Manual Collected" radius={[4, 4, 0, 0]} barSize={28} />
             </BarChart>
           </ResponsiveContainer>
         </div>

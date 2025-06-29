@@ -113,7 +113,7 @@ model PaymentRecord {
   total_paid_amount Decimal  
   remaining_balance Decimal?
   penalty_type_payed_for PenaltyType? @default(automatically) // Default to automatically if not specified
-  member            Member      @relation(fields: [member_id], references: [id])
+  member            Member      @relation(fields: [member_id], references: [id],onDelete: Cascade)
   contributionType      ContributionType? @relation(fields: [contribution_Type_id], references: [id])
   payments          Payment[]    
   created_at        DateTime    @default(now())

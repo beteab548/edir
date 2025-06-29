@@ -1,60 +1,107 @@
 "use client";
 
-import { ITEM_PER_PAGE } from "@/lib/settings";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
+import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
-const Pagination = ({ page, count }: { page: number; count: number }) => {
+interface PaginationProps {
+  page: number;
+  count: number;
+  itemsPerPage?: number;
+}
+
+const Pagination = ({ page, count, itemsPerPage = 10 }: PaginationProps) => {
   const router = useRouter();
-
-  const hasPrev = ITEM_PER_PAGE * (page - 1) > 0;
-  const hasNext = ITEM_PER_PAGE * (page - 1) + ITEM_PER_PAGE < count;
+  const searchParams = useSearchParams();
+  const totalPages = Math.ceil(count / itemsPerPage);
+  const hasPrev = page > 1;
+  const hasNext = page < totalPages;
 
   const changePage = (newPage: number) => {
-    const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Update page number
     params.set("page", newPage.toString());
-    router.push(`${window.location.pathname}?${params}`);
+    
+    // Preserve items per page if set
+    if (itemsPerPage) {
+      params.set("perPage", itemsPerPage.toString());
+    }
+    
+    // Preserve all other existing parameters (sort, direction, search, etc.)
+    router.push(`?${params.toString()}`);
   };
+
+  const getPageNumbers = () => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (page <= 4) {
+      return [1, 2, 3, 4, 5, "...", totalPages];
+    }
+
+    if (page >= totalPages - 3) {
+      return [1, "...", totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, "...", page - 1, page, page + 1, "...", totalPages];
+  };
+
   return (
-    <div className="p-4 flex items-center justify-between text-gray-500">
-      <button
+    <div className="flex items-center justify-between mt-6">
+      <motion.button
+        whileHover={{ scale: hasPrev ? 1.05 : 1 }}
+        whileTap={{ scale: hasPrev ? 0.95 : 1 }}
         disabled={!hasPrev}
-        className="py-2 px-4 rounded-md bg-slate-200 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-        onClick={() => {
-          changePage(page - 1);
-        }}
+        className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          hasPrev
+            ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+        }`}
+        onClick={() => changePage(page - 1)}
       >
-        Prev
-      </button>
-      <div className="flex items-center gap-2 text-sm">
-        {Array.from(
-          { length: Math.ceil(count / ITEM_PER_PAGE) },
-          (_, index) => {
-            const pageIndex = index + 1;
-            return (
-              <button
-                key={pageIndex}
-                className={`px-2 rounded-sm ${
-                  page === pageIndex ? "bg-lamaSky" : ""
+        <FiChevronLeft className="w-4 h-4" />
+        Previous
+      </motion.button>
+
+      <div className="flex items-center gap-1">
+        {getPageNumbers().map((pageNumber, index) => (
+          <div key={index} className="flex items-center justify-center">
+            {pageNumber === "..." ? (
+              <span className="px-3 py-1 text-gray-400">...</span>
+            ) : (
+              <motion.button
+                whileHover={{ scale: page === pageNumber ? 1 : 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`w-10 h-10 flex items-center justify-center rounded-full text-sm font-medium transition-colors ${
+                  page === pageNumber
+                    ? "bg-blue-500 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
                 }`}
-                onClick={() => {
-                  changePage(pageIndex);
-                }}
+                onClick={() => changePage(Number(pageNumber))}
               >
-                {pageIndex}
-              </button>
-            );
-          }
-        )}
+                {pageNumber}
+              </motion.button>
+            )}
+          </div>
+        ))}
       </div>
-      <button
-        className="py-2 px-4 rounded-md bg-slate-200 text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+
+      <motion.button
+        whileHover={{ scale: hasNext ? 1.05 : 1 }}
+        whileTap={{ scale: hasNext ? 0.95 : 1 }}
         disabled={!hasNext}
-        onClick={() => {
-          changePage(page + 1);
-        }}
+        className={`flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+          hasNext
+            ? "bg-blue-50 text-blue-600 hover:bg-blue-100"
+            : "bg-gray-100 text-gray-400 cursor-not-allowed"
+        }`}
+        onClick={() => changePage(page + 1)}
       >
         Next
-      </button>
+        <FiChevronRight className="w-4 h-4" />
+      </motion.button>
     </div>
   );
 };

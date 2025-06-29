@@ -72,7 +72,7 @@ export default function ContributionTabs() {
 
   if (!userLoaded) {
     return (
-      <div className="w-[800px] flex flex-col mx-auto p-10 space-y-4">
+      <div className="w-[800px] flex flex-col mx-auto p-10 space-y-4 ">
         <div className=" w-full items-center ">
           <Skeleton className="h-10 " />
         </div>

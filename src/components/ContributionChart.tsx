@@ -109,7 +109,7 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl w-full h-full p-6 shadow-sm border border-gray-100 relative">
+    <div className="bg-white rounded-xl w-full h-full p-6 shadow-sm relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">

@@ -1,17 +1,18 @@
-// /app/api/penalty-summary/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { startOfMonth, endOfMonth } from "date-fns";
 
 export async function GET(req: NextRequest) {
-  const currentYear = new Date().getFullYear();
+  const { searchParams } = new URL(req.url);
+  const yearParam = searchParams.get("year");
+  const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
 
   const months = Array.from({ length: 12 }, (_, i) => i); // Jan to Dec
 
   const summary = await Promise.all(
     months.map(async (month) => {
-      const from = startOfMonth(new Date(currentYear, month));
-      const to = endOfMonth(new Date(currentYear, month));
+      const from = startOfMonth(new Date(year, month));
+      const to = endOfMonth(new Date(year, month));
 
       const penalties = await prisma.penalty.findMany({
         where: {
@@ -22,11 +23,13 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      const auto = penalties.filter(p => p.generated === "automatically");
-      const manual = penalties.filter(p => p.generated === "manually");
+      const auto = penalties.filter((p) => p.generated === "automatically");
+      const manual = penalties.filter((p) => p.generated === "manually");
 
-      const sum = (arr: typeof penalties, key: "expected_amount" | "paid_amount") =>
-        arr.reduce((total, p) => total + parseFloat(p[key].toString()), 0);
+      const sum = (
+        arr: typeof penalties,
+        key: "expected_amount" | "paid_amount"
+      ) => arr.reduce((total, p) => total + parseFloat(p[key].toString()), 0);
 
       return {
         name: from.toLocaleString("default", { month: "short" }),

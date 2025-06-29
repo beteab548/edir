@@ -121,3 +121,29 @@
   background-color: #cbd5e0; /* Tailwind's gray-300 */
   border-radius: 9999px;
 }
+
+/* Nice scrollbars for modern browsers */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #94a3b8 #f1f5f9; /* thumb color and track color */
+}
+
+/* Chrome, Edge, and Safari */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: #f1f5f9; /* Light track */
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #94a3b8; /* Slate thumb */
+  border-radius: 10px;
+  border: 2px solid #f1f5f9; /* Adds padding around thumb */
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b; /* Darker on hover */
+}

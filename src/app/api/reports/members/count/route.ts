@@ -4,11 +4,11 @@ import prisma from "@/lib/prisma"; // make sure this is your prisma client path
 export async function GET() {
   try {
     const malesCount = await prisma.member.count({
-      where: { sex: "Male" },
+      where: { sex: "Male" ,status:"Active"},
     });
 
     const femalesCount = await prisma.member.count({
-      where: { sex: "Female" },
+      where: { sex: "Female" ,status:"Active"},
     });
 console.log("malesCount is", malesCount);
     console.log("femalesCount is", femalesCount);

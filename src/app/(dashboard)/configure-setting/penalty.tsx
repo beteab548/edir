@@ -10,6 +10,8 @@ import { addPenaltyType, createPenalty, getPenaltyTypes } from "@/lib/actions";
 import { useFormState } from "react-dom";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import InputField from "@/components/InputField";
+
 type Member = {
   id: number;
   first_name: string;
@@ -248,113 +250,122 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-4"
               >
-                {/* Member Search */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">
-                    Search Member
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search by name, ID or phone"
-                      value={searchTerm}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      className="w-full p-2 border rounded"
-                    />
-                    <span className="absolute right-3 top-3 text-gray-400">
-                      🔍
-                    </span>
-                  </div>
-                  {searchTerm && (
-                    <div className="border rounded-lg max-h-60 overflow-y-auto">
-                      {filteredMembers.length > 0 ? (
-                        filteredMembers.map((member) => (
-                          <div
-                            key={member.id}
-                            className={`p-2 hover:bg-gray-100 cursor-pointer ${
-                              selectedMember?.id === member.id
-                                ? "bg-blue-50"
-                                : ""
-                            }`}
-                            onClick={() => handleMemberSelect(member)}
+                {/* First Row: Search + Missed Month */}
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Search Member Input */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">
+                      Search Member
+                    </label>
+                    <div className="relative">
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder="Search by name, ID or phone"
+                          value={
+                            selectedMember
+                              ? `${selectedMember.first_name} ${selectedMember.second_name} ${selectedMember.last_name}`
+                              : searchTerm
+                          }
+                          onChange={(e) => {
+                            setSelectedMember(null); // Clear selected if user types again
+                            handleSearch(e.target.value);
+                          }}
+                          className="w-full p-2 border rounded pr-10"
+                          disabled={!!selectedMember}
+                        />
+                        {selectedMember && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedMember(null);
+                              setSearchTerm("");
+                              form.setValue("member_id", 0);
+                            }}
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-400 hover:text-red-500"
                           >
-                            {member.first_name} {member.second_name}{" "}
-                            {member.last_name} -{" "}
-                            {member.id_number || member.phone_number}
+                            ×
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {searchTerm && !selectedMember && (
+                      <div className="border rounded-lg max-h-60 overflow-y-auto">
+                        {filteredMembers.length > 0 ? (
+                          filteredMembers.map((member) => (
+                            <div
+                              key={member.id}
+                              className="p-2 hover:bg-gray-100 cursor-pointer"
+                              onClick={() => handleMemberSelect(member)}
+                            >
+                              {member.first_name} {member.second_name}{" "}
+                              {member.last_name} - {member.id_number} -{" "}
+                              {member.phone_number}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-2 text-gray-500">
+                            No members found
                           </div>
-                        ))
-                      ) : (
-                        <div className="p-2 text-gray-500">
-                          No members found
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {selectedMember && (
-                    <div className="p-2 bg-green-50 rounded-lg">
-                      Selected: {selectedMember.first_name}{" "}
-                      {selectedMember.second_name} {selectedMember.last_name}
-                    </div>
-                  )}
-                  {form.formState.errors.member_id && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.member_id.message}
-                    </p>
-                  )}
-                </div>
+                        )}
+                      </div>
+                    )}
 
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">
-                    Penalty Type
-                  </label>
-                  <select
-                    {...form.register("penalty_type")}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="">Select Penalty type</option>
-                    {penaltyTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {form.formState.errors.member_id && (
+                      <p className="text-sm text-red-500">
+                        {form.formState.errors.member_id.message}
+                      </p>
+                    )}
+                  </div>
 
-                {/* Amount */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">Amount</label>
-                  <input
+                  {/* Missed Month */}
+                  <InputField
+                    label="Missed Date"
+                    name="missed_month"
+                    type="date"
+                    register={form.register}
+                    defaultValue={format(new Date(), "yyyy-MM-dd")}
+                    registerOptions={{
+                      setValueAs: (value: string) =>
+                        value ? new Date(value) : new Date(),
+                    }}
+                    error={form.formState.errors.missed_month}
+                  />
+                </div>
+                {/* Second Row: Amount + Penalty Type */}
+                <div className="grid grid-cols-2 gap-4">
+                  <InputField
+                    label="Amount"
+                    name="amount"
                     type="number"
-                    placeholder="Enter penalty amount"
-                    {...form.register("amount", { valueAsNumber: true })}
-                    className="w-full p-2 border rounded"
+                    register={form.register}
+                    error={form.formState.errors.amount}
                   />
-                  {form.formState.errors.amount && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.amount.message}
-                    </p>
-                  )}
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium">
+                      Penalty Type
+                    </label>
+                    <select
+                      {...form.register("penalty_type")}
+                      className="w-full p-2 border rounded"
+                    >
+                      <option value="">Select Penalty type</option>
+                      {penaltyTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                    {form.formState.errors.penalty_type && (
+                      <p className="text-sm text-red-500">
+                        {form.formState.errors.penalty_type.message}
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Missed Month */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium">
-                    Missed Month
-                  </label>
-                  <input
-                    type="month"
-                    {...form.register("missed_month", {
-                      setValueAs: (value) =>
-                        value ? new Date(value + "-01") : new Date(),
-                    })}
-                    className="w-full p-2 border rounded"
-                  />
-                  {form.formState.errors.missed_month && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.missed_month.message}
-                    </p>
-                  )}
-                </div>
                 <div className="flex justify-end space-x-2 pt-4">
                   <button
                     type="button"

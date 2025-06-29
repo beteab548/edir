@@ -1,18 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import {
-  FiRefreshCw,
-  FiUsers,
-  FiPieChart,
-  FiInfo,
-} from "react-icons/fi";
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { FiRefreshCw, FiUsers, FiPieChart, FiInfo } from "react-icons/fi";
 import { motion } from "framer-motion";
 
 enum RelationType {
@@ -127,7 +116,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className=" p-6 h-full flex flex-col"
+      className=" h-full flex flex-col"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -137,7 +126,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Family Relations
+              Family Relatives Distribution
               {memberId && (
                 <span className="text-xs font-normal text-gray-500 ml-2">
                   (Member #{memberId})
@@ -186,8 +175,8 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
 
       {/* Chart */}
       {loading ? (
-        <div className="flex-1 flex justify-center items-center text-gray-500">
-          Loading...
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-400" />
         </div>
       ) : error ? (
         <div className="text-red-600">{error}</div>

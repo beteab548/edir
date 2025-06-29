@@ -14,6 +14,7 @@ interface InputFieldProps {
   containerClass?: string;
   required?: boolean;
   icon?: ReactNode;
+  registerOptions?: Parameters<UseFormRegister<any>>[1];
 }
 
 export default function InputField({
@@ -30,7 +31,11 @@ export default function InputField({
   icon,
 }: InputFieldProps) {
   return (
-    <div className={`flex flex-col gap-1 ${containerClass} ${hidden ? "hidden" : ""}`}>
+    <div
+      className={`flex flex-col gap-1 ${containerClass} ${
+        hidden ? "hidden" : ""
+      }`}
+    >
       {label && (
         <label htmlFor={name} className="text-sm font-medium text-gray-700">
           {label}
@@ -53,18 +58,12 @@ export default function InputField({
             error ? "border-red-500" : "border-gray-300"
           } rounded-md shadow-sm focus:outline-none focus:ring-2 focus:${
             error ? "ring-red-500" : "ring-blue-500"
-          } focus:border-${
-            error ? "red-500" : "blue-500"
-          } ${icon ? "pl-10" : ""} ${
-            inputProps.className ? inputProps.className : ""
-          }`}
+          } focus:border-${error ? "red-500" : "blue-500"} ${
+            icon ? "pl-10" : ""
+          } ${inputProps.className ? inputProps.className : ""}`}
         />
       </div>
-      {error && (
-        <p className="text-xs text-red-500 mt-1">
-          {error.message}
-        </p>
-      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error.message}</p>}
     </div>
   );
 }

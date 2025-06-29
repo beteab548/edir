@@ -49,12 +49,12 @@ export default function UploadFile({
 
     try {
       const base64 = await convertToBase64(selectedFile);
-
       const response = await fetch("/api/upload", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        
         body: JSON.stringify({
           file: base64,
           fileName: selectedFile.name,

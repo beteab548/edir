@@ -6,7 +6,14 @@ import FinanceChart from "@/components/ContributionChart";
 import UserCard from "@/components/UserCard";
 import prisma from "@/lib/prisma";
 import RelativeRelationsChart from "@/components/relativesChart";
-import { FiUsers, FiPieChart, FiBarChart2, FiUserCheck } from "react-icons/fi";
+import {
+  FiUsers,
+  FiPieChart,
+  FiBarChart2,
+  FiUserCheck,
+  FiClock,
+  FiActivity,
+} from "react-icons/fi";
 import Link from "next/link";
 import Activity from "@/components/activity";
 
@@ -32,211 +39,224 @@ const AdminPage = async ({}: {}) => {
   const isSecretary = role === "secretary";
   const isChairman = role === "chairman";
   generateContributionSchedulesForAllActiveMembers();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Dashboard Header */}
-      <header className="mb-8">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">
-              Dashboard Overview
-            </h1>
-            <p className="text-gray-500 mt-2">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
-        </div>
-
-        {/* Status Bar */}
-        <div className="mt-6 bg-white rounded-xl shadow-sm p-4 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 rounded-full bg-green-500"></div>
-              <span className="text-sm font-medium text-gray-700">
-                System Operational
-              </span>
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
+                Welcome back, {user?.firstName}!
+              </h1>
+              <p className="text-gray-500 mt-1 text-sm md:text-base">
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
             </div>
-            <div className="text-sm text-gray-500">
-              Last updated: {new Date().toLocaleTimeString()}
-            </div>
-          </div>
-        </div>
-      </header>
-      {/* Main Dashboard Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Column - Stats and Charts */}
-        <div className="lg:col-span-3 space-y-6">
-          {/* Stats Cards Row */}
-          {isSecretary && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-blue-100 text-blue-600 mr-4">
-                    <FiUsers className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">
-                      New Members
-                    </p>
-                    <p className="text-2xl font-semibold text-gray-800">
-                      {newMembers}
-                    </p>
-                  </div>
+            <div className="bg-white rounded-lg shadow-xs p-3 border border-gray-200 w-full md:w-auto">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="text-sm font-medium text-gray-700">
+                    System Status: Operational
+                  </span>
                 </div>
-              </div>
-
-              <UserCard type="Left Members" />
-
-              <UserCard type="Total Members" />
-
-              <UserCard type="Deceased Members" />
-
-              <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-lg bg-green-100 text-green-600 mr-4">
-                    <FiPieChart className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Active Members</p>
-                    <p className="text-sm font-semibold pr-1 text-gray-800">
-                      {summary}
-                    </p>
-                  </div>
+                <div className="text-xs text-gray-500 flex items-center gap-1">
+                  <FiClock className="w-3 h-3" />
+                  Updated: {new Date().toLocaleTimeString()}
                 </div>
               </div>
             </div>
-          )}
-          {/* Charts Section */}
-          <div className="grid grid-cols-1 gap-6">
+          </div>
+        </header>
+
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Left Column - Stats and Charts */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Stats Cards Row */}
             {isSecretary && (
-              <>
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="flex items-center justify-between mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="bg-white rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                      <FiUsers className="w-5 h-5" />
+                    </div>
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                        <div className="p-2 mr-3 rounded-lg bg-indigo-100 text-indigo-600">
-                          <FiUsers className="w-5 h-5" />
-                        </div>
-                        Member Distribution
-                      </h2>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Breakdown by Gender type
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        New Members
+                      </p>
+                      <p className="text-xl font-semibold text-gray-800">
+                        {newMembers}
                       </p>
                     </div>
-                    <div className="flex space-x-2">
-                      <button className="px-3 py-1 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                        All Time
-                      </button>
+                  </div>
+                </div>
+
+                <UserCard type="Left Members" />
+
+                <UserCard type="Total Members" />
+
+                <UserCard type="Deceased Members" />
+
+                <div className="bg-white rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-green-50 text-green-600">
+                      <FiPieChart className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Active Members
+                      </p>
+                      <p className="text-xl font-semibold text-gray-800">
+                        {active}
+                        <span className="text-sm font-normal text-gray-500 ml-1">
+                          / {total}
+                        </span>
+                      </p>
                     </div>
                   </div>
-                  <div className="h-80">
-                    <MemberDistribution />
-                  </div>
                 </div>
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="h-96">
-                    <RelativeRelationsChart apiUrl="/api/reports/relatives" />
-                  </div>
-                </div>
-              </>
+              </div>
             )}
-            {isChairman && (
-              <>
-                <div className=" rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-300">
-                  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-300 mb-6">
-                    <div className="flex items-center justify-between mb-6">
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 gap-6">
+              {isSecretary && (
+                <>
+                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+                          <FiUsers className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-800">
+                            Member Distribution
+                          </h2>
+                          <p className="text-sm text-gray-500">
+                            Breakdown by gender type
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button className="px-3 py-1 text-xs bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
+                         All Active Members
+                        </button>
+                      </div>
+                    </div>
+                    <div className="h-72">
+                      <MemberDistribution />
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg shadow-xs p-12 border border-gray-200">
+                    <div className="h-80">
+                      <RelativeRelationsChart apiUrl="/api/reports/relatives" />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {isChairman && (
+                <>
+                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                       <div>
-                        <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                          <div className="p-2 mr-3 rounded-lg bg-green-100 text-green-600"></div>
+                        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
+                            <FiBarChart2 className="w-5 h-5" />
+                          </div>
                           Financial Contributions
                         </h2>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Monthly performance
+                        <p className="text-sm text-gray-500 mt-1 ml-11">
+                          Monthly performance overview
                         </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {/* <button className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200">
-                          <FiCalendar className="w-4 h-4 text-gray-600" />
-                        </button> */}
-                        {/* <button className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
-                          Export Report
-                        </button> */}
                       </div>
                     </div>
                     <div className="h-[500px]">
                       <FinanceChart contributionTypes={contributionTypes} />
                     </div>
                   </div>
-                  <div className="flex items-center justify-between mt-6 bg-white">
-                    <div>
-                      <h2 className="text-lg font-semibold text-gray-800 flex items-center">
-                        <div className="p-2 mr-3 rounded-lg bg-amber-100 text-amber-600">
+
+                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
                           <FiBarChart2 className="w-5 h-5" />
                         </div>
-                        Penalty Analysis
-                      </h2>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Months Overview
-                      </p>
+                        <div>
+                          <h2 className="text-lg font-semibold text-gray-800">
+                            Penalty Analysis
+                          </h2>
+                          <p className="text-sm text-gray-500">
+                            Monthly penalty overview
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-gray-500">Filter:</span>
-                      <select className="bg-gray-100 border-0 rounded-lg px-3 py-1 focus:ring-2 focus:ring-indigo-500">
-                        <option>This Month</option>
-                        <option>Last Month</option>
-                        <option>This Quarter</option>
-                      </select>
+                    <div className="h-80">
+                      <PenaltyChart />
                     </div>
                   </div>
-                  <div className="h-96">
-                    <PenaltyChart />
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column - Sidebar */}
-        <div className="lg:col-span-1 space-y-6">
-          {/* Quick Actions */}
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <div className="p-2 mr-2 rounded-lg bg-blue-100 text-blue-600">
-                <FiUserCheck className="w-5 h-5" />
-              </div>
-              Quick Actions
-            </h3>
-            <div className="space-y-3">
-              <button className="w-full flex items-center justify-between p-3 bg-indigo-50 text-indigo-700 rounded-lg hover:bg-indigo-100 transition-colors">
-                <Link
-                  href={isSecretary ? "/list/addNewMember" : "/contribution"}
-                >
-                  {isSecretary ? "Add New Member" : "Check Contribution"}
-                </Link>
-                <FiUserCheck className="w-4 h-4" />
-              </button>
-              <button className="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors">
-                <Link href={isSecretary ? "/list/members" : "/penalty"}>
-                  {isSecretary ? "Members" : "Check Penalty"}
-                </Link>
-                <FiUsers className="w-4 h-4" />
-              </button>
+                </>
+              )}
             </div>
           </div>
-          {isChairman ? (
-            <Activity type="chairman" />
-          ) : (
-            <Activity type="secretary" />
-          )}
+
+          {/* Right Column - Sidebar */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Quick Actions */}
+            <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
+                  <FiActivity className="w-5 h-5" />
+                </div>
+                Quick Actions
+              </h3>
+              <div className="space-y-2">
+                <Link
+                  href={isSecretary ? "/list/addNewMember" : "/contribution"}
+                  className="block w-full"
+                >
+                  <button className="w-full flex items-center justify-between p-3 bg-indigo-50 text-indigo-700 rounded-md hover:bg-indigo-100 transition-colors text-sm font-medium">
+                    <span>
+                      {isSecretary ? "Add New Member" : "Check Contribution"}
+                    </span>
+                    <FiUserCheck className="w-4 h-4" />
+                  </button>
+                </Link>
+                <Link
+                  href={isSecretary ? "/list/members" : "/penalty"}
+                  className="block w-full"
+                >
+                  <button className="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors text-sm font-medium">
+                    <span>{isSecretary ? "Members" : "Check Penalty"}</span>
+                    <FiUsers className="w-4 h-4" />
+                  </button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Activity Section */}
+            <div className="bg-white rounded-lg ">
+              {isChairman ? (
+                <Activity type="chairman" />
+              ) : (
+                <Activity type="secretary" />
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+
 export default AdminPage;
