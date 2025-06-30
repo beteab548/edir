@@ -139,17 +139,6 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          {/* Toggle for active families only */}
-          <label className="flex items-center gap-1 text-xs text-gray-700">
-            <input
-              type="checkbox"
-              checked={activeOnly}
-              onChange={(e) => setActiveOnly(e.target.checked)}
-              className="form-checkbox rounded text-indigo-600"
-            />
-            Active families only
-          </label>
-
           {/* Refresh button */}
           <motion.button
             whileHover={{ rotate: 180 }}

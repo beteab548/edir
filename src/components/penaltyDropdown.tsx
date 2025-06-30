@@ -61,7 +61,7 @@ export default function PenaltyDropdown({
           >
             {icon}
           </motion.div>
-          <span className="hidden lg:block text-sm">{label}</span>
+          <span className="hidden md:block text-sm">{label}</span>
         </div>
         <motion.div
           animate={{

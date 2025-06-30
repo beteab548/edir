@@ -18,8 +18,8 @@ const MemberListPage = async ({
   searchParams: { [key: string]: string | undefined };
 }) => {
   // Get items per page from URL or use default
-  const itemsPerPage = searchParams.perPage 
-    ? parseInt(searchParams.perPage as string) 
+  const itemsPerPage = searchParams.perPage
+    ? parseInt(searchParams.perPage as string)
     : DEFAULT_ITEMS_PER_PAGE;
 
   // Sort configuration
@@ -98,11 +98,16 @@ const MemberListPage = async ({
   // Helper functions
   const getStatusClasses = (status: string) => {
     switch (status) {
-      case "Active": return "bg-green-100 text-green-800";
-      case "Inactive": return "bg-yellow-100 text-yellow-800";
-      case "Deceased": return "bg-red-100 text-red-800";
-      case "Left": return "bg-gray-200 text-gray-700";
-      default: return "bg-gray-100 text-gray-800";
+      case "Active":
+        return "bg-green-100 text-green-800";
+      case "Inactive":
+        return "bg-yellow-100 text-yellow-800";
+      case "Deceased":
+        return "bg-red-100 text-red-800";
+      case "Left":
+        return "bg-gray-200 text-gray-700";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -156,7 +161,11 @@ const MemberListPage = async ({
         {item.phone_number || "-"}
       </td>
       <td className="hidden md:table-cell px-4 py-4">
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(item.status)}`}>
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
+            item.status
+          )}`}
+        >
           {item.status}
         </span>
       </td>
@@ -188,7 +197,9 @@ const MemberListPage = async ({
   }
 
   // Sorting logic
-  let orderBy: Prisma.MemberOrderByWithRelationInput | Prisma.MemberOrderByWithRelationInput[];
+  let orderBy:
+    | Prisma.MemberOrderByWithRelationInput
+    | Prisma.MemberOrderByWithRelationInput[];
   if (currentSort === "name") {
     orderBy = [
       { last_name: sortDirection },
@@ -225,7 +236,9 @@ const MemberListPage = async ({
       <div className="p-6 pb-4 border-b border-gray-100">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Members Directory</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Members Directory
+            </h1>
             <p className="text-sm text-gray-500 mt-1">
               {count} {count === 1 ? "member" : "members"} found
             </p>
@@ -237,13 +250,6 @@ const MemberListPage = async ({
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                className="p-2.5 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                aria-label="Filter"
-              >
-                <FiFilter className="w-5 h-5 text-gray-600" />
-              </button>
-
               <Link href="/list/addNewMember">
                 <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">
                   <FiPlus className="w-5 h-5" />
@@ -274,20 +280,22 @@ const MemberListPage = async ({
             <span className="text-sm text-gray-500">Members per page:</span>
             <div className="flex items-center gap-1">
               {ITEMS_PER_PAGE_OPTIONS.map((option) => {
-                const params = new URLSearchParams(searchParams as Record<string, string>);
-                params.set('perPage', option.toString());
-                params.set('page', '1'); // Reset to first page
-                
+                const params = new URLSearchParams(
+                  searchParams as Record<string, string>
+                );
+                params.set("perPage", option.toString());
+                params.set("page", "1"); // Reset to first page
+
                 const isActive = itemsPerPage === option;
-                
+
                 return (
                   <Link
                     key={option}
                     href={`?${params.toString()}`}
                     className={`px-3 py-1 text-sm rounded-md ${
                       isActive
-                        ? 'bg-blue-100 text-blue-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-100'
+                        ? "bg-blue-100 text-blue-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
                     }`}
                   >
                     {option}
@@ -298,9 +306,9 @@ const MemberListPage = async ({
           </div>
 
           {/* Pagination component */}
-          <Pagination 
-            page={currentPage} 
-            count={count} 
+          <Pagination
+            page={currentPage}
+            count={count}
             itemsPerPage={itemsPerPage}
             // currentSort={currentSort}
             // sortDirection={sortDirection}
@@ -326,11 +334,11 @@ const SortableHeader = ({
   const isActive = currentSort === sortKey;
   const nextDirection = isActive && sortDirection === "asc" ? "desc" : "asc";
   const params = new URLSearchParams();
-  params.set('sort', sortKey);
-  params.set('direction', nextDirection);
+  params.set("sort", sortKey);
+  params.set("direction", nextDirection);
 
   return (
-    <Link 
+    <Link
       href={`?${params.toString()}`}
       className="flex items-center gap-1 hover:text-gray-700"
     >

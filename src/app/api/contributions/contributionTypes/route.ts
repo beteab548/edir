@@ -1,4 +1,3 @@
-// app/api/contribution-types/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -9,7 +8,10 @@ export async function GET() {
       where: { status: "Active" },
     });
 
-    return NextResponse.json({ contributionTypes, members });
+    return NextResponse.json({
+      contributionTypes,
+      members,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to fetch contribution types" },

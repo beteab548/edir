@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ContributionMode, Member, Penalty } from "@prisma/client";
+// import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 
 interface PenaltiesOverviewPageProps {
   initialMembers: (Member & {
@@ -16,7 +17,7 @@ interface PenaltiesOverviewPageProps {
     })[];
   })[];
 }
-
+  // generateContributionSchedulesForAllActiveMembers()
 export default function PenaltiesOverviewPage({
   initialMembers,
 }: PenaltiesOverviewPageProps) {

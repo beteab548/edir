@@ -11,6 +11,7 @@ import { createContributionType } from "@/lib/actions";
 import { Member } from "@prisma/client";
 import { ContributionTypeSchema } from "@/lib/formValidationSchemas";
 import ModalPortal from "../ModalPortal";
+import { useDataChange } from "../DataChangeContext";
 
 type ContributionTypeForm = z.infer<typeof ContributionTypeSchema>;
 
@@ -25,7 +26,7 @@ export default function CreateNewContribution({
 }) {
   const [showMemberSelection, setShowMemberSelection] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
-
+  const { setDataChanged } = useDataChange();
   const {
     register,
     handleSubmit,
@@ -78,7 +79,7 @@ export default function CreateNewContribution({
             ? Number(data.months_before_inactivation)
             : undefined,
       };
-
+      console.log("payload", payload);
       const result = await createContributionType(payload);
 
       if (result.success) {
@@ -86,7 +87,8 @@ export default function CreateNewContribution({
         setRevalidate((prev) => !prev);
         reset();
         setSelectedMemberIds([]);
-        onClose(); // close the modal
+        setDataChanged((true));
+        onClose();
       } else {
         toast.error("Failed to create contribution type");
       }
@@ -127,9 +129,9 @@ export default function CreateNewContribution({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputField
                   label="Name"
-                  name="name"
+                  name="type_name"
                   register={register}
-                  error={errors.name}
+                  error={errors.type_name}
                   containerClass="bg-gray-50 p-4 rounded-lg"
                 />
 

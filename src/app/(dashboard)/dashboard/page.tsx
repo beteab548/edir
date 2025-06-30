@@ -63,13 +63,10 @@ const AdminPage = async ({}: {}) => {
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                  <span className="text-sm font-medium text-gray-700">
-                    System Status: Operational
-                  </span>
                 </div>
                 <div className="text-xs text-gray-500 flex items-center gap-1">
                   <FiClock className="w-3 h-3" />
-                  Updated: {new Date().toLocaleTimeString()}
+                  Last Updated At: {new Date().toLocaleTimeString()}
                 </div>
               </div>
             </div>
@@ -83,7 +80,10 @@ const AdminPage = async ({}: {}) => {
             {/* Stats Cards Row */}
             {isSecretary && (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div className="bg-white rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
+                <div
+                  className="bg-gradient-to-r from-pink-100 to-orange-200
+ rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200"
+                >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
                       <FiUsers className="w-5 h-5" />
@@ -105,7 +105,10 @@ const AdminPage = async ({}: {}) => {
 
                 <UserCard type="Deceased Members" />
 
-                <div className="bg-white rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200">
+                <div
+                  className="bg-gradient-to-br from-lamaSkyLight to-lamaSky
+ rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200"
+                >
                   <div className="flex items-center gap-3">
                     <div className="p-2 rounded-lg bg-green-50 text-green-600">
                       <FiPieChart className="w-5 h-5" />
@@ -147,7 +150,7 @@ const AdminPage = async ({}: {}) => {
                       </div>
                       <div className="flex gap-2">
                         <button className="px-3 py-1 text-xs bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-                         All Active Members
+                          All Active Members
                         </button>
                       </div>
                     </div>
@@ -166,42 +169,21 @@ const AdminPage = async ({}: {}) => {
 
               {isChairman && (
                 <>
-                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                      <div>
-                        <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-3">
-                          <div className="p-2 rounded-lg bg-purple-50 text-purple-600">
-                            <FiBarChart2 className="w-5 h-5" />
-                          </div>
-                          Financial Contributions
-                        </h2>
-                        <p className="text-sm text-gray-500 mt-1 ml-11">
-                          Monthly performance overview
-                        </p>
-                      </div>
-                    </div>
-                    <div className="h-[500px]">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                    <UserCard type="Penalized Members" />
+                    <UserCard type="Fully Paid Members" />
+                    {/* <UserCard type="Early Contributors" /> */}
+                  </div>
+                  <div className="bg-white rounded-lg shadow-xs border border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"></div>
+                    <div className="h-[530px] mb-10">
                       <FinanceChart contributionTypes={contributionTypes} />
                     </div>
                   </div>
 
                   <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-amber-50 text-amber-600">
-                          <FiBarChart2 className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h2 className="text-lg font-semibold text-gray-800">
-                            Penalty Analysis
-                          </h2>
-                          <p className="text-sm text-gray-500">
-                            Monthly penalty overview
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="h-80">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"></div>
+                    <div>
                       <PenaltyChart />
                     </div>
                   </div>

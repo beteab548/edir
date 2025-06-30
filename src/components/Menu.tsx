@@ -13,14 +13,16 @@ import {
   FiUsers,
   FiDollarSign,
   FiAlertCircle,
-  FiFileText,
   FiSettings,
   FiLogOut,
+  FiMenu,
+  FiMoreHorizontal,
 } from "react-icons/fi";
 
 const menuItems = [
   {
     title: "MENU",
+    icon: <FiMenu size={16} className="inline-block mr-1" />,
     items: [
       {
         icon: <FiHome size={20} />,
@@ -48,16 +50,11 @@ const menuItems = [
         visible: ["admin", "chairman"],
         hasDropdown: true,
       },
-      {
-        icon: <FiFileText size={20} />,
-        label: "Reports",
-        href: "/admin",
-        visible: ["admin", "chairman", "secretary"],
-      },
     ],
   },
   {
     title: "OTHER",
+    icon: <FiMoreHorizontal size={16} className="inline-block mr-1 " />,
     items: [
       {
         icon: <FiSettings size={20} />,
@@ -80,9 +77,7 @@ const Menu = () => {
   const role = user?.publicMetadata.role as string;
   const pathname = usePathname();
 
-  const [contributionTypes, setContributionTypes] = useState<
-    ContributionType[]
-  >([]);
+  const [contributionTypes, setContributionTypes] = useState<ContributionType[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -90,7 +85,7 @@ const Menu = () => {
     const fetchTypes = async () => {
       try {
         const res = await fetch("/api/contributions/contributionTypes");
-        const {contributionTypes} = await res.json();
+        const { contributionTypes } = await res.json();
         setContributionTypes(contributionTypes);
       } catch (err) {
         console.error("Error fetching types:", err);
@@ -104,8 +99,7 @@ const Menu = () => {
 
   if (!user || !role) return null;
 
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(href);
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href);
 
   if (isLoading) {
     return (
@@ -120,13 +114,11 @@ const Menu = () => {
   }
 
   return (
-    <div className="overflow-y-auto h-[550px] overflow-x-hidden   pb-6 custom-scrollbar">
+    <div className="overflow-y-auto h-[550px] overflow-x-hidden pb-6 custom-scrollbar">
       <div className="mt-4 text-sm space-y-6">
         <AnimatePresence mode="wait">
-          {menuItems.map(({ title, items }) => {
-            const visibleItems = items.filter((item) =>
-              item.visible.includes(role)
-            );
+          {menuItems.map(({ title, icon, items }) => {
+            const visibleItems = items.filter((item) => item.visible.includes(role));
             if (!visibleItems.length) return null;
 
             return (
@@ -134,9 +126,10 @@ const Menu = () => {
                 key={title}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-1"
+                className="space-y-4"
               >
-                <span className="hidden lg:block uppercase text-xs font-bold tracking-wide text-blue-500 pl-2 mt-6 font-serif">
+                <span className="hidden lg:flex items-center uppercase text-xs font-bold tracking-wide text-gray-700 pl-2 mt-6 font-serif">
+                  {icon}
                   {title}
                 </span>
 
@@ -239,9 +232,7 @@ const Menu = () => {
                           })}
                         </motion.div>
 
-                        <span className="hidden lg:block text-sm">
-                          {item.label}
-                        </span>
+                        <span className="hidden md:block text-sm">{item.label}</span>
 
                         {(isItemActive || isItemHovered) && (
                           <motion.div

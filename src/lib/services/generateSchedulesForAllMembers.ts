@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { addMonths, isAfter, differenceInMonths } from "date-fns";
 
-const test = false;
+const test = true;
 const realCurrentDate = new Date();
 const simulatedMonthsToAdd = 5;
 const currentMonthStart = normalizeToMonthStart(

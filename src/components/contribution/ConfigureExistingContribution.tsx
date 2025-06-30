@@ -63,10 +63,9 @@ export default function ConfigureExistingContribution({  revalidate}:{revalidate
   } = useForm<z.input<typeof ContributionSchema>>({
     resolver: zodResolver(ContributionSchema),
   });
-
+console.log("apidata:",apiData);
   const watchIsForAll = watch("is_for_all");
   const watchMode = watch("mode");
-  // Destructure the data for easier access
   const contributionTypes = apiData?.contributionTypes || [];
   const members = apiData?.members || [];
 
@@ -153,7 +152,7 @@ export default function ConfigureExistingContribution({  revalidate}:{revalidate
     if (!toDelete) return;
     try {
       await deleteContributionType(toDelete.id);
-      mutateData(); // Revalidate both contributions and members
+      mutateData(); 
       toast.success("Contribution type deleted!");
     } catch (err) {
       toast.error("Something went wrong");
@@ -200,14 +199,11 @@ export default function ConfigureExistingContribution({  revalidate}:{revalidate
 
     fetchExistingMembers();
   }, [editingId]);
-
   return (
     <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
       <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">
         Configure Existing Contributions
       </h2>
-
-      {/* Delete Confirmation Modal */}
       {showDeleteModal && toDelete && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
           <div className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
@@ -255,7 +251,6 @@ export default function ConfigureExistingContribution({  revalidate}:{revalidate
           </div>
         </div>
       )}
-
       {showMemberSelection ? (
         <SelectableMembersList
           members={members}

@@ -360,7 +360,7 @@ export const deleteMember = async (
       if (member.image_file_id) {
         await deleteImageFromImageKit(member.image_file_id);
       }
-    } 
+    }
     await prisma.member.delete({
       where: { id },
     });
@@ -562,7 +562,7 @@ export const updateContribution = async (
 };
 
 export const createContributionType = async (data: {
-  name: string;
+  type_name: string;
   amount: number;
   penalty_amount: number | undefined;
   start_date: Date | undefined;
@@ -618,7 +618,7 @@ export const createContributionType = async (data: {
     const result = await prisma.$transaction(async (tx) => {
       const contributionType = await tx.contributionType.create({
         data: {
-          name: data.name,
+          name: data.type_name,
           amount: data.amount,
           penalty_amount:
             data.mode === "OneTimeWindow" ? null : data.penalty_amount,
@@ -755,7 +755,6 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
       return { success: false, message: "Penalty is already paid" };
     }
 
-    // Update the penalty as waived
     const updatedPenalty = await prisma.penalty.update({
       where: { id: penaltyId },
       data: {
@@ -766,20 +765,6 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
       },
     });
     console.log(updatedPenalty);
-    // Update the related contribution schedule if needed
-    if (penalty.contribution_schedule_id !== null) {
-      await prisma.contributionSchedule.update({
-        where: { id: penalty.contribution_schedule_id },
-        data: {
-          is_paid: true,
-          paid_at: new Date(),
-        },
-      });
-    }
-
-    // Revalidate the cache
-    // revalidatePath(`/members/${memberId}/penalties`);
-
     return { success: true };
   } catch (error) {
     console.error("Error waiving penalty:", error);
@@ -928,8 +913,13 @@ export async function addPenaltyType(name: string) {
   const existing = await prisma.penaltyTypeModel.findUnique({
     where: { name: trimmedName },
   });
+  console.log("existing");
   if (existing) return existing;
-  return await prisma.penaltyTypeModel.create({
-    data: { name: trimmedName },
-  });
+  try {
+    return await prisma.penaltyTypeModel.create({
+      data: { name: trimmedName },
+    });
+  } catch (err) {
+    console.log(err);
+  }
 }

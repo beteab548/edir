@@ -39,7 +39,6 @@ export async function GET(req: NextRequest) {
   try {
     // Extract query parameters
     const member_id = req.nextUrl.searchParams.get("member_id");
-    const activeOnly = req.nextUrl.searchParams.get("activeOnly") === "true";
 
     // Build the where clause.
     const whereClause: any = {};
@@ -47,11 +46,9 @@ export async function GET(req: NextRequest) {
     if (member_id) {
       whereClause.member_id = Number(member_id);
     }
-    
-    if (activeOnly) {
-      // Adding a filter for the related member's status.
-      whereClause.member = { status: "Active" };
-    }
+
+    // Adding a filter for the related member's status.
+    whereClause.member = { status: "Active" };
 
     const relatives = await prisma.relative.findMany({
       where: whereClause,

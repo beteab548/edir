@@ -1,15 +1,12 @@
 "use client";
-
 import Image from "next/image";
 import { ChangeEvent } from "react";
-
 interface TableSearchProps {
   onSearch: (query: string) => void;
   placeholder?: string;
   className?: string;
   debounce?: number;
 }
-
 const TableSearch = ({
   onSearch,
   placeholder = "Search...",

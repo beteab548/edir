@@ -4,16 +4,12 @@ export const memberSchema = z.object({
   first_name: z.string().min(1, { message: "First name is required!" }),
   second_name: z.string().min(1, { message: "Second name is required!" }),
   last_name: z.string().min(1, { message: "Last name is required!" }),
-
   profession: z.string().optional(),
   title: z.string().optional(),
   job_business: z.string().optional(),
-
   id_number: z.string().optional(),
-
   birth_date: z.coerce.date({ message: "Birth date is required!" }),
   citizen: z.string().min(1, { message: "Citizenship is required!" }),
-
   joined_date: z.coerce.date().optional(),
   end_date: z.union([z.coerce.date(), z.literal("")]).optional(),
   wereda: z.string().optional(),
@@ -32,7 +28,9 @@ export const memberSchema = z.object({
   image_url: z.string().optional(),
   image_file_id: z.string().optional(),
   remark: z.string().optional(),
-  status: z.enum(["Active", "Inactive","Deceased","Left"], { message: "Member Status is required!" }),
+  status: z.enum(["Active", "Inactive", "Deceased", "Left"], {
+    message: "Member Status is required!",
+  }),
   member_type: z.enum(["New", "Existing"], {
     message: "member status is required!",
   }),
@@ -41,8 +39,6 @@ export const memberSchema = z.object({
 export type MemberSchema = z.infer<typeof memberSchema>;
 export const relativeSchema = z.object({
   id: z.number().optional(),
-  // member_id: z.number({ required_error: "Member ID is required!" }),
-
   first_name: z.string().min(1, { message: "First name is required!" }),
   second_name: z.string().min(1, { message: "Second name is required!" }),
   last_name: z.string().min(1, { message: "Last name is required!" }),
@@ -90,7 +86,14 @@ export const ContributionSchema = z
         return parsed;
       }),
     ]),
-    type_name: z.string().min(1, "Contribution name is required"),
+    type_name: z
+      .string()
+      .min(1, "Contribution name is required")
+      .refine((val) => val.trim() === val, {
+        message: "Name cannot have leading or trailing spaces",
+      })
+      .transform((val) => val.trim()),
+
     start_date: z.union([
       z.date(),
       z.string().transform((val, ctx) => {
@@ -176,12 +179,10 @@ export const ContributionSchema = z
       .optional()
       .nullable(),
   })
-  // Require period_months when mode is OneTimeWindow
   .refine((data) => data.mode !== "OneTimeWindow" || !!data.period_months, {
     message: "Period months is required for OneTimeWindow mode",
     path: ["period_months"],
   })
-  // Require end_date when mode is Recurring
   .refine(
     (data) => {
       if (data.mode === "Recurring") {
@@ -213,9 +214,10 @@ export const penaltyPaymentFormSchema = z.object({
   payment_date: z.string().min(1, "Payment date is required"),
   receipt: z.string().optional(),
   penalty_month: z.string().min(1, "Penalty month is required"),
-  // Note: contribution_type and contribution_id are not required for penalty payments
 });
-export type penaltyPaymentFormSchemaType = z.infer<typeof penaltyPaymentFormSchema>;
+export type penaltyPaymentFormSchemaType = z.infer<
+  typeof penaltyPaymentFormSchema
+>;
 export type PaymentFormSchemaType = {
   contribution_id: string;
   contribution_type: string;
@@ -229,7 +231,14 @@ export type PaymentFormSchemaType = {
 
 export const ContributionTypeSchema = z
   .object({
-    name: z.string().min(1, "Name is required"),
+    type_name: z
+      .string()
+      .min(1, "Name is required") 
+      .transform((val) => val.trim()) 
+      .refine((val) => val.length > 0, {
+        message: "Name cannot be empty or only spaces",
+      }),
+
     amount: z.number().min(0.01, "Amount must be positive"),
     mode: z.enum(["Recurring", "OneTimeWindow", "OpenEndedRecurring"]),
     start_date: z.string().optional(),
@@ -284,7 +293,6 @@ export const ContributionTypeSchema = z
           path: ["months_before_inactivation"],
         });
       }
-      // penalty_amount should not be required here, you can optionally clear it
       data.penalty_amount = undefined;
     } else if (data.mode === "OpenEndedRecurring") {
       if (!data.start_date) {
@@ -301,7 +309,6 @@ export const ContributionTypeSchema = z
           path: ["penalty_amount"],
         });
       }
-      // Explicitly clear period_months for OpenEndedRecurring
       data.period_months = undefined;
     }
   })
@@ -312,6 +319,7 @@ export const ContributionTypeSchema = z
     }
     return data;
   });
+
 export const penaltyFormSchema = z.object({
   member_id: z.number().min(1, "Member is required"),
   reason: z.string().min(1, "Reason is required"),

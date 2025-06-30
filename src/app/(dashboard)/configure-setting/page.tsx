@@ -72,16 +72,16 @@ export default function ContributionTabs() {
 
   if (!userLoaded) {
     return (
-      <div className="w-[800px] flex flex-col mx-auto p-10 space-y-4 ">
+      <div className="w-[900px] flex flex-col mx-auto p-10 space-y-4 ">
         <div className=" w-full items-center ">
           <Skeleton className="h-10 " />
         </div>
         <div className="flex space-x-8 justify-center">
           {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-10 w-24" />
+            <Skeleton key={i} className="h-10 w-32" />
           ))}
         </div>
-        <Skeleton className="h-80 w-full" />
+        <Skeleton className="h-96 w-full" />
       </div>
     );
   }
@@ -137,7 +137,7 @@ export default function ContributionTabs() {
 
   if (isLoading) {
     return (
-      <div className="w-[800px] flex flex-col mx-auto p-10 space-y-4">
+      <div className="w-[1000px] flex flex-col mx-auto p-10 space-y-4">
         <div className=" w-full items-center ">
           <Skeleton className="h-10 " />
         </div>
@@ -181,7 +181,7 @@ export default function ContributionTabs() {
   return (
     <div className=" mt-1 bg-gray-50 rounded-xl  p-8">
       <div className=" flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold text-blue-400 mb-4 ">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4 ">
           View and manage contribution details
         </h2>
       </div>
@@ -195,7 +195,7 @@ export default function ContributionTabs() {
               className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
                 activeTab === tab.id
                   ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  : "border-transparent text-gray-800 hover:text-gray-900 hover:border-gray-300"
               }`}
             >
               {tab.label}

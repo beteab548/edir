@@ -242,7 +242,9 @@ export async function applyCatchUpPayment({
             },
           });
 
-          const penaltyAmount = penalty ? penalty.expected_amount : new Decimal(0);
+          const penaltyAmount = penalty
+            ? penalty.expected_amount
+            : new Decimal(0);
 
           if (penalty && penaltyAmount.gt(0)) {
             const penaltyPaidAmount = penalty.paid_amount ?? new Decimal(0);
@@ -386,13 +388,16 @@ export async function applyCatchUpPayment({
         },
       });
 
+      const remainingBalance = updatedBalance?.amount ?? new Decimal(0);
+
       await tx.paymentRecord.update({
         where: { id: paymentRecord.id },
         data: {
-          remaining_balance: updatedBalance?.amount ?? new Decimal(0),
+          remaining_balance: remainingBalance.greaterThan(0)
+            ? remainingBalance
+            : new Decimal(0),
         },
       });
-
       return payments;
     });
   } catch (error) {
@@ -403,11 +408,9 @@ export async function applyCatchUpPayment({
     ) {
       throw error;
     }
-
     if (error instanceof Error) {
       throw new PaymentProcessingError(`Database failed: ${error.message}`);
     }
-
     throw new PaymentProcessingError("Unknown payment error occurred");
   }
 }

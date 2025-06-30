@@ -1,8 +1,4 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
   provider = "prisma-client-js"
@@ -109,12 +105,12 @@ model PaymentRecord {
   contribution_Type_id   Int?
   payment_date      DateTime  @default(now())
   payment_method    String
-  document_reference String   @default("-") //correct his one to be nullable
+  document_reference String   @default("-") 
   total_paid_amount Decimal  
   remaining_balance Decimal?
-  penalty_type_payed_for PenaltyType? @default(automatically) // Default to automatically if not specified
+  penalty_type_payed_for PenaltyType? @default(automatically) 
   member            Member      @relation(fields: [member_id], references: [id],onDelete: Cascade)
-  contributionType      ContributionType? @relation(fields: [contribution_Type_id], references: [id])
+  contributionType      ContributionType? @relation(fields: [contribution_Type_id], references: [id],onDelete: Cascade)
   payments          Payment[]    
   created_at        DateTime    @default(now())
 }
@@ -124,9 +120,9 @@ model Payment {
   payment_record_id       Int
   member_id               Int
   contribution_id         Int
-  contribution_schedule_id Int?     // Can be null for future use or general cases
-  payment_type            String    // "penalty", "OneTimeWindow", etc.
-  payment_month           String    // Format: "YYYY-MM"
+  contribution_schedule_id Int?    
+  payment_type            String   
+  payment_month           String    
   paid_amount             Decimal
   paymentRecord           PaymentRecord @relation(fields: [payment_record_id], references: [id])
   member                  Member        @relation(fields: [member_id], references: [id])
