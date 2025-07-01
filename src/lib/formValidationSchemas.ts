@@ -233,8 +233,8 @@ export const ContributionTypeSchema = z
   .object({
     type_name: z
       .string()
-      .min(1, "Name is required") 
-      .transform((val) => val.trim()) 
+      .min(1, "Name is required")
+      .transform((val) => val.trim())
       .refine((val) => val.length > 0, {
         message: "Name cannot be empty or only spaces",
       }),
@@ -322,9 +322,8 @@ export const ContributionTypeSchema = z
 
 export const penaltyFormSchema = z.object({
   member_id: z.number().min(1, "Member is required"),
-  reason: z.string().min(1, "Reason is required"),
   amount: z.number().min(0, "Amount must be positive"),
   missed_month: z.date(),
   generated: z.enum(["automatically", "manually"]),
-  penalty_type: z.string(),
+  penalty_type: z.string().min(1, { message: "Penalty type is required" }),
 });

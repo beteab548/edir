@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import ContributionTab from "../../../components/contribution/contributionPage";
 import ContributionPenaltyTab from "@/components/penalties";
-import Penalty from "./penalty";
 import { useUser } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,10 +29,7 @@ export default function ContributionTabs() {
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
   const { isLoaded: userLoaded, user } = useUser();
   const [MembersWithPenalities, setMembersWithPenalities] = useState([]);
-  const [allMembers, setAllMembers] = useState([]);
-  const [penaltiesWithNumberAmount, setPenaltiesWithNumberAmount] = useState(
-    []
-  );
+
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
@@ -51,10 +47,7 @@ export default function ContributionTabs() {
         console.log("MembersWithPenalities", MembersWithPenalities);
         console.log("penalties", penalties);
         console.log("allmembers", allMembers);
-
         setMembersWithPenalities(MembersWithPenalities);
-        setPenaltiesWithNumberAmount(penalties);
-        setAllMembers(allMembers);
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError({ message: err.message });
@@ -164,13 +157,7 @@ export default function ContributionTabs() {
         <ContributionPenaltyTab initialMembers={MembersWithPenalities} />
       ),
     },
-    {
-      id: "penalty",
-      label: "Create Penalty",
-      component: (
-        <Penalty members={allMembers} penalties={penaltiesWithNumberAmount} />
-      ),
-    },
+
     {
       id: "configurePenalty",
       label: "Configure Penalty",

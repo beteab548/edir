@@ -13,6 +13,7 @@ interface SelectFieldProps {
   containerClass?: string;
   required?: boolean;
   icon?: ReactNode;
+  registerOptions?: Parameters<UseFormRegister<any>>[1];
 }
 
 export default function SelectField({
@@ -26,6 +27,7 @@ export default function SelectField({
   containerClass = "",
   required = false,
   icon,
+  registerOptions,
 }: SelectFieldProps) {
   return (
     <div className={`flex flex-col gap-1 ${containerClass}`}>
@@ -43,18 +45,16 @@ export default function SelectField({
         )}
         <select
           id={name}
-          {...register(name)}
+          {...register(name, registerOptions)}
           {...selectProps}
           defaultValue={defaultValue}
           className={`w-full px-3 py-2 border ${
             error ? "border-red-500" : "border-gray-300"
           } rounded-md shadow-sm focus:outline-none focus:ring-2 focus:${
             error ? "ring-red-500" : "ring-blue-500"
-          } focus:border-${
-            error ? "red-500" : "blue-500"
-          } bg-white ${icon ? "pl-10" : ""} ${
-            selectProps.className ? selectProps.className : ""
-          }`}
+          } focus:border-${error ? "red-500" : "blue-500"} bg-white ${
+            icon ? "pl-2" : ""
+          } ${selectProps.className ? selectProps.className : ""}`}
         >
           {options.map((option) => (
             <option key={option.value} value={option.value}>
@@ -63,11 +63,7 @@ export default function SelectField({
           ))}
         </select>
       </div>
-      {error && (
-        <p className="text-xs text-red-500 mt-1">
-          {error.message}
-        </p>
-      )}
+      {error && <p className="text-xs text-red-500 mt-1">{error.message}</p>}
     </div>
   );
 }

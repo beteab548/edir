@@ -811,6 +811,7 @@ export const createPenalty = async (
   currentState: CurrentState,
   data: Penalty
 ) => {
+  console.log("penalty data",data);
   if (!data.member_id || !data.amount) {
     console.error("Invalid data for penalty creation", data);
     return { success: false, error: true };

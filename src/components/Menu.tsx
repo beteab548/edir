@@ -46,7 +46,7 @@ const menuItems = [
       {
         icon: <FiAlertCircle size={20} />,
         label: "Penalty",
-        href: "/penalty",
+        href: "/penalty/payment",
         visible: ["admin", "chairman"],
         hasDropdown: true,
       },

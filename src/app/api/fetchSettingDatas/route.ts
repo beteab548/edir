@@ -15,6 +15,7 @@ export async function GET() {
               second_name: true,
               last_name: true,
               custom_id: true,
+              image_url: true,
             },
           },
         },
@@ -49,6 +50,7 @@ export async function GET() {
           : penalty.paid_amount,
       penalty_type: penalty.penalty_type ?? "",
     }));
+    console.log("all members", allMembers);
     return NextResponse.json({
       MembersWithPenalities: processedMembers,
       penalties: processedPenalties,

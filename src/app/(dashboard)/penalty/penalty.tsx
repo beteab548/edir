@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { SubmitErrorHandler, SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { format } from "date-fns";
@@ -70,12 +70,44 @@ export default function PenaltyManagement({ members, penalties }: Props) {
     success: false,
     error: false,
   });
+  const [penaltiesWithNumberAmount, setPenaltiesWithNumberAmount] = useState(
+    []
+  );
+  const [allMembers, setAllMembers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<{ message: string } | null>(null);
+
   useEffect(() => {
     getPenaltyTypes().then((types) =>
       setPenaltyTypes(types.map((t) => t.name))
     );
   }, []);
-
+  useEffect(() => {
+    async function loadData() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const res = await fetch("/api/fetchSettingDatas");
+        if (!res.ok) throw new Error("Failed to fetch data");
+        const { penalties, allMembers } = await res.json();
+        console.log("penalties", penalties);
+        console.log("allmembers", allMembers);
+        setPenaltiesWithNumberAmount(penalties);
+        setAllMembers(allMembers);
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          setError({ message: err.message });
+        } else {
+          setError({
+            message: "An unknown error occurred while fetching data.",
+          });
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, []);
   const handleWaivePenalty = async (penaltyId: number) => {
     try {
       const response = await fetch("/api/penalty", {
@@ -122,17 +154,22 @@ export default function PenaltyManagement({ members, penalties }: Props) {
     form.setValue("member_id", member.id);
   };
 
-  const onSubmit = async (data: z.infer<typeof penaltyFormSchema>) => {
-    try {
-      console.log("Submitting penalty:", data);
-      formAction(data);
-      setIsModalOpen(false);
-      form.reset();
-      setSelectedMember(null);
-    } catch (error) {
-      console.error("Error creating penalty:", error);
-    }
+  // -------------- handlers -----------------
+
+  // ✅ Called only when the form passes Zod validation
+  const onSubmit: SubmitHandler<z.infer<typeof penaltyFormSchema>> = (data) => {
+    formAction(data); 
+
   };
+
+  // ❌ Called when there are validation errors
+  const onInvalid: SubmitErrorHandler<z.infer<typeof penaltyFormSchema>> = (
+    errors
+  ) => {
+    console.error("Validation errors:", errors); // dev console
+    toast.error("Please fix the highlighted form errors.");
+  };
+
   useEffect(() => {
     if (state.success) {
       toast.success(`peanlty has been created`);
@@ -245,9 +282,8 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                   ×
                 </button>
               </div>
-
               <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={form.handleSubmit(onSubmit, onInvalid)}
                 className="space-y-4"
               >
                 {/* First Row: Search + Missed Month */}
@@ -261,7 +297,7 @@ export default function PenaltyManagement({ members, penalties }: Props) {
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder="Search by name, ID or phone"
+                          placeholder="Search by name or phone"
                           value={
                             selectedMember
                               ? `${selectedMember.first_name} ${selectedMember.second_name} ${selectedMember.last_name}`

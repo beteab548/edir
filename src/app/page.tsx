@@ -3,7 +3,6 @@
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 type Announcement = {
   id: number;
   title: string;
@@ -40,7 +39,6 @@ export default function PublicPage() {
   const [activeTab, setActiveTab] = useState("announcements");
 
   useEffect(() => {
-    // Replace with API call later
     setAnnouncements(mockAnnouncements);
   }, []);
   const { isLoaded, isSignedIn, user } = useUser();

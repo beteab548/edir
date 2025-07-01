@@ -29,6 +29,7 @@ export default function InputField({
   containerClass = "",
   required = false,
   icon,
+  registerOptions
 }: InputFieldProps) {
   return (
     <div
@@ -51,7 +52,7 @@ export default function InputField({
         <input
           id={name}
           type={type}
-          {...register(name)}
+          {...register(name, registerOptions)}
           {...inputProps}
           defaultValue={defaultValue}
           className={`w-full px-3 py-2 border ${
@@ -59,7 +60,7 @@ export default function InputField({
           } rounded-md shadow-sm focus:outline-none focus:ring-2 focus:${
             error ? "ring-red-500" : "ring-blue-500"
           } focus:border-${error ? "red-500" : "blue-500"} ${
-            icon ? "pl-10" : ""
+            icon ? "pl-2" : ""
           } ${inputProps.className ? inputProps.className : ""}`}
         />
       </div>

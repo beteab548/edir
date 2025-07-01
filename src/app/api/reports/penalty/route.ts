@@ -23,8 +23,15 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      const auto = penalties.filter((p) => p.generated === "automatically");
-      const manual = penalties.filter((p) => p.generated === "manually");
+      // Filter out waived penalties before grouping
+      const filteredPenalties = penalties.filter((p) => !p.waived);
+
+      const auto = filteredPenalties.filter(
+        (p) => p.generated === "automatically"
+      );
+      const manual = filteredPenalties.filter(
+        (p) => p.generated === "manually"
+      );
 
       const sum = (
         arr: typeof penalties,

@@ -6,7 +6,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
-
+import { FiSettings } from "react-icons/fi";
 type PenaltyDropdownProps = {
   icon: React.ReactNode;
   label: string;
@@ -15,9 +15,7 @@ type PenaltyDropdownProps = {
   iconSrc?: string; // Add this prop for image URL before each penalty item
 };
 
-const penaltyItems = [
-  { label: "Payment", href: "/penalty" },
-];
+const penaltyItems = [{ label: "Payment", href: "/penalty/payment" }];
 
 export default function PenaltyDropdown({
   icon,
@@ -32,7 +30,6 @@ export default function PenaltyDropdown({
   const isAnyPenaltyActive = penaltyItems.some(
     (item) => pathname === item.href
   );
-
   return (
     <motion.div
       className={`relative flex flex-col w-full rounded-lg ${
@@ -133,6 +130,34 @@ export default function PenaltyDropdown({
                   )}
                 </Link>
               ))}
+              <Link
+                key={"penalty managment"}
+                href={"/penalty"}
+                className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
+                    ${
+                      pathname === "/penalty"
+                        ? "bg-lamaSkyLight/40 text-lama font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }
+                  `}
+              >
+                {/* Image icon before penalty label */}
+                <FiSettings size={20} />
+                <motion.span
+                  whileHover={{ x: 2 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  {"penalty managment"}
+                </motion.span>
+                {pathname === "/penalty" && (
+                  <motion.span
+                    className="w-1.5 h-1.5 bg-lama rounded-full"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                  />
+                )}
+              </Link>
             </div>
           </motion.div>
         )}

@@ -17,7 +17,28 @@ import {
 } from "@/lib/formValidationSchemas";
 import UploadFile from "../FileUpload/page";
 import { useFormState } from "react-dom";
-import Image from "next/image";
+import {
+  FaMoneyBillWave,
+  FaCashRegister,
+  FaExclamation,
+  FaSearch,
+} from "react-icons/fa";
+
+import { FiSearch } from "react-icons/fi";
+import { FaFileDownload } from "react-icons/fa";
+
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CalendarIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  FolderOpenIcon,
+  ScaleIcon,
+  UserIcon,
+  UsersIcon,
+} from "@heroicons/react/24/outline";
 
 type ContributionType = {
   id: number;
@@ -253,213 +274,279 @@ export default function ContributionTemplate({
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Payments</h1>
-
-            {type === "manually" ? (
-              <p className="text-gray-600">
-                Manage Manually generated Penalities payments
-              </p>
-            ) : (
-              <p className="text-gray-600">
-                Manage all {ContributionType?.name ?? "Contribution"} payments
-              </p>
-            )}
+            <h1 className="text-2xl font-bold text-gray-800">
+              {type === "manually"
+                ? "Penalty Payments"
+                : ContributionType?.name + " Payments"}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {type === "manually"
+                ? "Manage manually generated penalty payments"
+                : `Track all ${ContributionType?.name} contributions`}
+            </p>
           </div>
-          <div
-            title={
-              members.length <= 0
-                ? "No members available"
-                : !ContributionType?.is_active
-                ? "Contribution is inactive"
-                : ""
-            }
-          >
+
+          {/* Add Payment Button */}
+          <div className="relative group">
             <button
               onClick={() => setShowAddModal(true)}
-              className="btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+                members.length <= 0 ||
+                (ContributionType && !ContributionType.is_active)
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+              }`}
               disabled={
                 members.length <= 0 ||
                 (ContributionType && !ContributionType.is_active)
               }
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <PlusIcon className="w-5 h-5" />
               Add Payment
             </button>
+
+            {/* Tooltip for disabled state */}
+            {(members.length <= 0 ||
+              (ContributionType && !ContributionType.is_active)) && (
+              <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2">
+                {members.length <= 0
+                  ? "No members available"
+                  : "Contribution is inactive"}
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <StatCard
+            title="Total Payments"
+            value={payments.length}
+            icon={<FaCashRegister className="text-blue-500" />}
+            trend="up"
+          />
+          <StatCard
+            title="Total Amount"
+            value={payments.reduce(
+              (sum, p) => sum + Number(p.total_paid_amount),
+              0
+            )}
+            icon={<FaMoneyBillWave className="text-green-500" />}
+            currency="birr"
+          />
+        </div>
+
+        {/* Payments Table */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* Table Header with Search */}
+          <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <h2 className="font-semibold text-gray-800 text-lg">
+              Payment Records
+            </h2>
+          </div>
+
+          {/* Table Content */}
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Member Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Paid Amount
-                  </th>
+                  <TableHeader>ID</TableHeader>
+                  <TableHeader>Member</TableHeader>
+                  <TableHeader>Amount</TableHeader>
+                  {type === "automatically" && <TableHeader>Type</TableHeader>}
+                  <TableHeader>Date</TableHeader>
+                  <TableHeader>Method</TableHeader>
                   {type === "automatically" && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Contribution Type
-                    </th>
+                    <TableHeader>Balance</TableHeader>
                   )}
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment Method
-                  </th>
-                  {type === "automatically" && (
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Balance
-                    </th>
-                  )}
+                  <TableHeader>Actions</TableHeader>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {payments.map((payment) => (
-                  <React.Fragment key={payment.id}>
-                    {/* Main Payment Row */}
-                    <tr
-                      className="hover:bg-blue-50 transition-colors duration-150 cursor-pointer border-b border-gray-200"
-                      onClick={() => toggleDetails(payment.id)}
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm font-medium text-gray-900">
-                          #{payment.id}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="ml-0">
-                            <p className="text-sm font-medium text-gray-900">
-                              {payment.member.first_name}{" "}
-                              {payment.member.second_name}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-sm font-semibold text-blue-800 bg-blue-100 rounded-full">
-                          {payment.total_paid_amount.toString()} birr
-                        </span>
-                      </td>
-                      {type === "automatically" && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-600">
-                            {payment.contributionType?.name}
+                {payments.length > 0 ? (
+                  payments.map((payment) => (
+                    <React.Fragment key={payment.id}>
+                      {/* Main Payment Row */}
+                      <tr className="hover:bg-blue-50 transition-colors">
+                        <TableCell>
+                          <span className="font-medium text-gray-900">
+                            #{payment.id}
                           </span>
-                        </td>
-                      )}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="text-sm text-gray-600">
-                          {new Date(payment.payment_date).toLocaleDateString()}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize bg-green-100 text-green-800">
-                          {payment.payment_method}
-                        </span>
-                      </td>
-                      {payment?.remaining_balance && (
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`text-sm font-medium ${
-                              Number(payment.remaining_balance) > 0
-                                ? "text-red-600"
-                                : "text-green-600"
-                            }`}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <UserIcon className="h-5 w-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">
+                                {payment.member.first_name}{" "}
+                                {payment.member.last_name}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {payment.member.phone_number}
+                              </p>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-semibold text-blue-800">
+                            {Number(payment.total_paid_amount).toFixed(2)} birr
+                          </span>
+                        </TableCell>
+                        {type === "automatically" && (
+                          <TableCell>
+                            <span className="text-gray-600">
+                              {payment.contributionType?.name}
+                            </span>
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <span className="text-gray-600">
+                            {new Date(
+                              payment.payment_date
+                            ).toLocaleDateString()}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={
+                              payment.payment_method.toLowerCase() as
+                                | "cash"
+                                | "bank"
+                                | "mobile banking"
+                                | "default"
+                            }
                           >
-                            {payment.remaining_balance?.toString() ?? "N/A"}{" "}
-                            birr
-                          </span>
-                        </td>
-                      )}
-                    </tr>
-
-                    {/* Expanded Details Row */}
-                    {openPaymentId === payment.id && (
-                      <tr className="bg-gray-50">
-                        <td colSpan={7} className="px-6 py-4">
-                          <div className="pl-8 pr-4 py-3 bg-white rounded-lg shadow-xs border border-gray-200">
-                            <h4 className="text-sm font-semibold text-gray-800 mb-2">
-                              Payment Breakdown
-                            </h4>
-                            {(payment.payments?.length ?? 0) > 0 ? (
-                              <ul className="space-y-2">
-                                {payment.payments?.map((p) => (
-                                  <li key={p.id} className="flex items-start">
-                                    <span className="flex items-center justify-center h-5 w-5 rounded-full bg-blue-100 text-blue-800 mr-3 mt-0.5 text-xs">
-                                      {p.payment_type === "penalty" ? "!" : "$"}
-                                    </span>
-                                    <div className="flex-1">
-                                      <p className="text-sm text-gray-700">
-                                        {p.payment_type === "penalty"
-                                          ? `Penalty Payment`
-                                          : `Monthly Contribution`}
-                                      </p>
-                                      <p className="text-xs text-gray-500">
-                                        Amount: {Number(p.paid_amount)} birr
-                                        {p.payment_type !== "penalty" &&
-                                          ` • Month: ${p.payment_month}`}
-                                        {p.payment_type === "penalty" &&
-                                          ` • Month: ${p.payment_month}`}
-                                      </p>
-                                    </div>
-                                  </li>
-                                ))}
-                                <div>
-                                  {payment?.document_reference &&
-                                    payment?.document_reference !== "-" && (
-                                      <Image
-                                        src={payment.document_reference}
-                                        alt="Payment Receipt"
-                                        width={100}
-                                        height={100}
-                                        unoptimized
-                                        className="mt-2 rounded-lg"
-                                      />
-                                    )}
-                                </div>
-                              </ul>
+                            {payment.payment_method}
+                          </Badge>
+                        </TableCell>
+                        {type === "automatically" && (
+                          <TableCell>
+                            <span
+                              className={`font-medium ${
+                                Number(payment.remaining_balance) > 0
+                                  ? "text-red-600"
+                                  : "text-green-600"
+                              }`}
+                            >
+                              {payment.remaining_balance?.toString() ?? "0"}{" "}
+                              birr
+                            </span>
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <button
+                            onClick={() => toggleDetails(payment.id)}
+                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100"
+                          >
+                            {openPaymentId === payment.id ? (
+                              <ChevronUpIcon className="h-5 w-5" />
                             ) : (
-                              <div className="text-center py-4">
-                                <p className="text-sm text-gray-500">
-                                  No payment details available
-                                </p>
-                              </div>
+                              <ChevronDownIcon className="h-5 w-5" />
                             )}
-                          </div>
-                        </td>
+                          </button>
+                        </TableCell>
                       </tr>
-                    )}
-                  </React.Fragment>
-                ))}
 
-                {payments.length === 0 && (
+                      {/* Expanded Details Row */}
+                      {openPaymentId === payment.id && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={8} className="px-6 py-4">
+                            <div className="pl-14 pr-6 py-4 bg-white rounded-lg border border-gray-200 shadow-xs">
+                              <div className="flex justify-between items-start mb-3">
+                                <h4 className="font-semibold text-gray-800">
+                                  Payment Details
+                                </h4>
+                                {payment.document_reference &&
+                                  payment.document_reference !== "-" && (
+                                    <a
+                                      href={payment.document_reference}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600 hover:text-blue-800 text-sm flex items-center gap-1"
+                                    >
+                                      <FaFileDownload className="h-4 w-4" />
+                                      View Receipt
+                                    </a>
+                                  )}
+                              </div>
+
+                              {(payment.payments?.length ?? 0) > 0 ? (
+                                <div className="space-y-4">
+                                  {payment.payments?.map((p) => (
+                                    <div
+                                      key={p.id}
+                                      className="flex gap-4 items-start"
+                                    >
+                                      <div
+                                        className={`mt-1 flex-shrink-0 h-5 w-5 rounded-full flex items-center justify-center ${
+                                          p.payment_type === "penalty"
+                                            ? "bg-red-100 text-red-600"
+                                            : "bg-green-100 text-green-600"
+                                        }`}
+                                      >
+                                        {p.payment_type === "penalty" ? (
+                                          <FaExclamation className="h-3 w-3" />
+                                        ) : (
+                                          <CheckIcon className="h-3 w-3" />
+                                        )}
+                                      </div>
+                                      <div className="flex-1">
+                                        <div className="flex justify-between">
+                                          <p className="font-medium text-gray-800">
+                                            {p.payment_type === "penalty"
+                                              ? "Penalty Payment"
+                                              : "Monthly Contribution"}
+                                          </p>
+                                          <p className="font-semibold">
+                                            {Number(p.paid_amount).toFixed(2)}{" "}
+                                            birr
+                                          </p>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                          {p.payment_type === "penalty"
+                                            ? `For: ${new Date(
+                                                p.payment_month
+                                              ).toLocaleDateString()}`
+                                            : `Month: ${new Date(
+                                                p.payment_month
+                                              ).toLocaleDateString()}`}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-center py-4">
+                                  <p className="text-gray-500">
+                                    No detailed payment information available
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))
+                ) : (
                   <tr>
-                    <td
-                      colSpan={7}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
-                    >
-                      No payments recorded yet
+                    <td colSpan={8} className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <FolderOpenIcon className="h-12 w-12 text-gray-400 mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-1">
+                          No payments recorded
+                        </h3>
+                        <p className="text-gray-500 max-w-md">
+                          {type === "manually"
+                            ? "No penalty payments have been recorded yet."
+                            : `No ${ContributionType?.name} payments have been recorded yet.`}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -469,8 +556,9 @@ export default function ContributionTemplate({
         </div>
       </div>
 
+      {/* Add Payment Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -544,7 +632,7 @@ export default function ContributionTemplate({
                         <>
                           <input
                             type="text"
-                            placeholder="Type member name or phone number..."
+                            placeholder="member name or phone number..."
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             value={searchTerm}
                             onChange={handleSearchChange}
@@ -640,6 +728,7 @@ export default function ContributionTemplate({
                     label="Amount"
                     name="paid_amount"
                     type="number"
+                    required
                     register={register}
                     error={errors.paid_amount}
                     inputProps={{
@@ -653,18 +742,18 @@ export default function ContributionTemplate({
                       }`,
                     }}
                   />
-                     <input
-                      type="hidden"
-                      {...register("contribution_id")}
-                      value={
-                        selectedContributionTypeFormat?.id ||
-                        ContributionType?.id
-                      }
-                    />
+                  <input
+                    type="hidden"
+                    {...register("contribution_id")}
+                    value={
+                      selectedContributionTypeFormat?.id || ContributionType?.id
+                    }
+                  />
                   <InputField
                     label="Payment Date"
                     name="payment_date"
                     type="date"
+                    required
                     register={register}
                     inputProps={{
                       required: true,
@@ -712,7 +801,7 @@ export default function ContributionTemplate({
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Cancel
+                    Close
                   </button>
                   <button
                     type="submit"
@@ -759,5 +848,86 @@ export default function ContributionTemplate({
         </div>
       )}
     </div>
+  );
+}
+
+// Helper Components
+function StatCard({
+  title,
+  value,
+  icon,
+  trend,
+  currency,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  trend?: "up" | "down";
+  currency?: string;
+}) {
+  return (
+    <div className="bg-white p-4 rounded-xl shadow-xs border border-gray-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-2xl font-semibold text-gray-900">
+            {value.toLocaleString()}
+            {currency && ` ${currency}`}
+          </p>
+        </div>
+        <div className="p-3 rounded-full bg-gray-50">{icon}</div>
+      </div>
+    </div>
+  );
+}
+
+function TableHeader({ children }: { children: React.ReactNode }) {
+  return (
+    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+      {children}
+    </th>
+  );
+}
+
+function TableCell({ children }: { children: React.ReactNode }) {
+  return <td className="px-6 py-4 whitespace-nowrap">{children}</td>;
+}
+
+function Badge({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode;
+  variant?: "cash" | "bank" | "mobile banking" | "default";
+}) {
+  const variantClasses = {
+    cash: "bg-green-100 text-green-800",
+    bank: "bg-blue-100 text-blue-800",
+    "mobile banking": "bg-purple-100 text-purple-800",
+    default: "bg-gray-100 text-gray-800",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
+        variantClasses[variant.toLowerCase() as keyof typeof variantClasses] ||
+        variantClasses.default
+      }`}
+    >
+      {children}
+    </span>
+  );
+}
+
+function PlusIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M12 4v16m8-8H4"
+      />
+    </svg>
   );
 }
