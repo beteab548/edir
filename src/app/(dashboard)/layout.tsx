@@ -3,13 +3,13 @@ import Menu from "@/components/Menu";
 import Navbar from "@/components/Navbar";
 import Image from "next/image";
 import Link from "next/link";
+import "react-phone-number-input/style.css";
 
 export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   return (
     <DataChangeProvider>
       <div className="h-screen flex">
@@ -19,7 +19,13 @@ export default function DashboardLayout({
             href="/"
             className="flex items-center justify-center lg:justify-start gap-2"
           >
-            <Image src="/edirlogo.jpg" alt="logo" width={42} height={42} className="mb-6" />
+            <Image
+              src="/edirlogo.jpg"
+              alt="logo"
+              width={42}
+              height={42}
+              className="mb-6"
+            />
             <span className="hidden lg:block font-bold">Edir</span>
           </Link>
           <Menu />

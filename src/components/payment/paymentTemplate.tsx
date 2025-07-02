@@ -1,5 +1,5 @@
 "use client";
-import { Contribution, Member, Payment } from "@prisma/client";
+import {  Member, Payment } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";

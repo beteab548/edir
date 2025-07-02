@@ -46,7 +46,6 @@ model Member {
   Balance Balance[]
   Penalty Penalty[]
   Contribution Contribution[]
-
   PaymentRecord PaymentRecord[]
 
 }
@@ -129,7 +128,6 @@ model Payment {
   contribution            Contribution  @relation(fields: [contribution_id], references: [id])
   contributionSchedule    ContributionSchedule? @relation(fields: [contribution_schedule_id], references: [id])
 }
-
 model Balance {
   id                Int          @id @default(autoincrement())
   member_id         Int
@@ -140,7 +138,6 @@ model Balance {
   contribution      Contribution @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
   @@unique([member_id, contribution_id]) 
 }
-
 model Penalty {
   id                        Int                   @id @default(autoincrement())
   member_id                 Int

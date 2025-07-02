@@ -13,7 +13,8 @@ import UploadFile from "../FileUpload/page";
 import Image from "next/image";
 import SelectField from "../SelectField";
 import Link from "next/link";
-
+import PhoneInput from "react-phone-input-2";
+import "react-phone-input-2/lib/style.css";
 const tabs = ["Principal Info", "Principal detail", "Principal Relatives"];
 
 const MemberForm = ({
@@ -47,7 +48,10 @@ const MemberForm = ({
 
   const {
     register,
+    setValue,
+    getValues,
     handleSubmit,
+    watch,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CombinedSchema>({
@@ -57,6 +61,11 @@ const MemberForm = ({
   const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
     null
   );
+  const [phone, setPhone] = useState<string | undefined>(data?.phone_number);
+  const [phone2, setPhone2] = useState<string | undefined>(
+    data?.phone_number_2
+  );
+
   const [imageReady, setImageReady] = useState(true);
   const [document, SetDocumentUrl] = useState<{
     Url: string;
@@ -218,6 +227,10 @@ const MemberForm = ({
     setConfirmDeleteIndex(null);
     deleteDialogRef.current?.close();
   };
+  useEffect(() => {
+    setValue("member.phone_number", phone ?? "");
+    setValue("member.phone_number_2", phone2 ?? "");
+  }, [phone, setValue]);
   return (
     <div
       className={`${
@@ -381,7 +394,9 @@ const MemberForm = ({
           </div>
         )}
         <div className={tabIndex === 1 ? "" : "hidden"}>
-          <div className={`max-h-[400px] overflow-y-auto custom-scrollbar pr-4`}>
+          <div
+            className={`max-h-[400px] overflow-y-auto custom-scrollbar pr-4`}
+          >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
               <InputField
                 label="ID Number"
@@ -413,20 +428,16 @@ const MemberForm = ({
                   </p>
                 )}
               </div>
-              <InputField
-                label="Phone Number"
-                name="member.phone_number"
-                register={register}
-                error={errors.member?.phone_number}
-                defaultValue={data?.phone_number}
+              <PhoneInputField
+                value={phone ?? ""}
+                onChange={(val) => setPhone(val)}
+                error={errors?.member?.phone_number?.message}
               />
 
-              <InputField
-                label="Second Phone Number"
-                name="member.phone_number_2"
-                register={register}
-                error={errors.member?.phone_number_2}
-                defaultValue={data?.phone_number_2}
+              <PhoneInputField
+                value={phone2 ?? ""}
+                onChange={(val) => setPhone2(val)}
+                error={errors?.member?.phone_number_2?.message}
               />
 
               <InputField
@@ -780,7 +791,7 @@ const MemberForm = ({
                     {editIndex !== null ? "Edit Relative" : "Add New Relative"}
                   </h2>
                   <button
-                  type="button"
+                    type="button"
                     onClick={closeRelativesDialog}
                     className="text-gray-400 hover:text-gray-500"
                   >
@@ -1018,4 +1029,28 @@ const MemberForm = ({
     </div>
   );
 };
+
+
+interface PhoneInputFieldProps {
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+}
+
+const PhoneInputField = ({ value, onChange, error }: PhoneInputFieldProps) => {
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-sm font-medium text-gray-700">Phone Number</label>
+      <PhoneInput
+        country={"et"} // default country Ethiopia
+        value={value}
+        onChange={onChange}
+        inputClass="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        // You can customize the input styles with `inputClass`
+      />
+      {error && <span className="text-red-500 text-xs">{error}</span>}
+    </div>
+  );
+};
+
 export default MemberForm;

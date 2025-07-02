@@ -1,8 +1,5 @@
-// /app/api/metrics/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
-import { startOfYear, endOfYear } from "date-fns";
 
 const prisma = new PrismaClient();
 
@@ -56,19 +53,6 @@ export async function GET(req: NextRequest) {
         currentCount = penalized.length;
         break;
 
-      // case "early contributors":
-      //   const earlyContributors = await prisma.payment.findMany({
-      //     where: {
-      //       contributionSchedule: {
-      //         isNot: null,
-      //       },
-      //     },
-      //     select: { member_id: true },
-      //     distinct: ["member_id"],
-      //   });
-      //   currentCount = earlyContributors.length;
-      //   break;
-
       case "fully paid members":
         const fullyPaidMembers = await prisma.balance.findMany({
           where: { amount: 0 },
@@ -85,6 +69,38 @@ export async function GET(req: NextRequest) {
 
         currentCount = members.length;
         break;
+
+      case "unpaid members":
+        const unpaidMembers = await prisma.balance.findMany({
+          where: {
+            amount: {
+              gt: 0,
+            },
+          },
+          select: {
+            member_id: true,
+          },
+          distinct: ["member_id"],
+        });
+
+        const unpaidActive = await prisma.member.count({
+          where: {
+            id: { in: unpaidMembers.map((b) => b.member_id) },
+            status: "Active",
+          },
+        });
+
+        currentCount = unpaidActive;
+        break;
+
+      case "members set to inactivation":
+        currentCount = await prisma.member.count({
+          where: {
+            status: "Inactive",
+          },
+        });
+        break;
+
       default:
         return NextResponse.json({ error: "Unknown type" }, { status: 400 });
     }

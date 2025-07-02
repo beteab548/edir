@@ -67,7 +67,7 @@ export default function ContributionTabs() {
           <Skeleton className="h-10 " />
         </div>
         <div className="flex space-x-8 justify-center">
-          {[1, 2, 3].map((i) => (
+          {[1, 2].map((i) => (
             <Skeleton key={i} className="h-10 w-32" />
           ))}
         </div>
@@ -132,7 +132,7 @@ export default function ContributionTabs() {
           <Skeleton className="h-10 " />
         </div>
         <div className="flex space-x-8 justify-center">
-          {[1, 2, 3].map((i) => (
+          {[1, 2].map((i) => (
             <Skeleton key={i} className="h-10 w-full" />
           ))}
         </div>

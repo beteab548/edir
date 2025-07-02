@@ -36,12 +36,10 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ConfigureExistingContribution({  revalidate}:{revalidate: boolean}
 ) {
-  // Fetch both contributions and members in one request
   const {
     data: apiData,
     mutate: mutateData,
     isLoading,
-    error,
   } = useSWR<ApiResponse>("/api/contributions/contributionTypes", fetcher);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -300,21 +298,7 @@ console.log("apidata:",apiData);
                       }}
                     />
 
-                    {/* { <div className="bg-gray-50 p-4 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Contribution Mode
-                      </label>
-                      <select
-                        {...register("mode")}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                      >
-                        <option value="Recurring">Recurring</option>
-                        <option value="OpenEndedRecurring">
-                          Open-Ended Recurring
-                        </option>
-                        <option value="OneTimeWindow">One-Time Window</option>
-                      </select>
-                    </div>} */}
+                    
 
                     {watchMode === "OneTimeWindow" ? (
                       <InputField

@@ -171,8 +171,9 @@ const AdminPage = async ({}: {}) => {
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-4">
                     <UserCard type="Penalized Members" />
-                    <UserCard type="Fully Paid Members" />
-                    {/* <UserCard type="Early Contributors" /> */}
+                    <UserCard type="Paid Members" />
+                    <UserCard type="unpaid Members" />
+                    <UserCard type="Members set to inactivation" />
                   </div>
                   <div className="bg-white rounded-lg mb-16">
                     <div className="h-[500px] ">

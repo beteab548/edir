@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useState, useEffect } from "react";
 
 interface CardData {
@@ -29,7 +29,9 @@ const UserCard = ({ type }: { type: string }) => {
         setLoading(true);
         setError(null);
 
-        const res = await fetch(`/api/reports/metrics?type=${type.toLowerCase()}`);
+        const res = await fetch(
+          `/api/reports/metrics?type=${type.toLowerCase()}`
+        );
         if (!res.ok) throw new Error("Failed to fetch");
 
         const data: CardData = await res.json();
@@ -59,23 +61,6 @@ const UserCard = ({ type }: { type: string }) => {
         >
           {type}
         </span>
-        <button className="text-gray-400 hover:text-gray-600 transition-colors">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="12" cy="12" r="1" />
-            <circle cx="12" cy="5" r="1" />
-            <circle cx="12" cy="19" r="1" />
-          </svg>
-        </button>
       </div>
 
       {loading ? (
@@ -99,12 +84,12 @@ const UserCard = ({ type }: { type: string }) => {
               <span
                 className={`text-xs font-semibold px-2 py-1 rounded-full ${
                   cardData.percentageChange > 0
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-red-100 text-red-800'
+                    ? "bg-green-100 text-green-800"
+                    : "bg-red-100 text-red-800"
                 }`}
               >
-                {cardData.percentageChange > 0 
-                  ? `+${cardData.percentageChange}%` 
+                {cardData.percentageChange > 0
+                  ? `+${cardData.percentageChange}%`
                   : `${cardData.percentageChange}%`}
               </span>
             )}

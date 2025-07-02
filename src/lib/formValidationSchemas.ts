@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isValidPhoneNumber } from "libphonenumber-js";
 export const memberSchema = z.object({
   id: z.coerce.number().optional(),
   first_name: z.string().min(1, { message: "First name is required!" }),
@@ -16,13 +17,40 @@ export const memberSchema = z.object({
   zone_or_district: z.string().optional(),
   kebele: z.string().optional(),
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),
-  phone_number: z.string().min(1, { message: "Phone number is required!" }),
-  phone_number_2: z.string().optional(),
+  phone_number: z
+    .string()
+    .min(1, { message: "Phone number is required" })
+    .refine((val) => isValidPhoneNumber("+" + val), {
+      message: "Invalid phone number",
+    }),
+  phone_number_2: z
+    .string()
+    .optional()
+    .refine((val) => !val || isValidPhoneNumber("+" + val), {
+      message: "Invalid phone number",
+    }),
   bank_name: z.string(),
   bank_account_number: z.string().optional(),
   bank_account_name: z.string().optional(),
-  email: z.string().email({ message: "Invalid email address!" }).optional(),
-  email_2: z.string().email({ message: "Invalid email address!" }).optional(),
+  email: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val === "" || z.string().email().safeParse(val).success,
+      {
+        message: "Invalid email address!",
+      }
+    ),
+
+  email_2: z
+    .string()
+    .optional()
+    .refine(
+      (val) => !val || val === "" || z.string().email().safeParse(val).success,
+      {
+        message: "Invalid email address!",
+      }
+    ),
   document: z.string().optional(),
   document_file_id: z.string().optional(),
   image_url: z.string().optional(),

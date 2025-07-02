@@ -41,7 +41,7 @@ export default function FilterBar() {
     <form onSubmit={handleSubmit} className="mb-6 flex flex-wrap gap-4">
       <input
         type="text"
-        placeholder="Search by name or phone"
+        placeholder="Filter by Id , name or phone"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         className="px-3 py-2 border border-gray-300 rounded-md shadow-sm w-64"
