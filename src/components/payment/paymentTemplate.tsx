@@ -31,6 +31,7 @@ import {
   FolderOpenIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
+import FilterBar from "../filterbar";
 
 type ContributionType = {
   id: number;
@@ -246,9 +247,6 @@ export default function ContributionTemplate({
         console.log("balance", balance);
         console.log("entered amount", enteredAmount);
         if (enteredAmount > balanceNumber) {
-          // toast.error(
-          //   `The amount entered (${enteredAmount}) is greater than the amount owed (${balanceNumber})`
-          // );
           setAmountError(
             `The entered amount (${enteredAmount}) is greater than the amount owed (${balanceNumber})`
           );
@@ -317,7 +315,6 @@ export default function ContributionTemplate({
                 : `Track all ${ContributionType?.name} contributions`}
             </p>
           </div>
-
           {/* Add Payment Button */}
           <div className="relative group">
             <button
@@ -340,7 +337,7 @@ export default function ContributionTemplate({
             {/* Tooltip for disabled state */}
             {(members.length <= 0 ||
               (ContributionType && !ContributionType.is_active)) && (
-              <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2">
+                <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2">
                 {members.length <= 0
                   ? "No members available"
                   : "Contribution is inactive"}
@@ -348,6 +345,7 @@ export default function ContributionTemplate({
             )}
           </div>
         </div>
+            <FilterBar />
 
         {/* Payments Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

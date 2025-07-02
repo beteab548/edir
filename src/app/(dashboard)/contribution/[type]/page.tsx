@@ -1,52 +1,119 @@
 import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
-import Penalty from "../../../../components/penalties"; // adjust the import path as needed
+import Penalty from "../../../../components/penalties";
 import { getMembersWithPenalties } from "@/lib/actions";
 
-type PageProps = {
-  params: Promise<{
+interface PageProps {
+  params: {
     type: string;
-  }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
+  };
+  searchParams?: {
+    year?: string;
+    month?: string;
+    query?: string;
+  };
+}
 
-export default async function ContributionPage({ params }: PageProps) {
-  const { type } = await params;
-  const decodedType = decodeURIComponent(type);
-  const updatedType = decodedType.replace(/%20/g, " ");
-  console.log("type is ", updatedType);
-  const types = await prisma.contributionType.findUnique({
-    where: { name: updatedType ?? undefined },
-  });
-  if (updatedType.toLowerCase() === "penalties") {
+export default async function ContributionPage({
+  params,
+  searchParams = {},
+}: PageProps) {
+  const decodedType = decodeURIComponent(params.type).replace(/%20/g, " ");
+  const { year, month, query } = searchParams;
+
+  // Handle penalties page
+  if (decodedType.toLowerCase() === "penalties") {
+    const members = (await getMembersWithPenalties()).map((member) => ({
+      ...member,
+      Penalty: member.Penalty.filter((penalty) => penalty.contribution !== null).map(
+        (penalty) => ({ ...penalty, contribution: penalty.contribution! })
+      ),
+    }));
     return (
       <div className="contribution-page">
-        <Penalty
-          initialMembers={(await getMembersWithPenalties()).map((member) => ({
-            ...member,
-            Penalty: member.Penalty.filter(
-              (penalty) => penalty.contribution !== null
-            ).map((penalty) => ({
-              ...penalty,
-              contribution: penalty.contribution!,
-            })),
-          }))}
-        />
+        <Penalty initialMembers={members} />
       </div>
     );
   }
-  const paymentsRaw = await prisma.paymentRecord.findMany({
-    where: {
-      contribution_Type_id: types?.id ?? undefined,
-      penalty_type_payed_for: "automatically",
+
+  const contributionType = await prisma.contributionType.findUnique({
+    where: { name: decodedType },
+  });
+
+  if (!contributionType) {
+    throw new Error("Contribution type not found");
+  }
+
+  // Build member filter
+  const memberFilter: any = {
+    status: "Active",
+    Contribution: {
+      some: { type_name: contributionType.name },
     },
-    include: { member: true, contributionType: true, payments: true },
+  };
+
+  // Build date range for payments
+  let dateStart: Date | undefined;
+  let dateEnd: Date | undefined;
+
+  if (year && month) {
+    dateStart = new Date(`${year}-${month}-01`);
+    dateEnd = new Date(dateStart);
+    dateEnd.setMonth(dateEnd.getMonth() + 1);
+  } else if (year) {
+    dateStart = new Date(`${year}-01-01`);
+    dateEnd = new Date(Number(year) + 1, 0, 1);
+  }
+
+  // Build payment filter
+  const paymentFilter: any = {
+    contribution_Type_id: contributionType.id,
+    penalty_type_payed_for: "automatically",
+  };
+
+  if (dateStart && dateEnd) {
+    paymentFilter.payment_date = {
+      gte: dateStart,
+      lt: dateEnd,
+    };
+  }
+
+  // Shared search logic for both members and payments
+  if (query) {
+    const filterConditions = [
+      { first_name: { contains: query, mode: "insensitive" } },
+      { second_name: { contains: query, mode: "insensitive" } },
+      { last_name: { contains: query, mode: "insensitive" } },
+      { phone_number: { contains: query, mode: "insensitive" } },
+      { custom_id: { contains: query, mode: "insensitive" } },
+    ];
+
+    memberFilter.OR = filterConditions;
+    paymentFilter.member = { OR: filterConditions };
+  }
+
+  // Fetch filtered members
+  const members = await prisma.member.findMany({
+    where: memberFilter,
+    include: {
+      Contribution: true,
+      Balance: true,
+    },
+  });
+
+  // Fetch filtered payments
+  const paymentsRaw = await prisma.paymentRecord.findMany({
+    where: paymentFilter,
+    include: {
+      member: true,
+      contributionType: true,
+      payments: true,
+    },
     orderBy: {
       payment_date: "desc",
     },
   });
 
-  // Convert Decimal fields to number in contributionType
   const payments = paymentsRaw.map((payment) => ({
     ...payment,
     contributionType: payment.contributionType
@@ -61,35 +128,19 @@ export default async function ContributionPage({ params }: PageProps) {
       : null,
   }));
 
-  console.log("payments are", payments);
-  if (type) {
-    const members = await prisma.member.findMany({
-      where: {
-        Contribution: {
-          some: {
-            type_name: types?.name,
-          },
-        },
-        status: "Active",
-      },
-      include: {
-        Contribution: true,
-        Balance: true,
-      },
-    });
-    if (!types) {
-      throw new Error("Contribution type not found");
-    }
-    const updatedTypes = { ...types, amount: Number(types.amount) };
-    return (
-      <div className="contribution-page">
-        <ContributionTemplate
-          ContributionType={updatedTypes}
-          members={members}
-          payments={payments}
-          type="automatically"
-        />
-      </div>
-    );
-  }
+  const updatedContributionType = {
+    ...contributionType,
+    amount: Number(contributionType.amount),
+  };
+
+  return (
+    <div className="contribution-page">
+      <ContributionTemplate
+        ContributionType={updatedContributionType}
+        members={members}
+        payments={payments}
+        type="automatically"
+      />
+    </div>
+  );
 }
