@@ -8,36 +8,28 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import SelectField from "../SelectField";
 import { toast } from "react-toastify";
-import { createPaymentAction, PenaltyPaymentAction } from "@/lib/actions";
+import {
+  createPaymentAction,
+  getMemberBalance,
+  PenaltyPaymentAction,
+} from "@/lib/actions";
 import {
   paymentFormSchema,
   PaymentFormSchemaType,
   penaltyPaymentFormSchema,
-  penaltyPaymentFormSchemaType,
 } from "@/lib/formValidationSchemas";
 import UploadFile from "../FileUpload/page";
 import { useFormState } from "react-dom";
-import {
-  FaMoneyBillWave,
-  FaCashRegister,
-  FaExclamation,
-  FaSearch,
-} from "react-icons/fa";
+import { FaExclamation } from "react-icons/fa";
 
-import { FiSearch } from "react-icons/fi";
 import { FaFileDownload } from "react-icons/fa";
 
 import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   FolderOpenIcon,
-  ScaleIcon,
   UserIcon,
-  UsersIcon,
 } from "@heroicons/react/24/outline";
 
 type ContributionType = {
@@ -86,6 +78,7 @@ export default function ContributionTemplate({
   const [penaltyMonths, setPenaltyMonths] = useState<
     { month: Date; amount: number }[]
   >([]);
+  const [amountError, setAmountError] = useState<string | null>(null);
   const [loadingPenaltyMonths, setLoadingPenaltyMonths] = useState(false);
   const [imageReady, setImageReady] = useState(true);
   const router = useRouter();
@@ -216,15 +209,52 @@ export default function ContributionTemplate({
     setSearchTerm("");
     setValue("member_id", 1, { shouldValidate: true });
   };
+  const fetchMemberBalance = async (
+    memberId: number,
+    contribution_id: string
+  ) => {
+    return await getMemberBalance(memberId, contribution_id);
+  };
+  type penaltyPaymentFormSchemaType = {
+    member_id: number;
+    paid_amount: string;
+    payment_method: string;
+    payment_date: string;
+    penalty_month: string;
+    receipt?: string | undefined;
+    contribution_id: string;
+  };
   const onSubmit = async (
     data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
   ) => {
+    console.log("submitted date is:", data);
     try {
       if (!selectedMember) {
         toast.error("Please select a member first");
         return;
       }
 
+      if (type === "automatically") {
+        const enteredAmount = Number(data.paid_amount);
+        const balance = await fetchMemberBalance(
+          selectedMember.id,
+          data.contribution_id
+        );
+
+        const balanceNumber =
+          typeof balance === "number" ? balance : Number(balance);
+        console.log("balance", balance);
+        console.log("entered amount", enteredAmount);
+        if (enteredAmount > balanceNumber) {
+          // toast.error(
+          //   `The amount entered (${enteredAmount}) is greater than the amount owed (${balanceNumber})`
+          // );
+          setAmountError(
+            `The entered amount (${enteredAmount}) is greater than the amount owed (${balanceNumber})`
+          );
+          return;
+        }
+      }
       const baseData = {
         member_id: selectedMember.id,
         paid_amount: Number(data.paid_amount),
@@ -249,12 +279,11 @@ export default function ContributionTemplate({
             (data as penaltyPaymentFormSchemaType).penalty_month
           ),
         };
-        console.log("Submitting manual payment data:", penaltyData);
-
         formAction(penaltyData);
       }
     } catch (error) {
       console.error("❌ Error submitting form:", error);
+      toast.error("Failed to process payment");
     }
   };
   const onError = (errors: any) => {
@@ -318,25 +347,6 @@ export default function ContributionTemplate({
               </div>
             )}
           </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            title="Total Payments"
-            value={payments.length}
-            icon={<FaCashRegister className="text-blue-500" />}
-            trend="up"
-          />
-          <StatCard
-            title="Total Amount"
-            value={payments.reduce(
-              (sum, p) => sum + Number(p.total_paid_amount),
-              0
-            )}
-            icon={<FaMoneyBillWave className="text-green-500" />}
-            currency="birr"
-          />
         </div>
 
         {/* Payments Table */}
@@ -730,7 +740,12 @@ export default function ContributionTemplate({
                     type="number"
                     required
                     register={register}
-                    error={errors.paid_amount}
+                    error={
+                      errors.paid_amount ||
+                      (amountError
+                        ? { type: "manual", message: amountError }
+                        : undefined)
+                    }
                     inputProps={{
                       step: "0.01",
                       min: "0",
@@ -740,12 +755,14 @@ export default function ContributionTemplate({
                       className: `w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 ${
                         isAmountLocked ? "bg-gray-100 cursor-not-allowed" : ""
                       }`,
+                      onChange: () => setAmountError(null), // Clear error when user types
                     }}
                   />
-                  <input
-                    type="hidden"
-                    {...register("contribution_id")}
-                    value={
+                  <InputField
+                    name="contribution_id"
+                    hidden
+                    register={register}
+                    defaultValue={
                       selectedContributionTypeFormat?.id || ContributionType?.id
                     }
                   />

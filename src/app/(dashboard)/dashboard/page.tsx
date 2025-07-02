@@ -169,20 +169,17 @@ const AdminPage = async ({}: {}) => {
 
               {isChairman && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-4">
                     <UserCard type="Penalized Members" />
                     <UserCard type="Fully Paid Members" />
                     {/* <UserCard type="Early Contributors" /> */}
                   </div>
-                  <div className="bg-white rounded-lg shadow-xs border border-gray-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"></div>
-                    <div className="h-[530px] mb-10">
+                  <div className="bg-white rounded-lg mb-16">
+                    <div className="h-[500px] ">
                       <FinanceChart contributionTypes={contributionTypes} />
                     </div>
                   </div>
-
-                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"></div>
+                  <div className="bg-white rounded-lg p-2 shadow-md mb-4  ">
                     <div>
                       <PenaltyChart />
                     </div>

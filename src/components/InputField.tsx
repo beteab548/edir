@@ -3,7 +3,7 @@ import { FieldError, UseFormRegister } from "react-hook-form";
 import { ReactNode } from "react";
 
 interface InputFieldProps {
-  label: string;
+  label?: string;
   name: string;
   type?: string;
   register: UseFormRegister<any>;

@@ -70,35 +70,20 @@ export async function GET(req: NextRequest) {
       //   break;
 
       case "fully paid members":
-        const unpaidMemberIds = await prisma.contributionSchedule.findMany({
-          where: { is_paid: false },
+        const fullyPaidMembers = await prisma.balance.findMany({
+          where: { amount: 0 },
           select: { member_id: true },
           distinct: ["member_id"],
         });
 
-        const allWithSchedules = await prisma.contributionSchedule.findMany({
-          select: { member_id: true },
-          distinct: ["member_id"],
-        });
-
-        const unpaidIdsSet = new Set(unpaidMemberIds.map((s) => s.member_id));
-        const allWithSchedulesSet = new Set(
-          allWithSchedules.map((s) => s.member_id)
-        );
-
-        const fullyPaidIds = Array.from(allWithSchedulesSet).filter(
-          (id) => !unpaidIdsSet.has(id)
-        );
-
-        const fullyPaidMembers = await prisma.member.findMany({
+        const members = await prisma.member.findMany({
           where: {
+            id: { in: fullyPaidMembers.map((b) => b.member_id) },
             status: "Active",
-            id: { in: fullyPaidIds },
           },
         });
 
-        console.log("members who paid all contributions", fullyPaidMembers);
-        currentCount = fullyPaidMembers.length;
+        currentCount = members.length;
         break;
       default:
         return NextResponse.json({ error: "Unknown type" }, { status: 400 });

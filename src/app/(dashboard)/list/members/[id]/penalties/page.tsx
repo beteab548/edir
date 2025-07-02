@@ -1,6 +1,5 @@
 // app/members/[id]/penalties/page.tsx
 import prisma from "@/lib/prisma";
-import { Penalty } from "@prisma/client";
 import { WaivePenaltyButton } from "../../../../../../components/WaivePenaltyButton";
 
 interface MemberPenaltiesPageProps {
@@ -23,8 +22,9 @@ export default async function MemberPenaltiesPage({
   });
   // Fetch all penalties for this member
   const penalties = await prisma.penalty.findMany({
-    where: { member_id: memberId ,generated:"automatically"},
+    where: { member_id: memberId, generated: "automatically" },
     include: {
+      member: true,
       contribution: {
         select: {
           type_name: true,
@@ -130,7 +130,11 @@ export default async function MemberPenaltiesPage({
                     {!penalty.is_paid && (
                       <WaivePenaltyButton
                         penaltyId={penalty.id}
-                        memberId={memberId}
+                        memberId={penalty.member_id}
+                        memberCustomId={penalty.member.custom_id}
+                        memberName={penalty.member.first_name}
+                        missedMonth={penalty.missed_month}
+                        amount={penalty.expected_amount}
                       />
                     )}
                   </td>

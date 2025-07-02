@@ -103,7 +103,7 @@ export default function PublicPage() {
                 />
               </svg>
               <h1 className="text-2xl font-bold">
-                Edir<span className="text-blue-300">Community</span>
+                Jemo Edir<span className="text-blue-300">Community</span>
               </h1>
             </div>
             <nav className="hidden md:flex space-x-8">

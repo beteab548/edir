@@ -89,7 +89,7 @@ export default function PenaltyChart() {
   };
 
   return (
-    <div className="bg-white rounded-xl w-full h-[570px] p-6 shadow-md relative">
+    <div className="bg-white rounded-xl w-full h-[550px] p-6 relative">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-6">
         <div className="flex items-center gap-4">
@@ -162,7 +162,7 @@ export default function PenaltyChart() {
             <FaMoneyBillWave className="text-amber-500 w-6 h-6" />
             <div>
               <h3 className="text-sm font-medium text-amber-800">
-                Auto Expected
+                System Expected
               </h3>
               <p className="text-xl font-bold text-amber-900 mt-1">
                 {totals.auto_expected.toLocaleString()} birr
@@ -173,7 +173,7 @@ export default function PenaltyChart() {
             <FaMoneyBillWave className="text-green-500 w-6 h-6" />
             <div>
               <h3 className="text-sm font-medium text-green-800">
-                Auto Collected
+                System Collected
               </h3>
               <p className="text-xl font-bold text-green-900 mt-1">
                 {totals.auto_collected.toLocaleString()} birr
@@ -272,28 +272,28 @@ export default function PenaltyChart() {
               />
               <Bar
                 dataKey="auto_expected"
-                name="Auto Expected"
+                name="System Generated Penalty expected"
                 fill="#f59e0b"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="auto_collected"
-                name="Auto Collected"
+                name="System Generated Penalty Collected"
                 fill="#10b981"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="manual_expected"
-                name="Manual Expected"
+                name="Admin Generated Penalty Expected"
                 fill="#ef4444"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
                 dataKey="manual_collected"
-                name="Manual Collected"
+                name="Admin Generated Penalty Collected"
                 fill="#3b82f6"
                 radius={[4, 4, 0, 0]}
-              />
+              />0
             </BarChart>
           </ResponsiveContainer>
         )}

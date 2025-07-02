@@ -811,7 +811,7 @@ export const createPenalty = async (
   currentState: CurrentState,
   data: Penalty
 ) => {
-  console.log("penalty data",data);
+  console.log("penalty data", data);
   if (!data.member_id || !data.amount) {
     console.error("Invalid data for penalty creation", data);
     return { success: false, error: true };
@@ -922,5 +922,47 @@ export async function addPenaltyType(name: string) {
     });
   } catch (err) {
     console.log(err);
+  }
+}
+export async function addPenaltyTypeModel(name: string) {
+  return prisma.penaltyTypeModel.create({ data: { name } });
+}
+
+// Get all
+export async function getPenaltyTypesModel() {
+  return prisma.penaltyTypeModel.findMany({ orderBy: { name: "asc" } });
+}
+
+// Update
+export async function updatePenaltyType(id: number, name: string) {
+  return prisma.penaltyTypeModel.update({ where: { id }, data: { name } });
+}
+
+// Delete
+export async function deletePenaltyType(id: number) {
+  return prisma.penaltyTypeModel.delete({ where: { id } });
+}
+export async function getMemberBalance(
+  memberId: number,
+  contribution_id: string
+) {
+  try {
+    const contribution = await prisma.contribution.findUnique({
+      where: {
+        member_id_contribution_type_id: {
+          member_id: memberId,
+          contribution_type_id: Number(contribution_id),
+        },
+      },
+    });
+    const balance = await prisma.balance.findFirst({
+      where: { member_id: memberId, contribution_id: contribution?.id },
+      select: { amount: true },
+    });
+
+    return Number(balance?.amount) || 0;
+  } catch (error) {
+    console.error("Error fetching balance:", error);
+    return 0;
   }
 }

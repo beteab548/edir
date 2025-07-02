@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import CreateNewContribution from "./createNewContribution";
 import ConfigureExistingContribution from "./ConfigureExistingContribution";
-import { ContributionType, Member } from "@prisma/client";
+import {  Member } from "@prisma/client";
 
 export default function ContributionPage() {
   const [showAdd, setShowAdd] = useState(false);

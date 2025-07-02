@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import {  SubmitHandler, useForm } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
+import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import useSWR from "swr";
@@ -67,6 +67,10 @@ export default function PenaltyManagement() {
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [isWaiveModalOpen, setIsWaiveModalOpen] = useState(false);
   const [selectedPenalty, setSelectedPenalty] = useState<Penalty | null>(null);
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "ascending" | "descending";
+  }>({ key: "", direction: "ascending" });
   const router = useRouter();
   const form = useForm<z.infer<typeof penaltyFormSchema>>({
     resolver: zodResolver(penaltyFormSchema),
@@ -160,9 +164,106 @@ export default function PenaltyManagement() {
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router]);
+  const sortedPenalties = useMemo(() => {
+    let sortableItems = [...penaltiesWithNumberAmount];
+    if (sortConfig.key) {
+      sortableItems.sort((a, b) => {
+        // Special handling for nested objects and dates
+        let aValue, bValue;
+
+        if (sortConfig.key === "member") {
+          aValue = `${a.member.first_name} ${a.member.last_name}`.toLowerCase();
+          bValue = `${b.member.first_name} ${b.member.last_name}`.toLowerCase();
+        } else if (sortConfig.key === "missed_month") {
+          aValue = new Date(a.missed_month).getTime();
+          bValue = new Date(b.missed_month).getTime();
+        } else if (sortConfig.key === "status") {
+          aValue = getStatusValue(a);
+          bValue = getStatusValue(b);
+        } else {
+          aValue = a[sortConfig.key as keyof Penalty];
+          bValue = b[sortConfig.key as keyof Penalty];
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === "ascending" ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === "ascending" ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [penaltiesWithNumberAmount, sortConfig]);
+
+  // Helper function for status sorting
+  function getStatusValue(penalty: Penalty) {
+    if (penalty.is_paid) return 2;
+    if (penalty.waived) return 1;
+    return 0;
+  }
+
+  // Sort request function
+  const requestSort = (key: string) => {
+    let direction: "ascending" | "descending" = "ascending";
+    if (sortConfig.key === key && sortConfig.direction === "ascending") {
+      direction = "descending";
+    }
+    setSortConfig({ key, direction });
+  };
+  const headers = [
+    { key: "id", label: "ID", sortable: false },
+    { key: "member", label: "Member", sortable: true },
+    { key: "penalty_type", label: "Type", sortable: true },
+    { key: "amount", label: "Expected Amount", sortable: true },
+    { key: "paid_amount", label: "Paid Amount", sortable: true },
+    { key: "missed_month", label: "Penalty Month", sortable: true },
+    { key: "status", label: "Status", sortable: true },
+    { key: "actions", label: "Actions", sortable: false },
+  ];
 
   if (isLoading) {
-    return <div className="container mx-auto p-4">Loading...</div>;
+    return (
+      <div className="container mx-auto p-4 animate-pulse space-y-4">
+        {/* Skeleton for header */}
+        <div className="flex justify-end mt-4">
+          <div className="h-8 bg-gray-300 rounded w-[150px]" />
+        </div>
+        <div className="h-8 bg-gray-200 rounded w-1/3 " />
+        <div className="h-4 bg-gray-100 rounded w-1/4 " />
+
+        {/* Skeleton for stat cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div
+              key={i}
+              className="p-4 rounded-lg border border-gray-200 shadow-sm space-y-2"
+            >
+              <div className="h-4 bg-gray-200 rounded w-1/2" />
+              <div className="h-6 bg-gray-300 rounded w-2/3" />
+            </div>
+          ))}
+        </div>
+
+        {/* Skeleton for table */}
+        <div className="bg-white rounded-lg border border-gray-200 mt-6">
+          <div className="h-10 bg-gray-100 rounded-t px-4 py-2" />
+          <div className="divide-y divide-gray-200">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center px-6 py-4 space-x-20">
+                {[...Array(6)].map((__, j) => (
+                  <div
+                    key={j}
+                    className="h-4 bg-gray-100 rounded w-full max-w-[100px]"
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {
@@ -235,27 +336,26 @@ export default function PenaltyManagement() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                {[
-                  "ID",
-                  "Member",
-                  "Type",
-                  "Expected Amount",
-                  "Paid Amount",
-                  "Penalty Month",
-                  "Status",
-                  "Actions",
-                ].map((header) => (
+                {headers.map((header) => (
                   <th
-                    key={header}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider overflow-x-hidden"
+                    key={header.key}
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider overflow-x-hidden cursor-pointer hover:bg-gray-100"
+                    onClick={() => header.sortable && requestSort(header.key)}
                   >
-                    {header}
+                    <div className="flex items-center">
+                      {header.label}
+                      {sortConfig.key === header.key && (
+                        <span className="ml-1">
+                          {sortConfig.direction === "ascending" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {penaltiesWithNumberAmount.map((penalty: Penalty) => (
+              {sortedPenalties.map((penalty: Penalty) => (
                 <tr
                   key={penalty.id}
                   className="hover:bg-gray-50 transition-colors"
@@ -338,9 +438,7 @@ export default function PenaltyManagement() {
             <p className="mt-1 text-sm text-gray-500">
               Get started by adding a new penalty.
             </p>
-            <div className="mt-6">
-             
-            </div>
+            <div className="mt-6"></div>
           </div>
         )}
       </div>
