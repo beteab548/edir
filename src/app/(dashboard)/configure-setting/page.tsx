@@ -28,7 +28,6 @@ interface TabData {
 export default function ContributionTabs() {
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
   const { isLoaded: userLoaded, user } = useUser();
-  const [MembersWithPenalities, setMembersWithPenalities] = useState([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string } | null>(null);
@@ -42,12 +41,10 @@ export default function ContributionTabs() {
         setError(null);
         const res = await fetch("/api/fetchSettingDatas");
         if (!res.ok) throw new Error("Failed to fetch data");
-        const { MembersWithPenalities, penalties, allMembers } =
+        const {  penalties, allMembers } =
           await res.json();
-        console.log("MembersWithPenalities", MembersWithPenalities);
         console.log("penalties", penalties);
         console.log("allmembers", allMembers);
-        setMembersWithPenalities(MembersWithPenalities);
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError({ message: err.message });
@@ -150,14 +147,7 @@ export default function ContributionTabs() {
       label: "Configure Contribution",
       component: <ContributionTab />,
     },
-    {
-      id: "contributionPenalty",
-      label: "Configure Contribution Penalty",
-      component: (
-        <ContributionPenaltyTab initialMembers={MembersWithPenalities} />
-      ),
-    },
-
+ 
     {
       id: "configurePenalty",
       label: "Configure Penalty",

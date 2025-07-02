@@ -17,8 +17,8 @@ interface PenaltiesOverviewPageProps {
     })[];
   })[];
 }
-  // generateContributionSchedulesForAllActiveMembers()
-export default function PenaltiesOverviewPage({
+// generateContributionSchedulesForAllActiveMembers()
+export default function SystemPenaltyManagement({
   initialMembers,
 }: PenaltiesOverviewPageProps) {
   const [selectedType, setSelectedType] = useState<ContributionMode | "all">(
@@ -47,7 +47,7 @@ export default function PenaltiesOverviewPage({
       acc[type.mode].totalAmount +=
         Number(penalty.expected_amount) - Number(penalty.paid_amount);
       return acc;
-    }, {} as Record<string, { count: number; totalAmount: number; typeName: string }> );
+    }, {} as Record<string, { count: number; totalAmount: number; typeName: string }>);
   };
 
   return (
@@ -120,9 +120,7 @@ export default function PenaltiesOverviewPage({
             ) : (
               filteredMembers.map((member) => {
                 const penaltiesByType = getPenaltiesByType(member);
-                const allPenaltiesPaid = member.Penalty.every(
-                  (p) => p.is_paid
-                );
+                const allPenaltiesPaid = member.Penalty.every((p) => p.is_paid);
 
                 return (
                   <tr key={member.id} className="hover:bg-gray-50">

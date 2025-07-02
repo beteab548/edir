@@ -50,12 +50,6 @@ const menuItems = [
         visible: ["admin", "chairman"],
         hasDropdown: true,
       },
-    ],
-  },
-  {
-    title: "OTHER",
-    icon: <FiMoreHorizontal size={16} className="inline-block mr-1 " />,
-    items: [
       {
         icon: <FiSettings size={20} />,
         label: "Settings",
@@ -77,7 +71,9 @@ const Menu = () => {
   const role = user?.publicMetadata.role as string;
   const pathname = usePathname();
 
-  const [contributionTypes, setContributionTypes] = useState<ContributionType[]>([]);
+  const [contributionTypes, setContributionTypes] = useState<
+    ContributionType[]
+  >([]);
   const [isLoading, setIsLoading] = useState(true);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
@@ -99,7 +95,8 @@ const Menu = () => {
 
   if (!user || !role) return null;
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href);
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href);
 
   if (isLoading) {
     return (
@@ -118,7 +115,9 @@ const Menu = () => {
       <div className="mt-4 text-sm space-y-6">
         <AnimatePresence mode="wait">
           {menuItems.map(({ title, icon, items }) => {
-            const visibleItems = items.filter((item) => item.visible.includes(role));
+            const visibleItems = items.filter((item) =>
+              item.visible.includes(role)
+            );
             if (!visibleItems.length) return null;
 
             return (
@@ -232,7 +231,9 @@ const Menu = () => {
                           })}
                         </motion.div>
 
-                        <span className="hidden md:block text-sm">{item.label}</span>
+                        <span className="hidden md:block text-sm">
+                          {item.label}
+                        </span>
 
                         {(isItemActive || isItemHovered) && (
                           <motion.div
