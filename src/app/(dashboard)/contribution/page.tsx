@@ -2,6 +2,7 @@
 import Link from "next/link";
 import prisma from "@/lib/prisma"; // Adjust according to your project setup
 import Image from "next/image";
+import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 
 export default async function ContributionPage() {
   const contributionOptions = await prisma.contributionType.findMany({
@@ -10,6 +11,7 @@ export default async function ContributionPage() {
       name: true,
     },
   });
+  generateContributionSchedulesForAllActiveMembers()
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-12">
@@ -34,9 +36,10 @@ export default async function ContributionPage() {
                 <div className="text-4xl mb-4">
                   <Image
                     src={"/contributionIcon.png"}
-                    height={70}
-                    width={70}
+                    height={90}
+                    width={90}
                     alt="contribution icon"
+                    unoptimized
                   />
                 </div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">

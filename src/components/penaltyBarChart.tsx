@@ -206,7 +206,7 @@ export default function PenaltyChart() {
       )}
 
       {/* Chart */}
-      <div className="h-[calc(100%-180px)] min-h-[300px] bg-gray-50 rounded-lg px-4 py-6">
+      <div className="h-[calc(100%-210px)] min-h-[300px] bg-gray-50 rounded-lg px-4 py-6">
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center gap-4">
             <Skeleton height={300} width="100%" />

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import ManualPenaltyManagement from "./penalty";
-import SystemPenaltyManagement from "@/components/penalties";
+import ManualPenaltyManagement from "../../../components/manualPenalty";
+import SystemPenaltyManagement from "@/components/Systempenalty";
 
 type Tab = "System Generated" | "Admin Generated";
 
@@ -61,51 +61,54 @@ export default function TabSwitcher() {
 
       <div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300">
         {isLoading ? (
-        
-    <div className="container mx-auto px-4 py-8 animate-pulse">
-      <h1 className="text-2xl font-bold text-gray-300 mb-6 bg-gray-200 w-64 h-6 rounded"></h1>
+          <div className="container mx-auto px-4 py-8 animate-pulse">
+            <h1 className="text-2xl font-bold text-gray-300 mb-6 bg-gray-200 w-64 h-6 rounded"></h1>
 
-      {/* Filter buttons skeleton */}
-      <div className="flex gap-2 mb-6">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="h-8 w-28 rounded-full bg-gray-200"
-          ></div>
-        ))}
-      </div>
+            {/* Filter buttons skeleton */}
+            <div className="flex gap-2 mb-6">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-8 w-28 rounded-full bg-gray-200"
+                ></div>
+              ))}
+            </div>
 
-      <div className="bg-white rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              {["Member", "Phone", "Contribution Types", "Penalty Details", "All Penalty Paid", "Actions"].map(
-                (heading) => (
-                  <th
-                    key={heading}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
-                  >
-                    {heading}
-                  </th>
-                )
-              )}
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-100">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <tr key={i} className="hover:bg-gray-50">
-                {Array.from({ length: 6 }).map((_, j) => (
-                  <td key={j} className="px-6 py-4 whitespace-nowrap">
-                    <div className="h-4 bg-gray-200 rounded w-full max-w-[160px]"></div>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
+            <div className="bg-white rounded-lg overflow-hidden">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {[
+                      "Member",
+                      "Phone",
+                      "Contribution Types",
+                      "Penalty Details",
+                      "All Penalty Paid",
+                      "Actions",
+                    ].map((heading) => (
+                      <th
+                        key={heading}
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider"
+                      >
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="hover:bg-gray-50">
+                      {Array.from({ length: 6 }).map((_, j) => (
+                        <td key={j} className="px-6 py-4 whitespace-nowrap">
+                          <div className="h-4 bg-gray-200 rounded w-full max-w-[160px]"></div>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : error ? (
           <div className="text-center text-red-500 text-sm">
             {error.message}

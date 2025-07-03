@@ -1,5 +1,6 @@
 "use client";
 
+import { FiAlertCircle } from "react-icons/fi";
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -109,10 +110,11 @@ export default function PenaltyDropdown({
                   <Image
                     src={iconSrc}
                     alt="penalty icon"
-                    width={18}
-                    height={18}
+                    width={28}
+                    height={28}
                     className="rounded-sm"
                     priority={false}
+                    unoptimized
                   />
                   <motion.span
                     whileHover={{ x: 2 }}
@@ -142,7 +144,9 @@ export default function PenaltyDropdown({
                   `}
               >
                 {/* Image icon before penalty label */}
-                <FiSettings size={20} />
+
+<FiAlertCircle className="text-red-500 w-5 h-5 mr-2" />
+
                 <motion.span
                   whileHover={{ x: 2 }}
                   transition={{ type: "spring", stiffness: 300 }}

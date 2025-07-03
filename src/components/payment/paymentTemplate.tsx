@@ -1,5 +1,5 @@
 "use client";
-import {  Member, Payment } from "@prisma/client";
+import { Member, Payment } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -10,6 +10,7 @@ import SelectField from "../SelectField";
 import { toast } from "react-toastify";
 import {
   createPaymentAction,
+  deletePayment,
   getMemberBalance,
   PenaltyPaymentAction,
 } from "@/lib/actions";
@@ -32,6 +33,7 @@ import {
   UserIcon,
 } from "@heroicons/react/24/outline";
 import FilterBar from "../filterbar";
+import DeletePaymentButton from "../deletePaymnetModal";
 
 type ContributionType = {
   id: number;
@@ -95,8 +97,7 @@ export default function ContributionTemplate({
     register,
     handleSubmit,
     setValue,
-    reset,
-    formState: { errors, isValid },
+    formState: { errors },
     watch,
   } = useForm<PaymentFormSchemaType | penaltyPaymentFormSchemaType>({
     resolver: zodResolver(
@@ -337,7 +338,7 @@ export default function ContributionTemplate({
             {/* Tooltip for disabled state */}
             {(members.length <= 0 ||
               (ContributionType && !ContributionType.is_active)) && (
-                <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2">
+              <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2">
                 {members.length <= 0
                   ? "No members available"
                   : "Contribution is inactive"}
@@ -345,7 +346,7 @@ export default function ContributionTemplate({
             )}
           </div>
         </div>
-            <FilterBar />
+        <FilterBar />
 
         {/* Payments Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -378,10 +379,13 @@ export default function ContributionTemplate({
                   payments.map((payment) => (
                     <React.Fragment key={payment.id}>
                       {/* Main Payment Row */}
-                      <tr className="hover:bg-blue-50 transition-colors">
+                      <tr
+                        className="hover:bg-blue-50 transition-colors hover:cursor-pointer"
+                        onClick={() => toggleDetails(payment.id)}
+                      >
                         <TableCell>
                           <span className="font-medium text-gray-900">
-                            #{payment.id}
+                            {/* PY-001{payment.id} */} fix id
                           </span>
                         </TableCell>
                         <TableCell>
@@ -447,16 +451,12 @@ export default function ContributionTemplate({
                           </TableCell>
                         )}
                         <TableCell>
-                          <button
-                            onClick={() => toggleDetails(payment.id)}
-                            className="text-blue-600 hover:text-blue-800 p-1 rounded hover:bg-blue-100"
-                          >
-                            {openPaymentId === payment.id ? (
-                              <ChevronUpIcon className="h-5 w-5" />
-                            ) : (
-                              <ChevronDownIcon className="h-5 w-5" />
-                            )}
-                          </button>
+                          <DeletePaymentButton
+                            paymentId={payment.id}
+                            memberName={`${payment.member.first_name} ${payment.member.last_name}`}
+                            amount={payment.total_paid_amount}
+                            paymentDate={payment.payment_date}
+                          />
                         </TableCell>
                       </tr>
 
@@ -862,36 +862,6 @@ export default function ContributionTemplate({
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// Helper Components
-function StatCard({
-  title,
-  value,
-  icon,
-  trend,
-  currency,
-}: {
-  title: string;
-  value: number;
-  icon: React.ReactNode;
-  trend?: "up" | "down";
-  currency?: string;
-}) {
-  return (
-    <div className="bg-white p-4 rounded-xl shadow-xs border border-gray-200">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-2xl font-semibold text-gray-900">
-            {value.toLocaleString()}
-            {currency && ` ${currency}`}
-          </p>
-        </div>
-        <div className="p-3 rounded-full bg-gray-50">{icon}</div>
-      </div>
     </div>
   );
 }

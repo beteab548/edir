@@ -107,7 +107,7 @@ export const createMember = async (
         },
       });
 
-      const formattedId = `EDM-${createdMember.id.toString().padStart(3, "0")}`;
+      const formattedId = `EDM-${createdMember.id.toString().padStart(4, "0")}`;
       await tx.member.update({
         where: { id: createdMember.id },
         data: { custom_id: formattedId },
@@ -115,7 +115,6 @@ export const createMember = async (
       // If new member, assign contributions
       if (createdMember.member_type === "New") {
         const today = new Date();
-
         const activeContributionTypes = await tx.contributionType.findMany({
           where: {
             is_active: true,
@@ -947,6 +946,31 @@ export async function getMemberBalance(
   contribution_id: string
 ) {
   try {
+    const MembersContribution = await prisma.contribution.findFirst({
+      where: {
+        member_id: memberId,
+        contribution_type_id: Number(contribution_id),
+      },
+    });
+    const penaltypaid = await prisma.penalty.findMany({
+      where: { member_id: memberId, contribution_id: MembersContribution?.id },
+      select: { paid_amount: true },
+    });
+    const penaltyExpected = await prisma.penalty.findMany({
+      where: { member_id: memberId, contribution_id: MembersContribution?.id },
+      select: { expected_amount: true },
+    });
+    const totalExpected = penaltyExpected.reduce(
+      (sum, p) => sum + p.expected_amount.toNumber(),
+      0
+    );
+    const totalPaid = penaltypaid.reduce(
+      (sum, p) => sum + (p.paid_amount?.toNumber() || 0),
+      0
+    );
+    console.log("total Expected", totalExpected);
+    console.log("total paid", totalPaid);
+    const remaining = totalExpected - totalPaid;
     const contribution = await prisma.contribution.findUnique({
       where: {
         member_id_contribution_type_id: {
@@ -959,10 +983,23 @@ export async function getMemberBalance(
       where: { member_id: memberId, contribution_id: contribution?.id },
       select: { amount: true },
     });
-
-    return Number(balance?.amount) || 0;
+    const totalBalance = (balance ? balance.amount.toNumber() : 0) + remaining;
+    return totalBalance;
   } catch (error) {
     console.error("Error fetching balance:", error);
     return 0;
+  }
+}
+export async function deletePayment(
+  currentState: CurrentState,
+  paymentId: number
+) {
+  const deleted = await prisma.paymentRecord.delete({
+    where: { id: paymentId },
+  });
+  if (deleted) {
+    return { success: true, error: false };
+  } else {
+    return { success: false, error: true };
   }
 }

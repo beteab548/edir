@@ -52,7 +52,7 @@ type Penalty = {
   reason: string;
   amount: number;
   paid_amount: number;
-  missed_month: Date;
+  missed_month: string;
   is_paid: boolean;
   applied_at: Date;
   resolved_at: Date | null;
@@ -77,7 +77,7 @@ export default function ManualPenaltyManagement() {
     defaultValues: {
       member_id: 0,
       amount: 0,
-      missed_month: new Date(),
+      missed_month: new Date().toISOString().split("T")[0],
       generated: "manually",
     },
   });
@@ -151,7 +151,10 @@ export default function ManualPenaltyManagement() {
   };
 
   const onSubmit: SubmitHandler<z.infer<typeof penaltyFormSchema>> = (data) => {
-    formAction(data);
+    formAction({
+      ...data,
+      missed_month: new Date(data.missed_month),
+    });
   };
 
   useEffect(() => {
@@ -548,12 +551,6 @@ export default function ManualPenaltyManagement() {
                     required
                     type="date"
                     register={form.register}
-                    defaultValue={format(new Date(), "yyyy-MM-dd")}
-                    registerOptions={{
-                      setValueAs: (value: string) =>
-                        value ? new Date(value) : new Date(),
-                      required: "Missed date is required",
-                    }}
                     error={form.formState.errors.missed_month}
                     icon={<CalendarIcon className="text-gray-400" />}
                   />

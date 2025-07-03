@@ -1,7 +1,8 @@
 import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
-import Penalty from "../../../../components/penalties";
+import Penalty from "../../../../components/Systempenalty";
 import { getMembersWithPenalties } from "@/lib/actions";
+import { notFound } from "next/navigation";
 
 interface PageProps {
   params: {
@@ -25,9 +26,9 @@ export default async function ContributionPage({
   if (decodedType.toLowerCase() === "penalties") {
     const members = (await getMembersWithPenalties()).map((member) => ({
       ...member,
-      Penalty: member.Penalty.filter((penalty) => penalty.contribution !== null).map(
-        (penalty) => ({ ...penalty, contribution: penalty.contribution! })
-      ),
+      Penalty: member.Penalty.filter(
+        (penalty) => penalty.contribution !== null
+      ).map((penalty) => ({ ...penalty, contribution: penalty.contribution! })),
     }));
     return (
       <div className="contribution-page">
@@ -41,7 +42,7 @@ export default async function ContributionPage({
   });
 
   if (!contributionType) {
-    throw new Error("Contribution type not found");
+     notFound();
   }
 
   // Build member filter

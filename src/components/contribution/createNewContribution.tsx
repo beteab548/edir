@@ -12,6 +12,7 @@ import { Member } from "@prisma/client";
 import { ContributionTypeSchema } from "@/lib/formValidationSchemas";
 import ModalPortal from "../ModalPortal";
 import { useDataChange } from "../DataChangeContext";
+import { useRouter } from "next/navigation";
 
 type ContributionTypeForm = z.infer<typeof ContributionTypeSchema>;
 
@@ -27,6 +28,7 @@ export default function CreateNewContribution({
   const [showMemberSelection, setShowMemberSelection] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const { setDataChanged } = useDataChange();
+  const router=useRouter()
   const {
     register,
     handleSubmit,
@@ -89,6 +91,7 @@ export default function CreateNewContribution({
         setSelectedMemberIds([]);
         setDataChanged((true));
         onClose();
+        router.push('/contribution')
       } else {
         toast.error("Failed to create contribution type");
       }

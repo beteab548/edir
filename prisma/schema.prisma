@@ -47,7 +47,6 @@ model Member {
   Penalty Penalty[]
   Contribution Contribution[]
   PaymentRecord PaymentRecord[]
-
 }
 
 model Relative{
@@ -94,24 +93,23 @@ model ContributionType {
   mode           ContributionMode @default(OneTimeWindow) 
   period_months  Int?            
   contributions  Contribution[]
-
   PaymentRecord PaymentRecord[]
 }
 
 model PaymentRecord {
-  id                Int       @id @default(autoincrement())
-  member_id         Int
-  contribution_Type_id   Int?
-  payment_date      DateTime  @default(now())
-  payment_method    String
+  id                   Int       @id @default(autoincrement())
+  member_id            Int
+  contribution_Type_id Int?
+  payment_date       DateTime  @default(now())
+  payment_method     String
   document_reference String   @default("-") 
-  total_paid_amount Decimal  
-  remaining_balance Decimal?
+  total_paid_amount  Decimal  
+  remaining_balance  Decimal?
   penalty_type_payed_for PenaltyType? @default(automatically) 
-  member            Member      @relation(fields: [member_id], references: [id],onDelete: Cascade)
-  contributionType      ContributionType? @relation(fields: [contribution_Type_id], references: [id],onDelete: Cascade)
-  payments          Payment[]    
-  created_at        DateTime    @default(now())
+  member                 Member      @relation(fields: [member_id], references: [id],onDelete: Cascade)
+  contributionType       ContributionType? @relation(fields: [contribution_Type_id], references: [id],onDelete: Cascade)
+  payments               Payment[]    
+  created_at         DateTime    @default(now())
 }
 
 model Payment {
@@ -123,11 +121,12 @@ model Payment {
   payment_type            String   
   payment_month           String    
   paid_amount             Decimal
-  paymentRecord           PaymentRecord @relation(fields: [payment_record_id], references: [id])
-  member                  Member        @relation(fields: [member_id], references: [id])
-  contribution            Contribution  @relation(fields: [contribution_id], references: [id])
-  contributionSchedule    ContributionSchedule? @relation(fields: [contribution_schedule_id], references: [id])
+  paymentRecord           PaymentRecord @relation(fields: [payment_record_id], references: [id],onDelete: Cascade)
+  member                  Member        @relation(fields: [member_id], references: [id],onDelete: Cascade)
+  contribution            Contribution  @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
+  contributionSchedule    ContributionSchedule? @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
 }
+
 model Balance {
   id                Int          @id @default(autoincrement())
   member_id         Int
@@ -138,6 +137,7 @@ model Balance {
   contribution      Contribution @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
   @@unique([member_id, contribution_id]) 
 }
+
 model Penalty {
   id                        Int                   @id @default(autoincrement())
   member_id                 Int
@@ -159,10 +159,13 @@ model Penalty {
   penaltyTypeId Int?
   penaltyType   PenaltyTypeModel?   @relation(fields: [penaltyTypeId], references: [id], onDelete: Cascade)
 }
+
 model PenaltyTypeModel {
+
   id        Int      @id @default(autoincrement())
   name      String   @unique
   penalties Penalty[]
+
 }
 
 
@@ -180,7 +183,13 @@ model ContributionSchedule {
   contribution    Contribution  @relation(fields: [contribution_id], references: [id],onDelete: Cascade)
   Payment Payment[]
 }
-
+model Announcements {
+id Int @id @default(autoincrement())
+title String
+Description String
+created_at DateTime
+calendar DateTime
+}
 enum Sex {
   Male   
   Female 

@@ -96,10 +96,11 @@ export default function ContributionDropdown({
               {contributionTypes.map((type) => (
                 <Link
                   key={type.id}
-                  href={`/contribution/${type.name}`}
+                  href={`/contribution/${encodeURIComponent(type.name)}`}
                   className={`text-sm px-1 py-2 rounded-md flex items-center gap-2 transition-colors
                     ${
-                      pathname === `/contribution/${type.name}`
+                      pathname ===
+                      `/contribution/${encodeURIComponent(type.name)}`
                         ? "bg-lamaSkyLight/40 text-lama font-medium"
                         : "text-gray-600 hover:bg-gray-100"
                     }
@@ -109,10 +110,11 @@ export default function ContributionDropdown({
                   <Image
                     src={iconSrc}
                     alt="contribution icon"
-                    width={18}
-                    height={18}
+                    width={28}
+                    height={28}
                     className="rounded-sm"
                     priority={false}
+                    unoptimized
                   />
                   <motion.span
                     whileHover={{ x: 2 }}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import ContributionTab from "../../../components/contribution/contributionPage";
-import ContributionPenaltyTab from "@/components/penalties";
+import ContributionPenaltyTab from "@/components/Systempenalty";
 import { useUser } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -12,11 +12,12 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import AddNewPenaltyType from "@/components/AddNewPenaltyType";
+import { AnnouncementManager } from "@/components/AnnouncementManager ";
 
 type Tab =
   | "contribution"
   | "contributionPenalty"
-  | "penalty"
+  | "Announcements Manager"
   | "configurePenalty";
 
 interface TabData {
@@ -41,8 +42,7 @@ export default function ContributionTabs() {
         setError(null);
         const res = await fetch("/api/fetchSettingDatas");
         if (!res.ok) throw new Error("Failed to fetch data");
-        const {  penalties, allMembers } =
-          await res.json();
+        const { penalties, allMembers } = await res.json();
         console.log("penalties", penalties);
         console.log("allmembers", allMembers);
       } catch (err: unknown) {
@@ -147,12 +147,17 @@ export default function ContributionTabs() {
       label: "Configure Contribution",
       component: <ContributionTab />,
     },
- 
+
     {
       id: "configurePenalty",
       label: "Configure Penalty",
       component: <AddNewPenaltyType />,
     },
+    // {
+    //   id: "Announcements Manager",
+    //   label: "Announcements Manager",
+    //   component: <AnnouncementManager />,
+    // },
   ];
 
   return (

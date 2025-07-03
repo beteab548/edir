@@ -351,7 +351,7 @@ export const ContributionTypeSchema = z
 export const penaltyFormSchema = z.object({
   member_id: z.number().min(1, "Member is required"),
   amount: z.number().min(0, "Amount must be positive"),
-  missed_month: z.date(),
+  missed_month: z.string(),
   generated: z.enum(["automatically", "manually"]),
   penalty_type: z.string().min(1, { message: "Penalty type is required" }),
 });
