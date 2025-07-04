@@ -47,6 +47,7 @@ type ContributionType = {
 
 type PaymentRecord = {
   id: number;
+  custom_id: string;
   member_id: number;
   contribution_Type_id?: number | null;
   payment_method: string;
@@ -98,6 +99,7 @@ export default function ContributionTemplate({
     handleSubmit,
     setValue,
     formState: { errors },
+    reset,
     watch,
   } = useForm<PaymentFormSchemaType | penaltyPaymentFormSchemaType>({
     resolver: zodResolver(
@@ -185,14 +187,17 @@ export default function ContributionTemplate({
     setSearchTerm("");
     setImageUrl(null);
     setIsAmountLocked(false);
-    setValue("paid_amount", "", { shouldValidate: true });
-    setValue("payment_method", "Cash", { shouldValidate: true });
-    setValue("payment_date", new Date().toISOString().split("T")[0], {
-      shouldValidate: true,
+    setPenaltyMonths([]);
+    setAmountError(null);
+    reset({
+      payment_method: "Cash",
+      receipt: "",
+      payment_date: new Date().toISOString().split("T")[0],
+      penalty_month: "",
+      paid_amount: "",
+      member_id: 1,
+      contribution_id: ContributionType?.id?.toString() || "",
     });
-    setValue("penalty_month", "", { shouldValidate: true });
-    setValue("receipt", "", { shouldValidate: true });
-    return;
   };
   const toggleDetails = (id: number) => {
     setOpenPaymentId((prev) => (prev === id ? null : id));
@@ -291,11 +296,11 @@ export default function ContributionTemplate({
   useEffect(() => {
     if (state.success) {
       toast.success(` Payment created successfully!`);
+      resetValues();
       type === "automatically"
         ? router.push(`/contribution/${ContributionType?.name}`)
         : router.push("/penalty/payment");
-      router.refresh();
-      return resetValues();
+      return router.refresh();
     }
     if (state.error) toast.error("Something went wrong");
   }, [state, router, type]);
@@ -385,7 +390,7 @@ export default function ContributionTemplate({
                       >
                         <TableCell>
                           <span className="font-medium text-gray-900">
-                            {/* PY-001{payment.id} */} fix id
+                            {payment.custom_id}
                           </span>
                         </TableCell>
                         <TableCell>
@@ -813,6 +818,7 @@ export default function ContributionTemplate({
                       setShowAddModal(false);
                       setSelectedMember(null);
                       setSearchTerm("");
+                      resetValues();
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >

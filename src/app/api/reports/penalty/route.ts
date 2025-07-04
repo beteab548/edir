@@ -1,52 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { startOfMonth, endOfMonth } from "date-fns";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const yearParam = searchParams.get("year");
-  const year = yearParam ? parseInt(yearParam) : new Date().getFullYear();
+  const year = parseInt(searchParams.get("year") || "");
+  const penaltyType = searchParams.get("penaltyType")?.toLowerCase();
 
-  const months = Array.from({ length: 12 }, (_, i) => i); // Jan to Dec
+  if (!year || isNaN(year)) {
+    return NextResponse.json({ error: "Invalid or missing year" }, { status: 400 });
+  }
 
-  const summary = await Promise.all(
-    months.map(async (month) => {
-      const from = startOfMonth(new Date(year, month));
-      const to = endOfMonth(new Date(year, month));
-
-      const penalties = await prisma.penalty.findMany({
-        where: {
-          missed_month: {
-            gte: from,
-            lte: to,
-          },
+  try {
+    const allPenalties = await prisma.penalty.findMany({
+      where: {
+        missed_month: {
+          gte: new Date(`${year}-01-01`),
+          lte: new Date(`${year}-12-31`),
         },
-      });
+        ...(penaltyType && penaltyType !== "all"
+          ? {
+              penalty_type: {
+                equals: penaltyType,
+                mode: "insensitive",
+              },
+            }
+          : {}),
+      },
+      select: {
+        missed_month: true,
+        expected_amount: true,
+        paid_amount: true,
+        penalty_type: true,
+      },
+    });
 
-      // Filter out waived penalties before grouping
-      const filteredPenalties = penalties.filter((p) => !p.waived);
+    // Initialize months with zero totals
+    const resultByMonth: Record<
+      string,
+      { name: string; expected: number; paid: number }
+    > = {};
 
-      const auto = filteredPenalties.filter(
-        (p) => p.generated === "automatically"
-      );
-      const manual = filteredPenalties.filter(
-        (p) => p.generated === "manually"
-      );
-
-      const sum = (
-        arr: typeof penalties,
-        key: "expected_amount" | "paid_amount"
-      ) => arr.reduce((total, p) => total + parseFloat(p[key].toString()), 0);
-
-      return {
-        name: from.toLocaleString("default", { month: "short" }),
-        auto_expected: sum(auto, "expected_amount"),
-        auto_collected: sum(auto, "paid_amount"),
-        manual_expected: sum(manual, "expected_amount"),
-        manual_collected: sum(manual, "paid_amount"),
+    for (let i = 0; i < 12; i++) {
+      const monthName = new Date(year, i).toLocaleString("default", { month: "short" });
+      resultByMonth[monthName] = {
+        name: monthName,
+        expected: 0,
+        paid: 0,
       };
-    })
-  );
+    }
 
-  return NextResponse.json(summary);
+    // Aggregate expected and paid amounts by month
+    for (const p of allPenalties) {
+      const monthKey = p.missed_month.toLocaleString("default", { month: "short" });
+      const expected = Number(p.expected_amount || 0);
+      const paid = Number(p.paid_amount || 0);
+
+      if (!resultByMonth[monthKey]) {
+        // In case penalty month is out of expected range, skip or initialize
+        continue;
+      }
+
+      resultByMonth[monthKey].expected += expected;
+      resultByMonth[monthKey].paid += paid;
+    }
+
+    const responseArray = Object.values(resultByMonth);
+
+    return NextResponse.json(responseArray);
+  } catch (error) {
+    console.error("Error generating penalty chart data:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

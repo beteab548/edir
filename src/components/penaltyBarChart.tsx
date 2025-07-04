@@ -14,8 +14,6 @@ import {
 import {
   FiAlertCircle,
   FiBarChart2,
-  FiDownload,
-  FiRefreshCw,
   FiCalendar,
   FiTrendingUp,
   FiMoreVertical,
@@ -25,22 +23,37 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
 interface PenaltyData {
-  name: string;
-  auto_expected: number;
-  auto_collected: number;
-  manual_expected: number;
-  manual_collected: number;
+  name: string; // e.g. month name or label
+  expected: number; // total expected for this month
+  paid: number;     // total paid for this month
 }
+
+interface PenaltyType {
+  name: string;
+}
+
+interface PenaltyChartProps {
+  penaltyTypes: PenaltyType[];
+}
+
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 3 }, (_, i) => currentYear - i);
 
-export default function PenaltyChart() {
+export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [selectedType, setSelectedType] = useState("all");
   const [data, setData] = useState<PenaltyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+
+  const typeOptions = [
+    { name: "All Penalties", value: "all" },
+    ...penaltyTypes.map((type) => ({
+      name: type.name,
+      value: type.name,
+    })),
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,11 +62,14 @@ export default function PenaltyChart() {
 
       try {
         const url = `/api/reports/penalty?year=${selectedYear}${
-          selectedType !== "all" ? `&type=${selectedType}` : ""
+          selectedType !== "all" ? `&penaltyType=${selectedType}` : ""
         }`;
         const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to fetch data");
         const result = await response.json();
+
+        // Assuming the API returns an array of monthly penalty data objects:
+        // [{ name: "January", expected: number, paid: number }, ...]
         setData(result);
       } catch (err) {
         setError(
@@ -68,19 +84,13 @@ export default function PenaltyChart() {
     fetchData();
   }, [selectedYear, selectedType]);
 
+  // Calculate overall totals across all months
   const totals = data.reduce(
-    (acc, month) => ({
-      auto_expected: acc.auto_expected + month.auto_expected,
-      auto_collected: acc.auto_collected + month.auto_collected,
-      manual_expected: acc.manual_expected + month.manual_expected,
-      manual_collected: acc.manual_collected + month.manual_collected,
+    (acc, item) => ({
+      expected: acc.expected + item.expected,
+      paid: acc.paid + item.paid,
     }),
-    {
-      auto_expected: 0,
-      auto_collected: 0,
-      manual_expected: 0,
-      manual_collected: 0,
-    }
+    { expected: 0, paid: 0 }
   );
 
   const handleExport = (format: string) => {
@@ -98,7 +108,7 @@ export default function PenaltyChart() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold text-gray-800">
-              Monthly Penalties Chart
+              Penalties Chart
             </h1>
             <p className="text-sm text-gray-500">
               {selectedYear} •{" "}
@@ -126,6 +136,25 @@ export default function PenaltyChart() {
               ))}
             </select>
           </div>
+
+          {/* Penalty Type Selector */}
+          <div className="relative w-full sm:w-auto">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-2 text-gray-400 pointer-events-none">
+              <FiTrendingUp />
+            </div>
+            <select
+              value={selectedType}
+              onChange={(e) => setSelectedType(e.target.value)}
+              className="pl-9 pr-4 py-2 rounded-lg border border-gray-300 text-gray-700 bg-white focus:ring-2 focus:ring-amber-500 w-full sm:w-auto appearance-none shadow-sm"
+            >
+              {typeOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* Export */}
           <div className="relative">
             <button
@@ -157,48 +186,22 @@ export default function PenaltyChart() {
 
       {/* Summary */}
       {!isLoading && !error && data.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 flex items-center gap-4">
             <FaMoneyBillWave className="text-amber-500 w-6 h-6" />
             <div>
-              <h3 className="text-sm font-medium text-amber-800">
-                System Expected
-              </h3>
+              <h3 className="text-sm font-medium text-amber-800">Total Expected</h3>
               <p className="text-xl font-bold text-amber-900 mt-1">
-                {totals.auto_expected.toLocaleString()} birr
+                {totals.expected.toLocaleString()} birr
               </p>
             </div>
           </div>
           <div className="bg-green-50 p-4 rounded-lg border border-green-100 flex items-center gap-4">
             <FaMoneyBillWave className="text-green-500 w-6 h-6" />
             <div>
-              <h3 className="text-sm font-medium text-green-800">
-                System Collected
-              </h3>
+              <h3 className="text-sm font-medium text-green-800">Total Paid</h3>
               <p className="text-xl font-bold text-green-900 mt-1">
-                {totals.auto_collected.toLocaleString()} birr
-              </p>
-            </div>
-          </div>
-          <div className="bg-red-50 p-4 rounded-lg border border-red-100 flex items-center gap-4">
-            <FaMoneyBillWave className="text-red-500 w-6 h-6" />
-            <div>
-              <h3 className="text-sm font-medium text-red-800">
-                Manual Expected
-              </h3>
-              <p className="text-xl font-bold text-red-900 mt-1">
-                {totals.manual_expected.toLocaleString()} birr
-              </p>
-            </div>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-center gap-4">
-            <FaMoneyBillWave className="text-blue-500 w-6 h-6" />
-            <div>
-              <h3 className="text-sm font-medium text-blue-800">
-                Manual Collected
-              </h3>
-              <p className="text-xl font-bold text-blue-900 mt-1">
-                {totals.manual_collected.toLocaleString()} birr
+                {totals.paid.toLocaleString()} birr
               </p>
             </div>
           </div>
@@ -240,11 +243,7 @@ export default function PenaltyChart() {
               barGap={10}
               barCategoryGap={45}
             >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#e5e7eb"
-                vertical={false}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis
                 dataKey="name"
                 tick={{ fill: "#6b7280", fontSize: 12 }}
@@ -271,29 +270,17 @@ export default function PenaltyChart() {
                 )}
               />
               <Bar
-                dataKey="auto_expected"
-                name="System Generated Penalty expected"
+                dataKey="expected"
+                name="Expected"
                 fill="#f59e0b"
                 radius={[4, 4, 0, 0]}
               />
               <Bar
-                dataKey="auto_collected"
-                name="System Generated Penalty Collected"
+                dataKey="paid"
+                name="Paid"
                 fill="#10b981"
                 radius={[4, 4, 0, 0]}
               />
-              <Bar
-                dataKey="manual_expected"
-                name="Admin Generated Penalty Expected"
-                fill="#ef4444"
-                radius={[4, 4, 0, 0]}
-              />
-              <Bar
-                dataKey="manual_collected"
-                name="Admin Generated Penalty Collected"
-                fill="#3b82f6"
-                radius={[4, 4, 0, 0]}
-              />0
             </BarChart>
           </ResponsiveContainer>
         )}

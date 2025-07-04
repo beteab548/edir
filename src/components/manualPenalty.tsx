@@ -160,9 +160,10 @@ export default function ManualPenaltyManagement() {
   useEffect(() => {
     if (state.success) {
       toast.success(`penalty has been created`);
+      setSelectedMember(null);
+      setSearchTerm("");
       setIsModalOpen(false);
       form.reset();
-      setSelectedMember(null);
       mutate();
     }
     if (state.error) toast.error("Something went wrong");
@@ -171,7 +172,6 @@ export default function ManualPenaltyManagement() {
     let sortableItems = [...penaltiesWithNumberAmount];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        // Special handling for nested objects and dates
         let aValue, bValue;
 
         if (sortConfig.key === "member") {
@@ -604,10 +604,11 @@ export default function ManualPenaltyManagement() {
                       setIsModalOpen(false);
                       form.reset();
                       setSelectedMember(null);
+                      setSearchTerm("");
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                   >
-                    Cancel
+                    Close
                   </button>
                   <button
                     type="submit"

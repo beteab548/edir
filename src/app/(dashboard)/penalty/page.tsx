@@ -59,7 +59,7 @@ export default function TabSwitcher() {
         </nav>
       </div>
 
-      <div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300">
+<div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300 overflow-x-visible w-full max-w-full">
         {isLoading ? (
           <div className="container mx-auto px-4 py-8 animate-pulse">
             <h1 className="text-2xl font-bold text-gray-300 mb-6 bg-gray-200 w-64 h-6 rounded"></h1>

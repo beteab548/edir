@@ -1,14 +1,23 @@
 import { useState } from "react";
 import { AnnouncementForm } from "./AnnouncementForm";
 import { AnnouncementList } from "./AnnouncementsList";
-import { Announcements } from "@prisma/client";
+
+
+// Define Announcement type to match the form's expectations
+export interface Announcement {
+  id: number;
+  title: string;
+  Description: string;
+  created_at: Date;
+  calendar: Date;
+}
 
 export function AnnouncementManager() {
-  const [announcements, setAnnouncements] = useState<Announcements[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [currentAnnouncement, setCurrentAnnouncement] =
-    useState<Announcements | null>(null);
+    useState<Announcement | null>(null);
 
-  const handleSubmit = async (data: Announcements) => {
+  const handleSubmit = (data: Announcement) => {
     if (currentAnnouncement && currentAnnouncement.id) {
       // Update existing announcement
       setAnnouncements(
@@ -20,11 +29,11 @@ export function AnnouncementManager() {
       );
     } else {
       // Add new announcement
-      const newAnnouncement = {
+      const newAnnouncement: Announcement = {
         ...data,
         id:
           announcements.length > 0
-            ? Math.max(...announcements.map((a) => a.id!)) + 1
+            ? Math.max(...announcements.map((a) => a.id)) + 1
             : 1,
         created_at: new Date(),
       };
@@ -33,7 +42,7 @@ export function AnnouncementManager() {
     setCurrentAnnouncement(null);
   };
 
-  const handleEdit = (announcement: Announcements) => {
+  const handleEdit = (announcement: Announcement) => {
     setCurrentAnnouncement(announcement);
   };
 
@@ -53,11 +62,11 @@ export function AnnouncementManager() {
 
       <div className="mb-8">
         <button
-          onClick={() =>
+           onClick={() =>
             setCurrentAnnouncement({
               id:
                 announcements.length > 0
-                  ? Math.max(...announcements.map((a) => a.id!)) + 1
+                  ? Math.max(...announcements.map((a) => a.id)) + 1
                   : 1,
               title: "",
               Description: "",

@@ -229,6 +229,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
           start_date: true,
           contributionType: {
             select: {
+              name: true,
               penalty_amount: true,
               mode: true,
               period_months: true,
@@ -254,6 +255,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
     missed_month: Date;
     is_paid: boolean;
     applied_at: Date;
+    penalty_type: string;
   }[] = [];
 
   for (const schedule of unpaidSchedules) {
@@ -287,7 +289,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
             where: { id: existingUnpaidPenalty.id },
             data: {
               expected_amount: calculatedPenaltyAmount,
-              applied_at: new Date(), // Optional: refresh applied date
+              applied_at: new Date(),
               reason: `Missed payment for ${schedule.month
                 .toISOString()
                 .slice(0, 7)}`,
@@ -306,6 +308,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
           missed_month: schedule.month,
           is_paid: false,
           applied_at: new Date(),
+          penalty_type: contributionType.name ?? "Unknown",
         });
       }
     }
@@ -345,9 +348,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
         member_id: contribution.member_id,
       },
     });
-
     if (!schedule || schedule.is_paid) continue;
-
     const deadline = addMonths(schedule.month, gracePeriodMonths);
     if (isAfter(currentMonthStart, deadline)) {
       await prisma.member.update({

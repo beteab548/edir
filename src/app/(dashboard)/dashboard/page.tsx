@@ -9,7 +9,6 @@ import RelativeRelationsChart from "@/components/relativesChart";
 import {
   FiUsers,
   FiPieChart,
-  FiBarChart2,
   FiUserCheck,
   FiClock,
   FiActivity,
@@ -24,6 +23,11 @@ const AdminPage = async ({}: {}) => {
   const contributionTypes = await prisma.contributionType.findMany({
     select: { name: true },
   });
+  const penalties = await prisma.penalty.findMany();
+  const penaltyTypes = Array.from(new Set(penalties.map((p) => p.penalty_type)))
+    .filter((name): name is string => typeof name === "string" && name !== null)
+    .map((name) => ({ name }));
+  const penalty = await prisma.penalty.findMany();
   const newMembers = await prisma.member.count({
     where: {
       member_type: "New",
@@ -38,7 +42,7 @@ const AdminPage = async ({}: {}) => {
   const summary = `${active} / ${total}`;
   const isSecretary = role === "secretary";
   const isChairman = role === "chairman";
-  generateContributionSchedulesForAllActiveMembers();
+  // generateContributionSchedulesForAllActiveMembers();
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -182,7 +186,7 @@ const AdminPage = async ({}: {}) => {
                   </div>
                   <div className="bg-white rounded-lg p-2 shadow-md mb-4  ">
                     <div>
-                      <PenaltyChart />
+                      <PenaltyChart penaltyTypes={penaltyTypes} />
                     </div>
                   </div>
                 </>

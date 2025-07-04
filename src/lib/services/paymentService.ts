@@ -89,8 +89,13 @@ export async function applyCatchUpPayment({
           payment_method: paymentMethod,
           document_reference: documentReference,
           total_paid_amount: new Decimal(paidAmount),
-          // remaining_balance will be updated later
+          custom_id: "",
         },
+      });
+      const formattedId = `PYN-${paymentRecord.id.toString().padStart(4, "0")}`;
+      await tx.paymentRecord.update({
+        where: { id: paymentRecord.id },
+        data: { custom_id: formattedId },
       });
 
       if (contribution.contributionType.mode === "OneTimeWindow") {
@@ -122,7 +127,7 @@ export async function applyCatchUpPayment({
         const remainingAfter = remaining.minus(amountToPay);
 
         if (amountToPay.gt(0)) {
-          await tx.payment.create({
+          tx.payment.create({
             data: {
               payment_record_id: paymentRecord.id,
               member_id: memberId,

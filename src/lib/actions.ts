@@ -170,6 +170,7 @@ export const updateMember = async (
     select: { status: true },
   });
   const memberStatusChanged = existingMember?.status !== data.member.status;
+  const memberStatusChangedToLeft = data.member.status === "Left";
   if (!data.member?.id) return { success: false, error: true };
 
   try {
@@ -192,9 +193,12 @@ export const updateMember = async (
           ...(data.member.joined_date && {
             joined_date: new Date(data.member.joined_date),
           }),
-          ...(data.member.end_date && {
-            end_date: new Date(data.member.end_date),
-          }),
+          ...(data.member.end_date
+            ? { end_date: new Date(data.member.end_date) }
+            : memberStatusChangedToLeft
+            ? { end_date: new Date() }
+            : {}),
+
           ...(data.member.document ? { document: data.member.document } : {}),
           ...(data.member.bank_name
             ? { bank_name: data.member.bank_name }
@@ -224,6 +228,7 @@ export const updateMember = async (
           sex: data.member.sex,
           status: data.member.status,
           ...(memberStatusChanged && { status_updated_at: new Date() }),
+
           remark: data.member.remark ?? "",
           member_type: data.member.member_type,
         },
@@ -887,7 +892,7 @@ export const PenaltyPaymentAction = async (
       },
     });
 
-    await prisma.paymentRecord.create({
+    const paymnetCreated = await prisma.paymentRecord.create({
       data: {
         member_id: data.member_id,
         contribution_Type_id: penalty.contribution_id,
@@ -896,7 +901,13 @@ export const PenaltyPaymentAction = async (
         payment_method: data.payment_method || "Cash",
         document_reference: data.receipt || undefined,
         penalty_type_payed_for: "manually",
+        custom_id: "",
       },
+    });
+    const formattedId = `PYN-${paymnetCreated.id.toString().padStart(4, "0")}`;
+    await prisma.paymentRecord.update({
+      where: { id: paymnetCreated.id },
+      data: { custom_id: formattedId },
     });
     return { success: true, error: false, penalty: updatedPenalty };
   } catch (error) {
