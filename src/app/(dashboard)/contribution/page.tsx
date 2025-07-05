@@ -1,6 +1,6 @@
 // app/contribute/page.tsx
 import Link from "next/link";
-import prisma from "@/lib/prisma"; // Adjust according to your project setup
+import prisma from "@/lib/prisma";
 import Image from "next/image";
 import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 
@@ -11,50 +11,60 @@ export default async function ContributionPage() {
       name: true,
     },
   });
-  generateContributionSchedulesForAllActiveMembers()
+
+  await generateContributionSchedulesForAllActiveMembers();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <main className="container mx-auto px-4 py-12">
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Contribution Page
+            Make a Contribution
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Contributing to the Edir ensures continued support during times of
-            need. Select a contribution type to help sustain and grow our
-            community.
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Your contributions play a vital role in supporting our Edir community.
+            Please select a contribution type below to proceed.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {contributionOptions.map((option) => (
-            <Link
-              key={option.id}
-              href={`/contribution/${option.name}`}
-              className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1"
-            >
-              <div className="p-8">
-                <div className="text-4xl mb-4">
+
+        {contributionOptions.length === 0 ? (
+          <div className="text-center text-gray-500 text-lg mt-12">
+            No contribution types found. Please{" "}
+            <Link href="/configure-setting" className="text-blue-600 underline">
+              add contributions
+            </Link>{" "}
+            to see them listed here.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {contributionOptions.map((option) => (
+              <Link
+                key={option.id}
+                href={`/contribution/${option.name}`}
+                className="bg-white rounded-2xl shadow-md overflow-hidden transition-transform duration-200 hover:shadow-lg hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <div className="p-6 flex flex-col items-center text-center">
                   <Image
-                    src={"/contributionIcon.png"}
-                    height={90}
-                    width={90}
-                    alt="contribution icon"
+                    src="/contributionIcon.png"
+                    height={80}
+                    width={80}
+                    alt="Contribution Icon"
+                    className="mb-4"
                     unoptimized
                   />
+                  <h2 className="text-xl font-semibold text-gray-800 mb-1">
+                    {option.name}
+                  </h2>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  {option.name}
-                </h2>
-               
-              </div>
-              <div className="px-6 py-4 bg-gray-50 text-right">
-                <span className="text-blue-600 font-medium hover:text-blue-800">
-                  Select &rarr;
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+                <div className="px-6 py-4 bg-gray-100 text-right">
+                  <span className="text-blue-600 font-medium group-hover:text-blue-800">
+                    Contribute &rarr;
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

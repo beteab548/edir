@@ -355,3 +355,26 @@ export const penaltyFormSchema = z.object({
   generated: z.enum(["automatically", "manually"]),
   penalty_type: z.string().min(1, { message: "Penalty type is required" }),
 });
+export const announcementSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(100, "Title too long"),
+  Description: z
+    .string()
+    .trim()
+    .min(1, "Description is required")
+    .max(500, "Description too long"),
+  calendar: z.preprocess(
+    (val) => {
+      const date = typeof val === "string" ? new Date(val) : val;
+      return isNaN(date as any) ? undefined : date;
+    },
+    z
+      .date({ required_error: "Calendar date is required" })
+      .refine((date) => date > new Date(), {
+        message: "Calendar date must be in the future",
+      })
+  ),
+});

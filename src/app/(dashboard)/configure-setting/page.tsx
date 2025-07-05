@@ -13,6 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import AddNewPenaltyType from "@/components/AddNewPenaltyType";
 import { AnnouncementManager } from "@/components/AnnouncementManager ";
+import { Announcements } from "@prisma/client";
 
 type Tab =
   | "contribution"
@@ -33,18 +34,17 @@ export default function ContributionTabs() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-
+  const [Announcements, setAnnouncements] = useState<Announcements[]>([]);
   // Load data on component mount
   useEffect(() => {
     async function loadData() {
       try {
         setIsLoading(true);
         setError(null);
-        const res = await fetch("/api/fetchSettingDatas");
+        const res = await fetch("/api/announcements");
+        const data = await res.json();
+        setAnnouncements(data);
         if (!res.ok) throw new Error("Failed to fetch data");
-        const { penalties, allMembers } = await res.json();
-        console.log("penalties", penalties);
-        console.log("allmembers", allMembers);
       } catch (err: unknown) {
         if (err instanceof Error) {
           setError({ message: err.message });
@@ -153,11 +153,11 @@ export default function ContributionTabs() {
       label: "Configure Penalty",
       component: <AddNewPenaltyType />,
     },
-    // {
-    //   id: "Announcements Manager",
-    //   label: "Announcements Manager",
-    //   component: <AnnouncementManager />,
-    // },
+    {
+      id: "Announcements Manager",
+      label: "Announcements Manager",
+      component: <AnnouncementManager initialAnnouncements={Announcements} />,
+    },
   ];
 
   return (

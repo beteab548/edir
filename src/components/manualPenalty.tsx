@@ -82,6 +82,7 @@ export default function ManualPenaltyManagement() {
     },
   });
   const [penaltyTypes, setPenaltyTypes] = useState<string[]>([]);
+  const [isloading, setIsloading] = useState<boolean>(false);
 
   const fetchSettingDatas = async () => {
     const res = await fetch("/api/fetchSettingDatas");
@@ -105,6 +106,7 @@ export default function ManualPenaltyManagement() {
     );
   }, []);
   const handleWaivePenalty = async (penaltyId: number) => {
+    setIsloading(true);
     try {
       const response = await fetch("/api/penalty", {
         method: "PATCH",
@@ -113,7 +115,7 @@ export default function ManualPenaltyManagement() {
         },
         body: JSON.stringify({ penaltyId }),
       });
-
+      setIsloading(false);
       if (!response.ok) {
         throw new Error("Failed to waive penalty");
       }
@@ -275,7 +277,7 @@ export default function ManualPenaltyManagement() {
     );
   }
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-2">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -342,7 +344,7 @@ export default function ManualPenaltyManagement() {
                 {headers.map((header) => (
                   <th
                     key={header.key}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider overflow-x-hidden cursor-pointer hover:bg-gray-100"
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider overflow-x-hidden cursor-pointer hover:bg-gray-100"
                     onClick={() => header.sortable && requestSort(header.key)}
                   >
                     <div className="flex items-center">
@@ -357,23 +359,23 @@ export default function ManualPenaltyManagement() {
                 ))}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className=" bg-white divide-y divide-gray-200">
               {sortedPenalties.map((penalty: Penalty) => (
                 <tr
                   key={penalty.id}
                   className="hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <td className=" px-2 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {penalty.member.custom_id}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className=" py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
                         {penalty?.member?.image_url ? (
                           <>
                             <Image
                               src={penalty?.member?.image_url}
-                              alt={`${penalty?.member?.first_name} ${penalty.member.second_name}`}
+                              alt={`${penalty?.member?.first_name} ${penalty.member.second_name} `}
                               width={32}
                               height={32}
                               className="rounded-full object-cover border border-gray-300"
@@ -386,7 +388,9 @@ export default function ManualPenaltyManagement() {
                       </div>
                       <div className="ml-4">
                         <div className="text-sm font-medium text-gray-900">
-                          {penalty.member.first_name} {penalty.member.last_name}
+                          {penalty.member.first_name}{" "}
+                          {penalty.member.second_name}{" "}
+                          {penalty.member.last_name}
                         </div>
                         <div className="text-sm text-gray-500">
                           {penalty.member.custom_id}
@@ -469,20 +473,21 @@ export default function ManualPenaltyManagement() {
 
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-6"
+                className="space-y-10"
               >
                 {/* First Row: Search + Missed Month */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Search Member Input */}
+                  {/* Search Member Input */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
-                      Search Member *
+                      Search Member <span className="text-red-600">*</span>
                     </label>
                     <div className="relative">
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder="Search by name or phone"
+                          placeholder="name or phone number..."
                           value={
                             selectedMember
                               ? `${selectedMember.first_name} ${selectedMember.second_name} ${selectedMember.last_name}`
@@ -513,7 +518,7 @@ export default function ManualPenaltyManagement() {
                     </div>
 
                     {searchTerm && !selectedMember && (
-                      <div className="border border-gray-200 rounded-lg max-h-60 overflow-y-auto shadow-sm">
+                      <div className="absolute z-10 mt-1 w-[300px] border border-gray-200 rounded-lg shadow-lg bg-white max-h-48 overflow-y-auto">
                         {filteredMembers.length > 0 ? (
                           filteredMembers.map((member) => (
                             <div
@@ -521,11 +526,27 @@ export default function ManualPenaltyManagement() {
                               className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
                               onClick={() => handleMemberSelect(member)}
                             >
-                              <div className="font-medium">
-                                {member.first_name} {member.last_name}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                {member.id_number} • {member.phone_number}
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="font-medium">
+                                    {member.first_name} {member.second_name}{" "}
+                                    {member.last_name}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {member.id_number} • {member.phone_number}
+                                  </div>
+                                </div>
+                                <svg
+                                  className="h-5 w-5 text-blue-500 shrink-0 ml-4"
+                                  viewBox="0 0 20 20"
+                                  fill="currentColor"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
                               </div>
                             </div>
                           ))
@@ -546,7 +567,7 @@ export default function ManualPenaltyManagement() {
 
                   {/* Missed Month */}
                   <InputField
-                    label="Missed Date"
+                    label="Penalty Date"
                     name="missed_month"
                     required
                     type="date"
@@ -682,6 +703,7 @@ export default function ManualPenaltyManagement() {
                   Cancel
                 </button>
                 <button
+                  disabled={isloading}
                   onClick={async () => {
                     if (!selectedPenalty) return;
                     try {
@@ -704,7 +726,7 @@ export default function ManualPenaltyManagement() {
                   }}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
                 >
-                  Confirm Waive
+                  {isloading ? "Processing..." : " Confirm Waive"}
                 </button>
               </div>
             </div>

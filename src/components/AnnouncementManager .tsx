@@ -1,57 +1,62 @@
-import { useState } from "react";
-import { AnnouncementForm } from "./AnnouncementForm";
+"use client";
+
+import { useState, useTransition } from "react";
+import AnnouncementForm from "./AnnouncementForm";
 import { AnnouncementList } from "./AnnouncementsList";
+import { Announcements } from "@prisma/client";
+import {
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+} from "@/lib/actions";
 
-
-// Define Announcement type to match the form's expectations
-export interface Announcement {
-  id: number;
-  title: string;
-  Description: string;
-  created_at: Date;
-  calendar: Date;
-}
-
-export function AnnouncementManager() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+export function AnnouncementManager({
+  initialAnnouncements,
+}: {
+  initialAnnouncements: Announcements[];
+}) {
+  const [announcements, setAnnouncements] = useState(initialAnnouncements);
   const [currentAnnouncement, setCurrentAnnouncement] =
-    useState<Announcement | null>(null);
-
-  const handleSubmit = (data: Announcement) => {
-    if (currentAnnouncement && currentAnnouncement.id) {
-      // Update existing announcement
-      setAnnouncements(
-        announcements.map((ann) =>
-          ann.id === currentAnnouncement.id
-            ? { ...data, id: currentAnnouncement.id }
-            : ann
-        )
-      );
-    } else {
-      // Add new announcement
-      const newAnnouncement: Announcement = {
-        ...data,
-        id:
-          announcements.length > 0
-            ? Math.max(...announcements.map((a) => a.id)) + 1
-            : 1,
-        created_at: new Date(),
-      };
-      setAnnouncements([...announcements, newAnnouncement]);
-    }
-    setCurrentAnnouncement(null);
+    useState<Announcements | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const refresh = async () => {
+    const res = await fetch("/api/announcements");
+    const data = await res.json();
+    setAnnouncements(data);
   };
 
-  const handleEdit = (announcement: Announcement) => {
+  const handleSubmit = async (data: Announcements) => {
+    startTransition(async () => {
+      if (currentAnnouncement?.id) {
+        await updateAnnouncement(currentAnnouncement.id, {
+          title: data.title,
+          Description: data.Description,
+          calendar: data.calendar,
+        });
+      } else {
+        await createAnnouncement({
+          title: data.title,
+          Description: data.Description,
+          calendar: data.calendar,
+          created_at: data.created_at,
+        });
+      }
+      await refresh();
+      setCurrentAnnouncement(null);
+    });
+  };
+
+  const handleEdit = (announcement: Announcements) => {
     setCurrentAnnouncement(announcement);
+    setIsModalOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    setAnnouncements(announcements.filter((ann) => ann.id !== id));
-  };
-
-  const handleCancel = () => {
-    setCurrentAnnouncement(null);
+  const handleDelete = async (id: number) => {
+    startTransition(async () => {
+      await deleteAnnouncement(id);
+      await refresh();
+    });
   };
 
   return (
@@ -60,46 +65,37 @@ export function AnnouncementManager() {
         Announcements Management
       </h1>
 
-      <div className="mb-8">
+      <div className="mb-8 flex items-end justify-end">
         <button
-           onClick={() =>
+          onClick={() => {
             setCurrentAnnouncement({
-              id:
-                announcements.length > 0
-                  ? Math.max(...announcements.map((a) => a.id)) + 1
-                  : 1,
+              id: 0,
               title: "",
               Description: "",
               created_at: new Date(),
               calendar: new Date(),
-            })
-          }
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            });
+            setIsModalOpen(true);
+          }}
+          className="inline-flex  px-4 py-2 text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
         >
           Add New Announcement
         </button>
       </div>
 
-      {currentAnnouncement && (
-        <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-lg font-medium mb-4">
-            {currentAnnouncement.id
+      {currentAnnouncement !== null && (
+        <AnnouncementForm
+          onSubmit={handleSubmit}
+          initialData={currentAnnouncement || undefined}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          title={
+            currentAnnouncement?.id
               ? "Edit Announcement"
-              : "Create Announcement"}
-          </h2>
-          <AnnouncementForm
-            onSubmit={handleSubmit}
-            initialData={currentAnnouncement}
-          />
-          <button
-            onClick={handleCancel}
-            className="mt-4 inline-flex justify-center rounded-md border border-gray-300 bg-white py-2 px-4 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            Cancel
-          </button>
-        </div>
+              : "Create Announcement"
+          }
+        />
       )}
-
       <div>
         <h2 className="text-lg font-medium mb-4">Current Announcements</h2>
         {announcements.length === 0 ? (

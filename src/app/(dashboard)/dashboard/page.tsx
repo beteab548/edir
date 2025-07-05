@@ -15,11 +15,10 @@ import {
 } from "react-icons/fi";
 import Link from "next/link";
 import Activity from "@/components/activity";
-
+generateContributionSchedulesForAllActiveMembers();
 const AdminPage = async ({}: {}) => {
   const user = await currentUser();
   const role = user?.publicMetadata?.role as string;
-
   const contributionTypes = await prisma.contributionType.findMany({
     select: { name: true },
   });

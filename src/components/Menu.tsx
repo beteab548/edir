@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useClerk } from "@clerk/nextjs";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import ContributionDropdown from "./ContributionDropdown";
@@ -70,11 +70,13 @@ const Menu = () => {
   const { user } = useUser();
   const role = user?.publicMetadata.role as string;
   const pathname = usePathname();
+  const { signOut } = useClerk();
 
   const [contributionTypes, setContributionTypes] = useState<
     ContributionType[]
   >([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,6 +108,21 @@ const Menu = () => {
           transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
           className="w-8 h-8 border-4 border-lamaSky border-t-transparent rounded-full"
         />
+      </div>
+    );
+  }
+
+  if (loggingOut) {
+    return (
+      <div className="flex items-center justify-center h-[550px]">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+          className="w-8 h-8 border-4 border-lamaSky border-t-transparent rounded-full"
+        />
+        <span className="ml-3 text-gray-600 font-medium animate-pulse">
+          Logging out...
+        </span>
       </div>
     );
   }
@@ -179,6 +196,8 @@ const Menu = () => {
                     );
                   }
 
+                  const logoutItem = item.label === "Logout";
+
                   return (
                     <motion.div
                       key={item.label}
@@ -190,60 +209,120 @@ const Menu = () => {
                       onHoverStart={() => setHoveredItem(item.label)}
                       onHoverEnd={() => setHoveredItem(null)}
                     >
-                      <Link
-                        href={item.href}
-                        className={`relative flex items-center gap-4 rounded-lg px-3 py-3 transition-all duration-300
-                          ${
-                            isItemActive
-                              ? "bg-lamaSkyLight/80 text-lama font-medium shadow"
-                              : "text-gray-600 hover:bg-lamaSkyLight/60 hover:text-gray-800"
-                          }
-                        `}
-                      >
-                        {isItemActive && (
-                          <motion.span
-                            layoutId="active-indicator"
-                            className="absolute left-0 h-8 w-1.5 bg-lama rounded-r-md"
-                            initial={{ opacity: 0, scaleY: 0.5 }}
-                            animate={{ opacity: 1, scaleY: 1 }}
+                      {logoutItem ? (
+                        <div
+                          onClick={async () => {
+                            setLoggingOut(true);
+                            await signOut();
+                          }}
+                          className={`cursor-pointer relative flex items-center gap-4 rounded-lg px-3 py-3 transition-all duration-300
+                            ${
+                              isItemActive
+                                ? "bg-lamaSkyLight/80 text-lama font-medium shadow"
+                                : "text-gray-600 hover:bg-lamaSkyLight/60 hover:text-gray-800"
+                            }
+                          `}
+                        >
+                          {isItemActive && (
+                            <motion.span
+                              layoutId="active-indicator"
+                              className="absolute left-0 h-8 w-1.5 bg-lama rounded-r-md"
+                              initial={{ opacity: 0, scaleY: 0.5 }}
+                              animate={{ opacity: 1, scaleY: 1 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 500,
+                                damping: 30,
+                              }}
+                            />
+                          )}
+
+                          <motion.div
+                            animate={{
+                              scale: isItemActive || isItemHovered ? 1.1 : 1,
+                            }}
                             transition={{
                               type: "spring",
-                              stiffness: 500,
-                              damping: 30,
+                              stiffness: 300,
+                              damping: 20,
                             }}
-                          />
-                        )}
+                          >
+                            {React.cloneElement(item.icon, {
+                              className: `opacity-90 ${
+                                isItemActive ? "text-lama" : "text-current"
+                              }`,
+                            })}
+                          </motion.div>
 
-                        <motion.div
-                          animate={{
-                            scale: isItemActive || isItemHovered ? 1.1 : 1,
-                          }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 300,
-                            damping: 20,
-                          }}
+                          <span className="hidden md:block text-sm">
+                            {item.label}
+                          </span>
+
+                          {(isItemActive || isItemHovered) && (
+                            <motion.div
+                              className="absolute right-4 w-1.5 h-1.5 bg-lama rounded-full"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 0.1 }}
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          className={`relative flex items-center gap-4 rounded-lg px-3 py-3 transition-all duration-300
+                            ${
+                              isItemActive
+                                ? "bg-lamaSkyLight/80 text-lama font-medium shadow"
+                                : "text-gray-600 hover:bg-lamaSkyLight/60 hover:text-gray-800"
+                            }
+                          `}
                         >
-                          {React.cloneElement(item.icon, {
-                            className: `opacity-90 ${
-                              isItemActive ? "text-lama" : "text-current"
-                            }`,
-                          })}
-                        </motion.div>
+                          {isItemActive && (
+                            <motion.span
+                              layoutId="active-indicator"
+                              className="absolute left-0 h-8 w-1.5 bg-lama rounded-r-md"
+                              initial={{ opacity: 0, scaleY: 0.5 }}
+                              animate={{ opacity: 1, scaleY: 1 }}
+                              transition={{
+                                type: "spring",
+                                stiffness: 500,
+                                damping: 30,
+                              }}
+                            />
+                          )}
 
-                        <span className="hidden md:block text-sm">
-                          {item.label}
-                        </span>
-
-                        {(isItemActive || isItemHovered) && (
                           <motion.div
-                            className="absolute right-4 w-1.5 h-1.5 bg-lama rounded-full"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.1 }}
-                          />
-                        )}
-                      </Link>
+                            animate={{
+                              scale: isItemActive || isItemHovered ? 1.1 : 1,
+                            }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 20,
+                            }}
+                          >
+                            {React.cloneElement(item.icon, {
+                              className: `opacity-90 ${
+                                isItemActive ? "text-lama" : "text-current"
+                              }`,
+                            })}
+                          </motion.div>
+
+                          <span className="hidden md:block text-sm">
+                            {item.label}
+                          </span>
+
+                          {(isItemActive || isItemHovered) && (
+                            <motion.div
+                              className="absolute right-4 w-1.5 h-1.5 bg-lama rounded-full"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              transition={{ delay: 0.1 }}
+                            />
+                          )}
+                        </Link>
+                      )}
                     </motion.div>
                   );
                 })}

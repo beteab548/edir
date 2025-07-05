@@ -12,6 +12,7 @@ import SelectableMembersList from "../SelectableMembersList";
 import { Member } from "@prisma/client";
 import Decimal from "decimal.js";
 import useSWR from "swr";
+import { useRouter } from "next/navigation";
 
 type ContributionType = {
   id: number;
@@ -34,8 +35,11 @@ type ApiResponse = {
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function ConfigureExistingContribution({  revalidate}:{revalidate: boolean}
-) {
+export default function ConfigureExistingContribution({
+  revalidate,
+}: {
+  revalidate: boolean;
+}) {
   const {
     data: apiData,
     mutate: mutateData,
@@ -50,7 +54,7 @@ export default function ConfigureExistingContribution({  revalidate}:{revalidate
   const [isForAllLocal, setIsForAllLocal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toDelete, setToDelete] = useState<ContributionType | null>(null);
-
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -61,7 +65,7 @@ export default function ConfigureExistingContribution({  revalidate}:{revalidate
   } = useForm<z.input<typeof ContributionSchema>>({
     resolver: zodResolver(ContributionSchema),
   });
-console.log("apidata:",apiData);
+  console.log("apidata:", apiData);
   const watchIsForAll = watch("is_for_all");
   const watchMode = watch("mode");
   const contributionTypes = apiData?.contributionTypes || [];
@@ -135,6 +139,7 @@ console.log("apidata:",apiData);
 
       await updateContribution({ success: false, error: false }, formData);
       mutateData();
+      router.push("/contribution");
       toast.success("Contribution updated!");
       setEditingId(null);
     } catch (e) {
@@ -150,7 +155,8 @@ console.log("apidata:",apiData);
     if (!toDelete) return;
     try {
       await deleteContributionType(toDelete.id);
-      mutateData(); 
+      router.push("/contribution");
+      mutateData();
       toast.success("Contribution type deleted!");
     } catch (err) {
       toast.error("Something went wrong");
@@ -297,8 +303,6 @@ console.log("apidata:",apiData);
                         },
                       }}
                     />
-
-                    
 
                     {watchMode === "OneTimeWindow" ? (
                       <InputField

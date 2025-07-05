@@ -7,12 +7,16 @@ export async function GET(req: NextRequest) {
   const penaltyType = searchParams.get("penaltyType")?.toLowerCase();
 
   if (!year || isNaN(year)) {
-    return NextResponse.json({ error: "Invalid or missing year" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid or missing year" },
+      { status: 400 }
+    );
   }
 
   try {
     const allPenalties = await prisma.penalty.findMany({
       where: {
+        waived: false,
         missed_month: {
           gte: new Date(`${year}-01-01`),
           lte: new Date(`${year}-12-31`),
@@ -41,17 +45,20 @@ export async function GET(req: NextRequest) {
     > = {};
 
     for (let i = 0; i < 12; i++) {
-      const monthName = new Date(year, i).toLocaleString("default", { month: "short" });
+      const monthName = new Date(year, i).toLocaleString("default", {
+        month: "short",
+      });
       resultByMonth[monthName] = {
         name: monthName,
         expected: 0,
         paid: 0,
       };
     }
-
     // Aggregate expected and paid amounts by month
     for (const p of allPenalties) {
-      const monthKey = p.missed_month.toLocaleString("default", { month: "short" });
+      const monthKey = p.missed_month.toLocaleString("default", {
+        month: "short",
+      });
       const expected = Number(p.expected_amount || 0);
       const paid = Number(p.paid_amount || 0);
 
@@ -69,6 +76,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(responseArray);
   } catch (error) {
     console.error("Error generating penalty chart data:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }

@@ -5,7 +5,7 @@ import Table from "./Table";
 import Pagination from "./client-pagination";
 import TableSearch from "./client-tableSearch";
 
-const ITEMS_PER_PAGE = 1;
+const ITEMS_PER_PAGE = 10;
 
 export default function SelectableMembersList({
   members,

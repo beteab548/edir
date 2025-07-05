@@ -51,7 +51,7 @@ export default function SystemPenaltyManagement({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8  rounded-lg border-x border-b border-gray-200">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">
         Members with Penalties
       </h1>

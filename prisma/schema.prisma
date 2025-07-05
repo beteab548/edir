@@ -101,6 +101,7 @@ model PaymentRecord {
  custom_id           String
   member_id            Int
   contribution_Type_id Int?
+  Penalty_id Int?
   payment_date       DateTime  @default(now())
   payment_method     String
   document_reference String   @default("-") 

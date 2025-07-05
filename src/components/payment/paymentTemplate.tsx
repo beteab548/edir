@@ -2,17 +2,16 @@
 import { Member, Payment } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { ReactEventHandler, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import InputField from "../InputField";
 import SelectField from "../SelectField";
 import { toast } from "react-toastify";
 import {
-  createPaymentAction,
-  deletePayment,
   getMemberBalance,
-  PenaltyPaymentAction,
+  paymentActionforAutomatic,
+  paymentActionforManual,
 } from "@/lib/actions";
 import {
   paymentFormSchema,
@@ -27,8 +26,6 @@ import { FaFileDownload } from "react-icons/fa";
 
 import {
   CheckIcon,
-  ChevronDownIcon,
-  ChevronUpIcon,
   FolderOpenIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
@@ -90,7 +87,9 @@ export default function ContributionTemplate({
     useState<ContributionType | undefined>(ContributionType);
   const [openPaymentId, setOpenPaymentId] = useState<number | null>(null);
   const [state, formAction] = useFormState(
-    type === "automatically" ? createPaymentAction : PenaltyPaymentAction,
+    type === "automatically"
+      ? paymentActionforAutomatic
+      : paymentActionforManual,
     { success: false, error: false }
   );
   const [isAmountLocked, setIsAmountLocked] = useState(false);
@@ -166,7 +165,7 @@ export default function ContributionTemplate({
     }
   }, [selectedContributionTypeFormat, setValue]);
   useEffect(() => {
-    if (searchTerm.length > 1 && !selectedMember) {
+    if (searchTerm.length > 0 && !selectedMember) {
       const results = members.filter((member: Member) => {
         return (
           member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -455,12 +454,21 @@ export default function ContributionTemplate({
                             </span>
                           </TableCell>
                         )}
-                        <TableCell>
+                        <TableCell
+                          onclick={(e) => {
+                            e.stopPropagation();
+                          }}
+                        >
                           <DeletePaymentButton
+                            type={type}
                             paymentId={payment.id}
                             memberName={`${payment.member.first_name} ${payment.member.last_name}`}
                             amount={payment.total_paid_amount}
                             paymentDate={payment.payment_date}
+                            memberId={payment.member_id}
+                            contributionTypeID={
+                              payment.contribution_Type_id ?? 0
+                            }
                           />
                         </TableCell>
                       </tr>
@@ -725,6 +733,12 @@ export default function ContributionTemplate({
                             );
                           })}
                         </select>
+
+                        <span className=" text-xs text-red-700">
+                          {penaltyMonths.length > 1 
+                            ? "only allows payment from oldes to latest"
+                            : ""}
+                        </span>{" "}
                         {errors.penalty_month && (
                           <span className="text-red-500 text-xs">
                             Penalty month is required
@@ -874,14 +888,24 @@ export default function ContributionTemplate({
 
 function TableHeader({ children }: { children: React.ReactNode }) {
   return (
-    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+    <th className="px-2 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
       {children}
     </th>
   );
 }
 
-function TableCell({ children }: { children: React.ReactNode }) {
-  return <td className="px-6 py-4 whitespace-nowrap">{children}</td>;
+function TableCell({
+  children,
+  onclick,
+}: {
+  children: React.ReactNode;
+  onclick?: ReactEventHandler;
+}) {
+  return (
+    <td className="px-2 py-4 whitespace-nowrap" onClick={onclick}>
+      {children}
+    </td>
+  );
 }
 
 function Badge({

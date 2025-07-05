@@ -4,8 +4,14 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
-import { ContributionMode, MemberType, PenaltyTypeModel } from "@prisma/client";
+import {
+  ContributionMode,
+  MemberType,
+  PenaltyType,
+  PenaltyTypeModel,
+} from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
+import { title } from "process";
 type Payment = {
   amount?: number;
   paid_amount?: Number;
@@ -33,7 +39,6 @@ export const createMember = async (
   currentState: CurrentState,
   data: CombinedSchema
 ) => {
-  console.log("in create", data);
   try {
     const result = await prisma.$transaction(async (tx) => {
       const createdMember = await tx.member.create({
@@ -132,7 +137,6 @@ export const createMember = async (
             end_date: true,
           },
         });
-        console.log(`Active contribution types:`, activeContributionTypes);
 
         const contributionsData = activeContributionTypes.map((type) => ({
           contribution_type_id: type.id,
@@ -164,13 +168,15 @@ export const updateMember = async (
   currentState: CurrentState,
   data: CombinedSchema
 ) => {
-  console.log("Update data:", data);
   const existingMember = await prisma.member.findUnique({
     where: { id: data.member.id },
-    select: { status: true },
+    select: { status: true, end_date: true },
   });
   const memberStatusChanged = existingMember?.status !== data.member.status;
   const memberStatusChangedToLeft = data.member.status === "Left";
+  const memberStatusChangedToActive = data.member.status === "Active";
+  const newDatePassed =
+    existingMember?.end_date == null && data.member.end_date;
   if (!data.member?.id) return { success: false, error: true };
 
   try {
@@ -193,10 +199,12 @@ export const updateMember = async (
           ...(data.member.joined_date && {
             joined_date: new Date(data.member.joined_date),
           }),
-          ...(data.member.end_date
-            ? { end_date: new Date(data.member.end_date) }
+          ...(newDatePassed
+            ? { end_date: new Date(data.member.end_date ?? new Date()) }
             : memberStatusChangedToLeft
             ? { end_date: new Date() }
+            : memberStatusChangedToActive
+            ? { end_date: null }
             : {}),
 
           ...(data.member.document ? { document: data.member.document } : {}),
@@ -394,8 +402,6 @@ export const updateContribution = async (
   }
 ) => {
   try {
-    console.log("data sent for update are", data);
-
     const currentType = await prisma.contributionType.findUnique({
       where: { id: data.id },
     });
@@ -447,10 +453,6 @@ export const updateContribution = async (
       currentType.start_date?.toISOString() !== data.start_date?.toISOString();
     const endDateChanged =
       currentType.end_date?.toISOString() !== data.end_date?.toISOString();
-
-    console.log(
-      `startDateChanged: ${startDateChanged}, endDateChanged: ${endDateChanged}`
-    );
 
     if (
       amountChanged ||
@@ -578,7 +580,6 @@ export const createContributionType = async (data: {
   mode: ContributionMode;
   months_before_inactivation: number | undefined;
 }) => {
-  console.log(data);
   try {
     let startDate: Date;
     let endDate: Date | null = null;
@@ -685,11 +686,10 @@ export const deleteContributionType = async (id: number) => {
   }
 };
 
-export const createPaymentAction = async (
+export const paymentActionforAutomatic = async (
   currentState: CurrentState,
   data: Payment
 ) => {
-  console.log("sent paymnet data is", data);
   try {
     const currentContributionId = Number(data.contribution_id);
     const currentMemberId = Number(data.member_id);
@@ -737,7 +737,6 @@ export const createPaymentAction = async (
       paymentMethod,
       documentReference: paymentReceipt || "-",
     });
-    console.log("payments are ", payments);
     return { success: true, error: false };
   } catch (error) {
     console.log(error);
@@ -768,7 +767,7 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
         waived: true,
       },
     });
-    console.log(updatedPenalty);
+
     return { success: true };
   } catch (error) {
     console.error("Error waiving penalty:", error);
@@ -807,7 +806,6 @@ export async function getMembersWithPenalties() {
       first_name: "asc",
     },
   });
-  console.log("members with penalties:", members);
   return members;
 }
 
@@ -815,7 +813,6 @@ export const createPenalty = async (
   currentState: CurrentState,
   data: Penalty
 ) => {
-  console.log("penalty data", data);
   if (!data.member_id || !data.amount) {
     console.error("Invalid data for penalty creation", data);
     return { success: false, error: true };
@@ -858,63 +855,70 @@ export const createPenalty = async (
 
   return { success: false, error: true };
 };
-export const PenaltyPaymentAction = async (
+
+export const paymentActionforManual = async (
   currentState: CurrentState,
   data: Payment
 ) => {
-  console.log(`Payment data received for penalty: `, data);
-  const penalty = await prisma.penalty.findFirst({
-    where: {
-      member_id: data.member_id,
-      is_paid: false,
-      ...(data.penalty_month !== null && data.penalty_month !== undefined
-        ? { missed_month: data.penalty_month }
-        : {}),
-    },
-  });
-  console.log("penalty is", penalty);
-  if (!penalty) {
-    console.error("No unpaid penalty found for the given member and month");
-    return { success: false, error: true, message: "No unpaid penalty found" };
-  }
-  try {
-    if (data.paid_amount === undefined || Number(data.paid_amount) <= 0) {
-      return { success: false, error: true, message: "Invalid payment amount" };
-    }
+  return await prisma
+    .$transaction(async (tx) => {
+      const penalty = await tx.penalty.findFirst({
+        where: {
+          member_id: data.member_id,
+          is_paid: false,
+          ...(data.penalty_month !== null && data.penalty_month !== undefined
+            ? { missed_month: data.penalty_month }
+            : {}),
+        },
+      });
+      if (!penalty) {
+        console.error("No unpaid penalty found for the given member and month");
+        throw new Error("No unpaid penalty found");
+      }
 
-    // Update the penalty as paid
-    const updatedPenalty = await prisma.penalty.update({
-      where: { id: penalty.id },
-      data: {
-        is_paid: true,
-        paid_amount: new Decimal(Number(data.paid_amount)),
-        resolved_at: new Date(),
-      },
-    });
+      if (data.paid_amount === undefined || Number(data.paid_amount) <= 0) {
+        throw new Error("Invalid payment amount");
+      }
 
-    const paymnetCreated = await prisma.paymentRecord.create({
-      data: {
-        member_id: data.member_id,
-        contribution_Type_id: penalty.contribution_id,
-        total_paid_amount: new Decimal(Number(data.paid_amount)),
-        payment_date: new Date(),
-        payment_method: data.payment_method || "Cash",
-        document_reference: data.receipt || undefined,
-        penalty_type_payed_for: "manually",
-        custom_id: "",
-      },
+      const updatedPenalty = await tx.penalty.update({
+        where: { id: penalty.id },
+        data: {
+          is_paid: true,
+          paid_amount: new Decimal(Number(data.paid_amount)),
+          resolved_at: new Date(),
+        },
+      });
+
+      const paymentRecordCreated = await tx.paymentRecord.create({
+        data: {
+          member_id: data.member_id,
+          total_paid_amount: new Decimal(Number(data.paid_amount)),
+          payment_date: new Date(),
+          payment_method: data.payment_method || "Cash",
+          document_reference: data.receipt || undefined,
+          penalty_type_payed_for: "manually",
+          custom_id: "",
+          Penalty_id: penalty.id,
+        },
+      });
+
+      const formattedId = `PYN-${paymentRecordCreated.id
+        .toString()
+        .padStart(4, "0")}`;
+
+      await tx.paymentRecord.update({
+        where: { id: paymentRecordCreated.id },
+        data: { custom_id: formattedId },
+      });
+
+      return { success: true, error: false, penalty: updatedPenalty };
+    })
+    .catch((error) => {
+      console.error("Error processing penalty payment:", error);
+      return { success: false, error: true, message: error.message };
     });
-    const formattedId = `PYN-${paymnetCreated.id.toString().padStart(4, "0")}`;
-    await prisma.paymentRecord.update({
-      where: { id: paymnetCreated.id },
-      data: { custom_id: formattedId },
-    });
-    return { success: true, error: false, penalty: updatedPenalty };
-  } catch (error) {
-    console.error("Error processing penalty payment:", error);
-    return { success: false, error: true };
-  }
 };
+
 export async function getPenaltyTypes() {
   return await prisma.penaltyTypeModel.findMany({ orderBy: { name: "asc" } });
 }
@@ -924,7 +928,6 @@ export async function addPenaltyType(name: string) {
   const existing = await prisma.penaltyTypeModel.findUnique({
     where: { name: trimmedName },
   });
-  console.log("existing");
   if (existing) return existing;
   try {
     return await prisma.penaltyTypeModel.create({
@@ -979,8 +982,7 @@ export async function getMemberBalance(
       (sum, p) => sum + (p.paid_amount?.toNumber() || 0),
       0
     );
-    console.log("total Expected", totalExpected);
-    console.log("total paid", totalPaid);
+
     const remaining = totalExpected - totalPaid;
     const contribution = await prisma.contribution.findUnique({
       where: {
@@ -1001,16 +1003,154 @@ export async function getMemberBalance(
     return 0;
   }
 }
+
 export async function deletePayment(
   currentState: CurrentState,
-  paymentId: number
+  data: {
+    paymentId: number;
+    memberName: string;
+    amount: Decimal;
+    paymentDate: string | Date;
+    memberId: number;
+    contributionTypeID: number;
+  },
+  type: PenaltyType
 ) {
-  const deleted = await prisma.paymentRecord.delete({
-    where: { id: paymentId },
-  });
-  if (deleted) {
+  return await prisma.$transaction(async (tx) => {
+    if (type === "manually") {
+      const penaltyPayments = await tx.paymentRecord.findUnique({
+        where: {
+          id: data.paymentId,
+        },
+        select: {
+          Penalty_id: true,
+        },
+      });
+
+      if (penaltyPayments?.Penalty_id) {
+        await tx.penalty.update({
+          where: {
+            id: penaltyPayments.Penalty_id,
+          },
+          data: {
+            is_paid: false,
+            resolved_at: null,
+            paid_amount: 0,
+          },
+        });
+      }
+
+      await tx.paymentRecord.delete({ where: { id: data.paymentId } });
+      return { success: true, error: false };
+    }
+
+    const contribution = await tx.contribution.findUnique({
+      where: {
+        member_id_contribution_type_id: {
+          member_id: data.memberId,
+          contribution_type_id: data.contributionTypeID,
+        },
+      },
+    });
+
+    const contributionPayments = await tx.payment.findMany({
+      where: {
+        payment_record_id: data.paymentId,
+        payment_type: { not: "penalty" },
+      },
+      select: { paid_amount: true },
+    });
+
+    const penaltyPayments = await tx.payment.findMany({
+      where: {
+        payment_record_id: data.paymentId,
+        payment_type: "penalty",
+      },
+      select: {
+        contribution_id: true,
+        contribution_schedule_id: true,
+        member_id: true,
+      },
+    });
+
+    for (const payment of penaltyPayments) {
+      await tx.penalty.updateMany({
+        where: {
+          member_id: payment.member_id,
+          contribution_id: payment.contribution_id,
+          contribution_schedule_id: payment.contribution_schedule_id,
+        },
+        data: {
+          is_paid: false,
+          resolved_at: null,
+          paid_amount: 0,
+        },
+      });
+    }
+
+    const totalContributionPaidAmount = contributionPayments.reduce(
+      (sum, payment) => sum + Number(payment.paid_amount),
+      0
+    );
+
+    const memberBalance = await tx.balance.findUnique({
+      where: {
+        member_id_contribution_id: {
+          member_id: data.memberId,
+          contribution_id: contribution?.id ?? 0,
+        },
+      },
+      select: { amount: true },
+    });
+//find the scedules and unpay them
+    const updatedBalance =
+      (memberBalance?.amount?.toNumber() ?? 0) + totalContributionPaidAmount;
+
+    await tx.balance.update({
+      where: {
+        member_id_contribution_id: {
+          member_id: data.memberId,
+          contribution_id: contribution?.id ?? 0,
+        },
+      },
+      data: { amount: updatedBalance },
+    });
+
+    await tx.paymentRecord.delete({
+      where: { id: data.paymentId },
+    });
+
     return { success: true, error: false };
-  } else {
-    return { success: false, error: true };
+  });
+}
+
+export async function createAnnouncement(data: {
+  title: string;
+  Description: string;
+  calendar: Date;
+  created_at: Date;
+}) {
+  await prisma.announcements.create({
+    data,
+  });
+}
+
+export async function updateAnnouncement(
+  id: number,
+  data: {
+    title: string;
+    Description: string;
+    calendar: Date;
   }
+) {
+  await prisma.announcements.update({
+    where: { id },
+    data,
+  });
+}
+
+export async function deleteAnnouncement(id: number) {
+  await prisma.announcements.delete({
+    where: { id },
+  });
 }

@@ -3,43 +3,57 @@
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-type Announcement = {
-  id: number;
-  title: string;
-  date: string;
-  content: string;
-};
-
-const mockAnnouncements: Announcement[] = [
-  {
-    id: 1,
-    title: "Monthly Meeting This Sunday",
-    date: "2025-06-25",
-    content:
-      "We'll be discussing new members and updates to the penalty policy.",
-  },
-  {
-    id: 2,
-    title: "New Contribution Rules",
-    date: "2025-06-10",
-    content:
-      "Open-ended recurring contributions are now in effect. Check the bylaws.",
-  },
-  {
-    id: 3,
-    title: "Community Fundraiser Event",
-    date: "2025-05-28",
-    content:
-      "Join us for our annual fundraiser to support local families in need.",
-  },
-];
-
+import { Announcements } from "@prisma/client";
+const Spinner = () => (
+  <svg
+    className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-700"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    ></circle>
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
+);
 export default function PublicPage() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcements[]>([]);
   const [activeTab, setActiveTab] = useState("announcements");
-
+  const [expandedAnnouncements, setExpandedAnnouncements] = useState<
+    Set<string>
+  >(new Set());
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
+  const toggleExpand = (id: string) => {
+    setExpandedAnnouncements((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
   useEffect(() => {
-    setAnnouncements(mockAnnouncements);
+    async function fetchData() {
+      setIsLoadingAnnouncements(true);
+      const res = await fetch("/api/announcements");
+      const data = await res.json();
+      console.log("data", data);
+      setAnnouncements(data);
+      setIsLoadingAnnouncements(false);
+    }
+    fetchData();
   }, []);
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
@@ -66,6 +80,7 @@ export default function PublicPage() {
   const handleLoginClick = () => {
     const role = user?.publicMetadata.role;
     if (!role) {
+      setIsAuthenticating(true);
       return router.push("/sign-in");
     }
     setIsAuthenticating(true);
@@ -119,12 +134,7 @@ export default function PublicPage() {
               >
                 Announcements
               </a>
-              <a
-                href="#resources"
-                className="text-blue-100 hover:text-white font-medium"
-              >
-                Resources
-              </a>
+
               <a
                 href="#contact"
                 className="text-blue-100 hover:text-white font-medium"
@@ -135,9 +145,16 @@ export default function PublicPage() {
             <button
               disabled={isAuthenticating}
               onClick={handleLoginClick}
-              className="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-sm"
+              className="bg-white text-blue-700 px-4 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors shadow-sm flex items-center justify-center min-w-[80px]"
             >
-              Login
+              {isAuthenticating ? (
+                <>
+                  <Spinner />
+                  Signing in...
+                </>
+              ) : (
+                "Login"
+              )}
             </button>
           </div>
         </div>
@@ -275,75 +292,100 @@ export default function PublicPage() {
             >
               Bylaws & Documents
             </button>
-            <button
-              onClick={() => setActiveTab("resources")}
-              className={`py-4 px-6 font-medium text-lg ${
-                activeTab === "resources"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              Resources
-            </button>
           </div>
 
           <div className="bg-white p-6 rounded-b-xl rounded-tr-xl shadow-lg">
             {activeTab === "announcements" && (
               <div id="announcements">
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {announcements.map((a) => (
-                    <div
-                      key={a.id}
-                      className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
-                    >
-                      <div className="bg-blue-600 px-4 py-3">
-                        <h3 className="font-semibold text-white text-lg">
-                          {a.title}
-                        </h3>
-                      </div>
-                      <div className="p-5">
-                        <div className="flex items-center text-sm text-gray-500 mb-3">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {new Date(a.date).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                  {isLoadingAnnouncements
+                    ? Array.from({ length: 3 }).map((_, idx) => (
+                        <div
+                          key={idx}
+                          className="border border-gray-200 rounded-xl overflow-hidden animate-pulse"
+                        >
+                          <div className="bg-blue-100 h-12" />
+                          <div className="p-5 space-y-3">
+                            <div className="h-4 bg-gray-300 rounded w-3/4" />
+                            <div className="h-3 bg-gray-200 rounded w-full" />
+                            <div className="h-3 bg-gray-200 rounded w-5/6" />
+                            <div className="h-3 bg-gray-200 rounded w-2/3" />
+                          </div>
                         </div>
-                        <p className="text-gray-700">{a.content}</p>
-                        <button className="mt-4 text-blue-600 hover:text-blue-800 font-medium flex items-center">
-                          Read more
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 ml-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                      ))
+                    : announcements.map((a) => (
+                        <div
+                          key={a.id}
+                          className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+                        >
+                          <div className="bg-blue-600 px-4 py-3">
+                            <h3 className="font-semibold text-white text-lg">
+                              {a.title}
+                            </h3>
+                          </div>
+                          <div className="p-5">
+                            <div className="flex items-center text-sm text-gray-500 mb-3">
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 mr-1"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                />
+                              </svg>
+                              {new Date(a.calendar).toLocaleDateString(
+                                "en-US",
+                                {
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                }
+                              )}
+                            </div>
+                            <p className="text-gray-700">
+                              {expandedAnnouncements.has(a.id.toString())
+                                ? a.Description
+                                : `${a.Description.substring(0, 100)}${
+                                    a.Description.length > 100 ? "..." : ""
+                                  }`}
+                            </p>
+                            {a.Description.length > 100 && (
+                              <button
+                                onClick={() => toggleExpand(a.id.toString())}
+                                className="mt-4 text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                              >
+                                {expandedAnnouncements.has(a.id.toString())
+                                  ? "Read less"
+                                  : "Read more"}
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-4 w-4 ml-1"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d={
+                                      expandedAnnouncements.has(a.id.toString())
+                                        ? "M19 12H5"
+                                        : "M9 5l7 7-7 7"
+                                    }
+                                  />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                 </div>
               </div>
             )}
@@ -457,106 +499,6 @@ export default function PublicPage() {
                 </div>
               </div>
             )}
-
-            {activeTab === "resources" && (
-              <div id="resources" className="p-4">
-                <h3 className="text-xl font-semibold mb-6">
-                  Helpful Resources
-                </h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
-                    <div className="flex items-start">
-                      <div className="bg-blue-100 p-2 rounded-lg mr-4">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 text-blue-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-1">
-                          Contribution Calendar
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Payment schedule for the current year
-                        </p>
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
-                          Download PDF
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 ml-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-shadow">
-                    <div className="flex items-start">
-                      <div className="bg-blue-100 p-2 rounded-lg mr-4">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-6 w-6 text-blue-600"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                          />
-                        </svg>
-                      </div>
-                      <div>
-                        <h4 className="font-medium text-gray-900 mb-1">
-                          Meeting Minutes Archive
-                        </h4>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Records of past meetings and decisions
-                        </p>
-                        <button className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
-                          View Archive
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 ml-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 5l7 7-7 7"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -566,23 +508,18 @@ export default function PublicPage() {
             <h2 className="text-2xl md:text-3xl font-bold mb-8 text-center">
               Our Community by the Numbers
             </h2>
-            <div className="grid md:grid-cols-3 gap-8 text-center">
+            <div className="grid md:grid-cols-2 gap-8 text-center">
               <div>
-                <div className="text-4xl font-bold mb-2">150+</div>
+                <div className="text-4xl font-bold mb-2">200+</div>
                 <div className="text-blue-100">Active Members</div>
               </div>
               <div>
-                <div className="text-4xl font-bold mb-2">25</div>
+                <div className="text-4xl font-bold mb-2">10+</div>
                 <div className="text-blue-100">Years of Service</div>
-              </div>
-              <div>
-                <div className="text-4xl font-bold mb-2">100%</div>
-                <div className="text-blue-100">Member Satisfaction</div>
               </div>
             </div>
           </div>
         </section>
-
         {/* Contact Section */}
         <section id="contact" className="mb-20">
           <div className="text-center mb-12">
@@ -781,14 +718,6 @@ export default function PublicPage() {
                     className="text-gray-400 hover:text-white"
                   >
                     Announcements
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#resources"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    Resources
                   </a>
                 </li>
                 <li>

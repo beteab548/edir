@@ -34,7 +34,7 @@ export default function TabSwitcher() {
   }, []);
 
   return (
-    <div className="mt-1 bg-gray-50 rounded-xl p-8">
+    <div className="mt-1 bg-gray-50 rounded-xl p-1">
       <div className="flex flex-col items-center justify-center">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">
           View and manage Penalty details

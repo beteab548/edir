@@ -91,7 +91,7 @@ export default function CreateNewContribution({
         setSelectedMemberIds([]);
         setDataChanged((true));
         onClose();
-        router.push('/contribution')
+       return  router.push('/contribution')
       } else {
         toast.error("Failed to create contribution type");
       }
@@ -102,7 +102,7 @@ export default function CreateNewContribution({
 
   return (
     <ModalPortal>
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="fixed inset-0l bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white p-8 my-24  rounded-xl shadow-lg w-[800px] mx-auto border border-gray-100 relative h-[550px] overflow-y-auto custom-scrollbar">
           {/* Close Button */}
           <button

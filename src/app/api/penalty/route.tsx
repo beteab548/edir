@@ -54,8 +54,7 @@ export async function PATCH(request: Request) {
         { status: 400 }
       );
     }
-
-    // Update the penalty in database
+    
     const updatedPenalty = await prisma.penalty.update({
       where: { id: Number(penaltyId) },
       data: {

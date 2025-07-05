@@ -6,20 +6,28 @@ import { deletePayment } from "@/lib/actions";
 import { UserIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import Decimal from "decimal.js";
+import { PenaltyType } from "@prisma/client";
 
 interface DeletePaymentButtonProps {
+  type: PenaltyType;
   paymentId: number;
   memberName: string;
   amount: Decimal;
   paymentDate: string | Date;
+  memberId: number;
+  contributionTypeID: number;
 }
 
 export default function DeletePaymentButton({
+  type,
   paymentId,
   memberName,
   amount,
   paymentDate,
+  memberId,
+  contributionTypeID,
 }: DeletePaymentButtonProps) {
+  console.log(type);
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,10 +36,19 @@ export default function DeletePaymentButton({
   const handleDelete = async () => {
     setIsLoading(true);
     setError(null);
+    const data = {
+      paymentId,
+      amount,
+      paymentDate,
+      memberName,
+      memberId,
+      contributionTypeID,
+    };
     try {
       const result = await deletePayment(
         { success: false, error: false },
-        paymentId
+        data,
+        type
       );
       if (result?.success) {
         setShowModal(false);
@@ -49,7 +66,10 @@ export default function DeletePaymentButton({
   return (
     <div>
       <button
-        onClick={() => setShowModal(true)}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowModal(true);
+        }}
         className="text-red-500 hover:text-red-800 p-1 rounded "
       >
         Delete
@@ -61,7 +81,7 @@ export default function DeletePaymentButton({
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-gray-800">
-                  Delete Payment
+                  This Will Delete Payment Permanently
                 </h2>
                 <button
                   onClick={() => setShowModal(false)}
