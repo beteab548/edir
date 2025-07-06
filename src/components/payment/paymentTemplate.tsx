@@ -123,11 +123,9 @@ export default function ContributionTemplate({
   useEffect(() => {
     const fetchPenaltyMonths = async () => {
       if (type === "manually" && selectedMember) {
-        console.log("Fetching penalty months for member:", selectedMember.id);
         setLoadingPenaltyMonths(true);
         const res = await fetch(`/api/penalty?memberId=${selectedMember.id}`);
         const { monthsWithAmount } = await res.json();
-        console.log(monthsWithAmount);
         setPenaltyMonths(monthsWithAmount || []);
         setLoadingPenaltyMonths(false);
       } else {
@@ -233,7 +231,6 @@ export default function ContributionTemplate({
   const onSubmit = async (
     data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
   ) => {
-    console.log("submitted date is:", data);
     try {
       if (!selectedMember) {
         toast.error("Please select a member first");
@@ -249,8 +246,6 @@ export default function ContributionTemplate({
 
         const balanceNumber =
           typeof balance === "number" ? balance : Number(balance);
-        console.log("balance", balance);
-        console.log("entered amount", enteredAmount);
         if (enteredAmount > balanceNumber) {
           setAmountError(
             `The entered amount (${enteredAmount}) is greater than the amount owed (${balanceNumber})`

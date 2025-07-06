@@ -16,7 +16,7 @@ import Link from "next/link";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 const tabs = ["Principal Info", "Principal detail", "Principal Relatives"];
-
+import "./phone-input.css";
 const MemberForm = ({
   type,
   data,
@@ -1030,7 +1030,6 @@ const MemberForm = ({
   );
 };
 
-
 interface PhoneInputFieldProps {
   value: string;
   onChange: (value: string) => void;
@@ -1039,15 +1038,23 @@ interface PhoneInputFieldProps {
 
 const PhoneInputField = ({ value, onChange, error }: PhoneInputFieldProps) => {
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1 w-full">
+      {" "}
+      {/* Add w-full here */}
       <label className="text-sm font-medium text-gray-700">Phone Number</label>
-      <PhoneInput
-        country={"et"} // default country Ethiopia
-        value={value}
-        onChange={onChange}
-        inputClass="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-        // You can customize the input styles with `inputClass`
-      />
+      <div className="w-full">
+        {" "}
+        {/* Add a wrapper div with w-full */}
+        <PhoneInput
+          country={"et"}
+          value={value}
+          onChange={onChange}
+          containerClass="w-full" // Add this to control container width
+          inputClass="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          buttonClass="border border-gray-300 rounded-l-md" // Style the country dropdown button
+          dropdownClass="z-20" // Ensure dropdown appears above other elements
+        />
+      </div>
       {error && <span className="text-red-500 text-xs">{error}</span>}
     </div>
   );

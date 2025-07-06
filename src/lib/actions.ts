@@ -6,12 +6,9 @@ import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
 import {
   ContributionMode,
-  MemberType,
   PenaltyType,
-  PenaltyTypeModel,
 } from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
-import { title } from "process";
 type Payment = {
   amount?: number;
   paid_amount?: Number;
@@ -117,7 +114,6 @@ export const createMember = async (
         where: { id: createdMember.id },
         data: { custom_id: formattedId },
       });
-      // If new member, assign contributions
       if (createdMember.member_type === "New") {
         const today = new Date();
         const activeContributionTypes = await tx.contributionType.findMany({
@@ -125,8 +121,8 @@ export const createMember = async (
             is_active: true,
             is_for_all: true,
             OR: [
-              { end_date: null }, // No end date (open-ended)
-              { end_date: { gte: today } }, // End date is in the future or today
+              { end_date: null }, 
+              { end_date: { gte: today } }, 
             ],
           },
           select: {
@@ -241,7 +237,6 @@ export const updateMember = async (
           member_type: data.member.member_type,
         },
       });
-      // 2. Add contributions only if member_type is New and no contributions exist
       if (data.member.member_type === "New") {
         const existingContributions = await prisma.contribution.findFirst({
           where: { member_id: data.member.id },
@@ -277,7 +272,6 @@ export const updateMember = async (
           }
         }
       }
-      // 3. Handle relatives update without deleting all
       const existingRelatives = await prisma.relative.findMany({
         where: { member_id: data.member.id },
       });
@@ -290,20 +284,17 @@ export const updateMember = async (
         .filter((r) => typeof r.id === "number")
         .map((r) => r.id as number);
 
-      // Delete relatives removed in the update
       await prisma.relative.deleteMany({
         where: {
           member_id: data.member.id,
           id: {
-            notIn: inputIds.length > 0 ? inputIds : [0], // delete all if none
+            notIn: inputIds.length > 0 ? inputIds : [0], 
           },
         },
       });
 
-      // Update existing and create new relatives
       for (const relative of inputRelatives) {
         if (relative.id && existingMap.has(relative.id)) {
-          // Update existing relative
           const existing = existingMap.get(relative.id);
           const updateData: any = {
             first_name: relative.first_name,
@@ -312,7 +303,6 @@ export const updateMember = async (
             relation_type: relative.relation_type,
           };
 
-          // Update status only if changed, and update status_updated_at timestamp
           if (relative.status !== existing?.status) {
             updateData.status = relative.status;
             updateData.status_updated_at = new Date();
@@ -323,7 +313,6 @@ export const updateMember = async (
             data: updateData,
           });
         } else {
-          // Create new relative
           if (typeof data.member.id === "number") {
             await prisma.relative.create({
               data: {
@@ -357,7 +346,6 @@ export const deleteMember = async (
 ) => {
   const id = parseInt(data.get("id") as string);
   try {
-    //delete the doucment file and images files if existing
     const member = await prisma.member.findUnique({
       where: { id },
       select: {
@@ -430,7 +418,7 @@ export const updateContribution = async (
       data: {
         amount: data.amount,
         name: data.type_name,
-        start_date: newStartDate ?? new Date(), // Use raw input to store type definition
+        start_date: newStartDate ?? new Date(), 
         end_date: data.end_date,
         is_active: data.is_active,
         is_for_all: data.is_for_all,
@@ -588,7 +576,7 @@ export const createContributionType = async (data: {
       startDate = new Date();
       endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + data.period_months);
-      endDate.setDate(0); // last day of the previous month
+      endDate.setDate(0); 
 
       if (
         typeof data.months_before_inactivation !== "number" ||
@@ -745,7 +733,6 @@ export const paymentActionforAutomatic = async (
 };
 export async function waivePenalty(penaltyId: number, memberId: number) {
   try {
-    // Check if penalty exists and is unpaid
     const penalty = await prisma.penalty.findUnique({
       where: { id: penaltyId, member_id: memberId },
     });
