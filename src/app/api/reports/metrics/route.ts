@@ -30,6 +30,10 @@ export async function GET(req: NextRequest) {
     let currentCount = 0;
 
     switch (type) {
+      case "active members":
+        currentCount = await prisma.member.count({
+          where: { status: "Active" },
+        });
       case "new members":
         currentCount = await prisma.member.count({
           where: {
@@ -56,11 +60,7 @@ export async function GET(req: NextRequest) {
         break;
 
       case "total members":
-        currentCount = await prisma.member.count({
-          where: {
-            status: "Active",
-          },
-        });
+        currentCount = await prisma.member.count();
         break;
 
       case "deceased members":

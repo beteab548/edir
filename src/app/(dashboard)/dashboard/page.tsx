@@ -35,17 +35,11 @@ const AdminPage = async ({}: {}) => {
       },
     },
   });
-  const total = await prisma.member.count();
-  const active = await prisma.member.count({ where: { status: "Active" } });
-
-  const summary = `${active} / ${total}`;
   const isSecretary = role === "secretary";
   const isChairman = role === "chairman";
-  // generateContributionSchedulesForAllActiveMembers();
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      {/* Dashboard Header */}
       <div className="max-w-7xl mx-auto">
         <header className="mb-8">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -75,67 +69,18 @@ const AdminPage = async ({}: {}) => {
             </div>
           </div>
         </header>
-
-        {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Column - Stats and Charts */}
           <div className="lg:col-span-3 space-y-6">
-            {/* Stats Cards Row */}
             {isSecretary && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <div
-                  className="bg-gradient-to-r from-pink-100 to-orange-200
- rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
-                      <FiUsers className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        New Members
-                      </p>
-                      <p className="text-xl font-semibold text-gray-800">
-                        {newMembers}
-                      </p>
-                    </div>
-                  </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <UserCard type="New Members" />
+                  <UserCard type="Left Members" />
+                  <UserCard type="Total Members" />
+                  <UserCard type="Deceased Members" />
+                  <UserCard type="Active Members" />
                 </div>
-
-                <UserCard type="Left Members" />
-
-                <UserCard type="Total Members" />
-
-                <UserCard type="Deceased Members" />
-
-                <div
-                  className="bg-gradient-to-br from-lamaSkyLight to-lamaSky
- rounded-lg shadow-xs p-4 border border-gray-200 hover:shadow-sm transition-all duration-200"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-green-50 text-green-600">
-                      <FiPieChart className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Active Members
-                      </p>
-                      <p className="text-xl font-semibold text-gray-800">
-                        {active}
-                        <span className="text-sm font-normal text-gray-500 ml-1">
-                          / {total}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 gap-6">
-              {isSecretary && (
-                <>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                   <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                       <div className="flex items-center gap-3">
@@ -162,14 +107,15 @@ const AdminPage = async ({}: {}) => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-xs p-12 border border-gray-200">
-                    <div className="h-80">
+                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
+                    <div className="h-72">
                       <RelativeRelationsChart apiUrl="/api/reports/relatives" />
                     </div>
                   </div>
-                </>
-              )}
-
+                </div>
+              </>
+            )}
+            <div className="grid grid-cols-1 gap-6">
               {isChairman && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-4">
@@ -193,9 +139,7 @@ const AdminPage = async ({}: {}) => {
             </div>
           </div>
 
-          {/* Right Column - Sidebar */}
           <div className="lg:col-span-1 space-y-6">
-            {/* Quick Actions */}
             <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
               <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-blue-50 text-blue-600">
@@ -227,7 +171,6 @@ const AdminPage = async ({}: {}) => {
               </div>
             </div>
 
-            {/* Activity Section */}
             <div className="bg-white rounded-lg ">
               {isChairman ? (
                 <Activity type="chairman" />

@@ -26,6 +26,18 @@ const Spinner = () => (
     ></path>
   </svg>
 );
+const smoothScroll = (
+  e: React.MouseEvent<HTMLAnchorElement>,
+  targetId: string
+) => {
+  e.preventDefault();
+  const targetElement = document.getElementById(targetId);
+  if (targetElement) {
+    targetElement.scrollIntoView({
+      behavior: "smooth",
+    });
+  }
+};
 export default function PublicPage() {
   const [announcements, setAnnouncements] = useState<Announcements[]>([]);
   const [activeTab, setActiveTab] = useState("announcements");
@@ -124,19 +136,21 @@ export default function PublicPage() {
             <nav className="hidden md:flex space-x-8">
               <a
                 href="#about"
+                onClick={(e) => smoothScroll(e, "about")}
                 className="text-blue-100 hover:text-white font-medium"
               >
                 About
               </a>
               <a
                 href="#announcements"
+                onClick={(e) => smoothScroll(e, "announcements")}
                 className="text-blue-100 hover:text-white font-medium"
               >
                 Announcements
               </a>
-
               <a
                 href="#contact"
+                onClick={(e) => smoothScroll(e, "contact")}
                 className="text-blue-100 hover:text-white font-medium"
               >
                 Contact
@@ -731,23 +745,30 @@ export default function PublicPage() {
               <h4 className="text-lg font-semibold mb-4">Documents</h4>
               <ul className="space-y-2">
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Bylaws
+                  <a
+                    href="#about"
+                    onClick={(e) => smoothScroll(e, "about")}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    About Us
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Membership Form
+                  <a
+                    href="#announcements"
+                    onClick={(e) => smoothScroll(e, "announcements")}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    Announcements
                   </a>
                 </li>
                 <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Contribution Calendar
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="text-gray-400 hover:text-white">
-                    Meeting Minutes
+                  <a
+                    href="#contact"
+                    onClick={(e) => smoothScroll(e, "contact")}
+                    className="text-gray-400 hover:text-white"
+                  >
+                    Contact
                   </a>
                 </li>
               </ul>

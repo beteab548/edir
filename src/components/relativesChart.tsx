@@ -125,7 +125,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
             <FiPieChart className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-sm font-semibold text-gray-900">
               Family Relatives Distribution
               {memberId && (
                 <span className="text-xs font-normal text-gray-500 ml-2">
@@ -174,15 +174,15 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
           No relatives found.
         </div>
       ) : (
-        <div className="flex-1 min-h-[300px]">
+        <div className="flex-1 min-h-[300px] ">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
-                cx="50%"
+                cx="55%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={90}
+                innerRadius={30}
+                outerRadius={60}
                 paddingAngle={2}
                 dataKey="value"
                 label={({ name, percent }) =>
