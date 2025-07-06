@@ -32,7 +32,7 @@ export default function ContributionPage() {
       </div>
     );
   }
-
+console.log("showmodal",showAdd);
   return (
     <div className="min-h-screen p-4 space-y-4">
       <div className="flex justify-end mb-4">

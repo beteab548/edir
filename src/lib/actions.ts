@@ -1058,7 +1058,12 @@ export async function deletePayment(
         payment_record_id: data.paymentId,
         payment_type: { not: "penalty" },
       },
-      select: { paid_amount: true },
+      select: {
+        paid_amount: true,
+        contribution_schedule_id: true,
+        contribution_id: true,
+        member_id: true,
+      },
     });
 
     const penaltyPayments = await tx.payment.findMany({
@@ -1088,6 +1093,27 @@ export async function deletePayment(
       });
     }
 
+    for (const p of contributionPayments) {
+      const schedule = await tx.contributionSchedule.findUnique({
+        where: { id: p.contribution_schedule_id ?? 1 },
+        select: { paid_amount: true },
+      });
+
+      if (!schedule) continue;
+
+      const newPaidAmount =
+        schedule.paid_amount.toNumber() - Number(p.paid_amount);
+
+      await tx.contributionSchedule.update({
+        where: { id: p.contribution_schedule_id ?? 1 },
+        data: {
+          paid_amount: newPaidAmount,
+          is_paid: newPaidAmount > 0 ? false : false,
+          paid_at: newPaidAmount > 0 ? null : null,
+        },
+      });
+    }
+
     const totalContributionPaidAmount = contributionPayments.reduce(
       (sum, payment) => sum + Number(payment.paid_amount),
       0
@@ -1102,7 +1128,7 @@ export async function deletePayment(
       },
       select: { amount: true },
     });
-//find the scedules and unpay them
+
     const updatedBalance =
       (memberBalance?.amount?.toNumber() ?? 0) + totalContributionPaidAmount;
 

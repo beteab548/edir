@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { isValidPhoneNumber } from "libphonenumber-js";
+import { parseISO, isBefore, addDays, startOfDay } from "date-fns";
+
 export const memberSchema = z.object({
   id: z.coerce.number().optional(),
   first_name: z.string().min(1, { message: "First name is required!" }),
@@ -257,6 +259,7 @@ export type PaymentFormSchemaType = {
   penalty_month?: Date | undefined;
 };
 
+
 export const ContributionTypeSchema = z
   .object({
     type_name: z
@@ -279,6 +282,19 @@ export const ContributionTypeSchema = z
     member_ids: z.array(z.number()).optional(),
   })
   .superRefine((data, ctx) => {
+    const today = startOfDay(new Date());
+
+    if (data.start_date) {
+      const startDate = parseISO(data.start_date);
+      if (isBefore(startDate, today)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Start date cannot be before today",
+          path: ["start_date"],
+        });
+      }
+    }
+
     if (data.mode === "Recurring") {
       if (!data.start_date) {
         ctx.addIssue({
@@ -294,6 +310,27 @@ export const ContributionTypeSchema = z
           path: ["end_date"],
         });
       }
+
+      if (data.start_date && data.end_date) {
+        const startDate = parseISO(data.start_date);
+        const endDate = parseISO(data.end_date);
+        const minEndDate = addDays(startDate, 1);
+
+        if (!isBefore(startDate, endDate)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "End date must be after start date",
+            path: ["end_date"],
+          });
+        } else if (isBefore(endDate, minEndDate)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "End date must be at least 1 day after start date",
+            path: ["end_date"],
+          });
+        }
+      }
+
       if (data.penalty_amount === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -329,7 +366,17 @@ export const ContributionTypeSchema = z
           message: "Start date is required for OpenEndedRecurring mode",
           path: ["start_date"],
         });
+      } else {
+        const startDate = parseISO(data.start_date);
+        if (isBefore(startDate, today)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Start date cannot be before today",
+            path: ["start_date"],
+          });
+        }
       }
+
       if (data.penalty_amount === undefined) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -337,6 +384,7 @@ export const ContributionTypeSchema = z
           path: ["penalty_amount"],
         });
       }
+
       data.period_months = undefined;
     }
   })
@@ -347,6 +395,7 @@ export const ContributionTypeSchema = z
     }
     return data;
   });
+
 
 export const penaltyFormSchema = z.object({
   member_id: z.number().min(1, "Member is required"),

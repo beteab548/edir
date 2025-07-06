@@ -2,7 +2,7 @@
 import { SubmitHandler } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ContributionSchema } from "../../lib/formValidationSchemas";
+import { ContributionTypeSchema } from "../../lib/formValidationSchemas";
 import InputField from "../InputField";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -62,8 +62,8 @@ export default function ConfigureExistingContribution({
     formState: { errors },
     setValue,
     watch,
-  } = useForm<z.input<typeof ContributionSchema>>({
-    resolver: zodResolver(ContributionSchema),
+  } = useForm<z.input<typeof ContributionTypeSchema>>({
+    resolver: zodResolver(ContributionTypeSchema),
   });
   console.log("apidata:", apiData);
   const watchIsForAll = watch("is_for_all");
@@ -103,14 +103,10 @@ export default function ConfigureExistingContribution({
     const d = typeof date === "string" ? new Date(date) : date;
     return d.toISOString().split("T")[0];
   }
-  function formatDateForDisplay(date: Date | string | null): string {
-    if (!date) return "N/A";
-    const d = typeof date === "string" ? new Date(date) : date;
-    return d.toLocaleDateString();
-  }
-  const onSubmit: SubmitHandler<z.input<typeof ContributionSchema>> = async (
-    data
-  ) => {
+
+  const onSubmit: SubmitHandler<
+    z.input<typeof ContributionTypeSchema>
+  > = async (data) => {
     if (!editingId) return;
     setLoading(true);
 
@@ -231,8 +227,10 @@ export default function ConfigureExistingContribution({
                 Delete "{toDelete.name}"?
               </h3>
               <p className="text-gray-600 mb-6">
-                This will permanently remove the contribution type and cannot be
-                undone.
+                This will permanently remove the
+                <span className="font-bold"> Contribution type </span>
+                and <span className="font-bold"> Paymnet records </span>{" "}
+                associated with it, And cannot be undone.
               </p>
             </div>
             <div className="flex justify-center gap-3">
@@ -331,14 +329,10 @@ export default function ConfigureExistingContribution({
                         containerClass="bg-gray-50 p-4 rounded-lg"
                         inputProps={{
                           step: "0.01",
-                          onChange: (
-                            e: React.ChangeEvent<HTMLInputElement>
-                          ) => {
-                            setValue(
-                              "penalty_amount",
-                              parseFloat(e.target.value)
-                            );
-                          },
+                          ...register("penalty_amount", {
+                            setValueAs: (v) =>
+                              v === "" ? undefined : Number(v),
+                          }),
                         }}
                       />
                     )}
