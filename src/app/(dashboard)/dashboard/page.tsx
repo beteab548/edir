@@ -8,7 +8,6 @@ import prisma from "@/lib/prisma";
 import RelativeRelationsChart from "@/components/relativesChart";
 import {
   FiUsers,
-  FiPieChart,
   FiUserCheck,
   FiClock,
   FiActivity,
