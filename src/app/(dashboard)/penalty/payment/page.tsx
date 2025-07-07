@@ -1,6 +1,7 @@
+import { currentUser } from "@clerk/nextjs/server";
 import PaymentComponent from "../../../../components/payment/paymentTemplate";
 import prisma from "@/lib/prisma";
-
+import { redirect } from "next/navigation";
 interface SearchParams {
   searchParams: {
     year?: string;
@@ -8,11 +9,16 @@ interface SearchParams {
     query?: string;
   };
 }
-
 export default async function PenaltyPage({ searchParams }: SearchParams) {
+  const user = await currentUser();
+  if (!user) {
+   return redirect("/sign-in");
+  }
+  const role = user.publicMetadata?.role;
+  if (role !== "chairman") {
+  return  redirect("/dashboard");
+  }
   const { year, month, query } = searchParams;
-
-  // Build shared query filter
   const filterConditions = query
     ? [
         { first_name: { contains: query, mode: "insensitive" } },

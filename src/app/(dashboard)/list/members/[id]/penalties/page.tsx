@@ -1,6 +1,8 @@
 // app/members/[id]/penalties/page.tsx
 import prisma from "@/lib/prisma";
 import { WaivePenaltyButton } from "../../../../../../components/WaivePenaltyButton";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 interface MemberPenaltiesPageProps {
   params: { id: string };
@@ -9,6 +11,16 @@ interface MemberPenaltiesPageProps {
 export default async function MemberPenaltiesPage({
   params,
 }: MemberPenaltiesPageProps) {
+    const user = await currentUser();
+  
+    if (!user) {
+   return   redirect("/sign-in");
+    }
+  
+    const role = user.publicMetadata?.role;
+    if (role !== "secretary") {
+    return  redirect("/dashboard");
+    }
   const memberId = parseInt(params.id);
   // Fetch member details
   const member = await prisma.member.findUnique({

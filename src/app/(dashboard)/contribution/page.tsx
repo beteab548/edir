@@ -3,8 +3,20 @@ import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Image from "next/image";
 import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export default async function ContributionPage() {
+  const user = await currentUser();
+
+  if (!user) {
+   return redirect("/sign-in");
+  }
+
+  const role = user.publicMetadata?.role;
+  if (role !== "chairman") {
+  return  redirect("/dashboard");
+  }
   const contributionOptions = await prisma.contributionType.findMany({
     select: {
       id: true,
@@ -22,8 +34,8 @@ export default async function ContributionPage() {
             Make a Contribution
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Your contributions play a vital role in supporting our Edir community.
-            Please select a contribution type below to proceed.
+            Your contributions play a vital role in supporting our Edir
+            community. Please select a contribution type below to proceed.
           </p>
         </div>
 

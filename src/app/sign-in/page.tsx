@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 const LoginPage = () => {
-  const { isLoaded, isSignedIn, user } = useUser();
+  const {  user } = useUser();
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   useEffect(() => {

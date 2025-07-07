@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import ManualPenaltyManagement from "../../../components/manualPenalty";
 import SystemPenaltyManagement from "@/components/Systempenalty";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 
 type Tab = "System Generated" | "Admin Generated";
 
@@ -11,7 +13,24 @@ export default function TabSwitcher() {
   const [error, setError] = useState<{ message: string } | null>(null);
   const [memberWithPenalty, setMemberWithPenalty] = useState([]);
   const [activeTab, setActiveTab] = useState<Tab>("System Generated");
+  const { isLoaded, isSignedIn, user } = useUser();
+  const router = useRouter();
+  useEffect(() => {
+    if (!isLoaded) return;
 
+    if (!isSignedIn) {
+     return router.push("/sign-in");
+    } else {
+      const role = user?.publicMetadata?.role;
+      if (role !== "chairman") {
+      return  router.push("/dashboard"); 
+      }
+    }
+  }, [isLoaded, isSignedIn, user, router]);
+
+  if (!isLoaded || !isSignedIn || user?.publicMetadata?.role !== "chairman") {
+    return null;
+  }
   useEffect(() => {
     async function loadData() {
       try {
@@ -29,10 +48,8 @@ export default function TabSwitcher() {
         setIsLoading(false);
       }
     }
-
     loadData();
   }, []);
-
   return (
     <div className="mt-1 bg-gray-50 rounded-xl p-1">
       <div className="flex flex-col items-center justify-center">
@@ -58,8 +75,7 @@ export default function TabSwitcher() {
           ))}
         </nav>
       </div>
-
-<div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300 overflow-x-visible w-full max-w-full">
+      <div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300 overflow-x-visible w-full max-w-full">
         {isLoading ? (
           <div className="container mx-auto px-4 py-8 animate-pulse">
             <h1 className="text-2xl font-bold text-gray-300 mb-6 bg-gray-200 w-64 h-6 rounded"></h1>

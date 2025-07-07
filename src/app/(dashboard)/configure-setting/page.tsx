@@ -1,8 +1,6 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import ContributionTab from "../../../components/contribution/contributionPage";
-import ContributionPenaltyTab from "@/components/Systempenalty";
 import { useUser } from "@clerk/nextjs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -14,6 +12,7 @@ import {
 import AddNewPenaltyType from "@/components/AddNewPenaltyType";
 import { AnnouncementManager } from "@/components/AnnouncementManager ";
 import { Announcements } from "@prisma/client";
+import { useRouter } from "next/navigation";
 
 type Tab =
   | "contribution"
@@ -27,15 +26,32 @@ interface TabData {
   component: JSX.Element;
 }
 
-export default function ContributionTabs() {
+export default async function ContributionTabs() {
+   const { isLoaded, isSignedIn, user } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoaded) return; 
+
+    if (!isSignedIn) {
+     return router.push("/sign-in");
+    } else {
+      const role = user?.publicMetadata?.role;
+      if (role !== "chairman") {
+      return  router.push("/dashboard");
+      }
+    }
+  }, [isLoaded, isSignedIn, user, router]);
+
+  if (!isLoaded || !isSignedIn || user?.publicMetadata?.role !== "chairman") {
+    return null;
+  }
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
-  const { isLoaded: userLoaded, user } = useUser();
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [Announcements, setAnnouncements] = useState<Announcements[]>([]);
-  // Load data on component mount
   useEffect(() => {
     async function loadData() {
       try {
@@ -60,7 +76,7 @@ export default function ContributionTabs() {
     loadData();
   }, [retryCount]);
 
-  if (!userLoaded) {
+  if (!isLoaded) {
     return (
       <div className="w-[900px] flex flex-col mx-auto p-10 space-y-4 ">
         <div className=" w-full items-center ">

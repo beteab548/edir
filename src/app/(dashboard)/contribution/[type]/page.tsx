@@ -2,7 +2,8 @@ import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
 import Penalty from "../../../../components/Systempenalty";
 import { getMembersWithPenalties } from "@/lib/actions";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { currentUser } from "@clerk/nextjs/server";
 
 interface PageProps {
   params: {
@@ -19,6 +20,16 @@ export default async function ContributionPage({
   params,
   searchParams = {},
 }: PageProps) {
+  const user = await currentUser();
+
+  if (!user) {
+  return  redirect("/sign-in");
+  }
+
+  const role = user.publicMetadata?.role;
+  if (role !== "chairman") {
+   return redirect("/dashboard");
+  }
   const decodedType = decodeURIComponent(params.type).replace(/%20/g, " ");
   const { year, month, query } = searchParams;
 
@@ -42,7 +53,7 @@ export default async function ContributionPage({
   });
 
   if (!contributionType) {
-     notFound();
+    notFound();
   }
 
   // Build member filter

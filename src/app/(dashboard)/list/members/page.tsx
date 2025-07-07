@@ -3,12 +3,13 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import prisma from "@/lib/prisma";
+import { currentUser } from "@clerk/nextjs/server";
 import { Member, Prisma } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { FiPlus, FiFilter, FiArrowUp, FiArrowDown } from "react-icons/fi";
 
-// Available items per page options
 const ITEMS_PER_PAGE_OPTIONS = [10, 30, 50];
 const DEFAULT_ITEMS_PER_PAGE = 10;
 
@@ -17,7 +18,16 @@ const MemberListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-  // Get items per page from URL or use default
+    const user = await currentUser();
+
+  if (!user) {
+  return  redirect("/sign-in");
+  }
+
+  const role = user.publicMetadata?.role;
+  if (role !== "secretary") {
+   return redirect("/dashboard");
+  }
   const itemsPerPage = searchParams.perPage
     ? parseInt(searchParams.perPage as string)
     : DEFAULT_ITEMS_PER_PAGE;
