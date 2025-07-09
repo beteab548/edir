@@ -28,7 +28,7 @@ export default function CreateNewContribution({
   const [showMemberSelection, setShowMemberSelection] = useState(false);
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const { setDataChanged } = useDataChange();
-  const router=useRouter()
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -44,7 +44,6 @@ export default function CreateNewContribution({
       mode: "Recurring",
       member_ids: [],
       penalty_amount: 0,
-      months_before_inactivation: undefined,
       period_months: undefined,
     },
   });
@@ -76,10 +75,6 @@ export default function CreateNewContribution({
             : undefined,
         penalty_amount:
           data.mode !== "OneTimeWindow" ? data.penalty_amount : undefined,
-        months_before_inactivation:
-          data.mode === "OneTimeWindow"
-            ? Number(data.months_before_inactivation)
-            : undefined,
       };
       console.log("payload", payload);
       const result = await createContributionType(payload);
@@ -89,9 +84,9 @@ export default function CreateNewContribution({
         setRevalidate((prev) => !prev);
         reset();
         setSelectedMemberIds([]);
-        setDataChanged((true));
+        setDataChanged(true);
         onClose();
-       return  router.push('/contribution')
+        return router.push("/contribution");
       } else {
         toast.error("Failed to create contribution type");
       }
@@ -128,7 +123,12 @@ export default function CreateNewContribution({
               onCancel={() => setShowMemberSelection(false)}
             />
           ) : (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form
+              onSubmit={handleSubmit(onSubmit, (errors) => {
+                console.error("Validation Errors:", errors);
+              })}
+              className="space-y-6"
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <InputField
                   label="Name"
@@ -170,24 +170,7 @@ export default function CreateNewContribution({
                     </option>
                   </select>
                 </div>
-
-                {mode === "OneTimeWindow" ? (
-                  <InputField
-                    label="Months Before Inactivation"
-                    name="months_before_inactivation"
-                    type="number"
-                    register={register}
-                    error={errors.months_before_inactivation}
-                    containerClass="bg-gray-50 p-4 rounded-lg"
-                    inputProps={{
-                      min: 1,
-                      step: 1,
-                      ...register("months_before_inactivation", {
-                        setValueAs: (v) => (v === "" ? undefined : Number(v)),
-                      }),
-                    }}
-                  />
-                ) : (
+                {mode !== "OneTimeWindow" && (
                   <InputField
                     label="Penalty Amount"
                     name="penalty_amount"

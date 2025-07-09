@@ -4,10 +4,7 @@ import { Decimal } from "@prisma/client/runtime/library";
 import { CombinedSchema, RelativeSchema } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
-import {
-  ContributionMode,
-  PenaltyType,
-} from "@prisma/client";
+import { ContributionMode, PenaltyType } from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
 type Payment = {
   amount?: number;
@@ -120,10 +117,7 @@ export const createMember = async (
           where: {
             is_active: true,
             is_for_all: true,
-            OR: [
-              { end_date: null }, 
-              { end_date: { gte: today } }, 
-            ],
+            OR: [{ end_date: null }, { end_date: { gte: today } }],
           },
           select: {
             id: true,
@@ -288,7 +282,7 @@ export const updateMember = async (
         where: {
           member_id: data.member.id,
           id: {
-            notIn: inputIds.length > 0 ? inputIds : [0], 
+            notIn: inputIds.length > 0 ? inputIds : [0],
           },
         },
       });
@@ -386,7 +380,6 @@ export const updateContribution = async (
     mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
     penalty_amount: number;
     period_months?: number | null;
-    months_before_inactivation?: number | null;
   }
 ) => {
   try {
@@ -418,7 +411,7 @@ export const updateContribution = async (
       data: {
         amount: data.amount,
         name: data.type_name,
-        start_date: newStartDate ?? new Date(), 
+        start_date: newStartDate ?? new Date(),
         end_date: data.end_date,
         is_active: data.is_active,
         is_for_all: data.is_for_all,
@@ -426,10 +419,6 @@ export const updateContribution = async (
         penalty_amount: data.penalty_amount,
         period_months:
           data.mode === "OneTimeWindow" ? data.period_months : null,
-        months_before_inactivation:
-          data.mode === "OneTimeWindow"
-            ? data.months_before_inactivation
-            : null,
       },
     });
 
@@ -566,7 +555,6 @@ export const createContributionType = async (data: {
   member_ids?: number[];
   is_active?: boolean;
   mode: ContributionMode;
-  months_before_inactivation: number | undefined;
 }) => {
   try {
     let startDate: Date;
@@ -576,14 +564,11 @@ export const createContributionType = async (data: {
       startDate = new Date();
       endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + data.period_months);
-      endDate.setDate(0); 
+      endDate.setDate(0);
 
-      if (
-        typeof data.months_before_inactivation !== "number" ||
-        data.months_before_inactivation <= 0
-      ) {
+      if (typeof data.period_months !== "number" || data.period_months <= 0) {
         throw new Error(
-          "months_before_inactivation must be a positive number for OneTimeWindow mode."
+          "period months must be a positive number for OneTimeWindow mode."
         );
       }
     } else if (data.mode === "Recurring") {
@@ -622,10 +607,6 @@ export const createContributionType = async (data: {
           mode: data.mode,
           period_months:
             data.mode === "OneTimeWindow" ? data.period_months : null,
-          months_before_inactivation:
-            data.mode === "OneTimeWindow"
-              ? data.months_before_inactivation
-              : null,
         },
       });
 

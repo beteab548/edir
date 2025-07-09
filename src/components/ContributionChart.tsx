@@ -16,8 +16,8 @@ import {
   FiDollarSign,
   FiTrendingUp,
   FiAlertCircle,
-  FiMoreVertical,
   FiBarChart2,
+  FiMoreVertical,
 } from "react-icons/fi";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Skeleton from "react-loading-skeleton";
@@ -44,7 +44,6 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
   const [data, setData] = useState<ChartData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const typeOptions = [
     {
@@ -94,11 +93,6 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
     }),
     { expected: 0, paid: 0 }
   );
-
-  const handleExport = (format: string) => {
-    setShowExportMenu(false);
-    console.log(`Exporting as ${format}...`);
-  };
 
   return (
     <div className="bg-white rounded-xl w-full h-[570px]  p-6 shadow-md relative">
@@ -155,33 +149,6 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Export */}
-          <div className="relative">
-            <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              aria-label="Export options"
-            >
-              <FiMoreVertical size={20} />
-            </button>
-
-            {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                <div className="py-1">
-                  {["csv", "excel", "pdf"].map((format) => (
-                    <button
-                      key={format}
-                      onClick={() => handleExport(format)}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      Export as {format.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>

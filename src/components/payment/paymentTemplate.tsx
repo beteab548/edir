@@ -334,10 +334,9 @@ export default function ContributionTemplate({
               Add Payment
             </button>
 
-            {/* Tooltip for disabled state */}
             {(members.length <= 0 ||
               (ContributionType && !ContributionType.is_active)) && (
-              <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-2 bottom-full mb-2">
+              <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-1 bottom-full mb-2">
                 {members.length <= 0
                   ? "No members available"
                   : "Contribution is inactive"}
@@ -728,9 +727,8 @@ export default function ContributionTemplate({
                             );
                           })}
                         </select>
-
                         <span className=" text-xs text-red-700">
-                          {penaltyMonths.length > 1 
+                          {penaltyMonths.length > 1
                             ? "only allows payment from oldes to latest"
                             : ""}
                         </span>{" "}

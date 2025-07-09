@@ -138,6 +138,7 @@ export const ContributionSchema = z
         return date;
       }),
     ]),
+
     end_date: z
       .union([
         z.date(),
@@ -155,27 +156,12 @@ export const ContributionSchema = z
         }),
       ])
       .nullable(),
+
     is_for_all: z.boolean(),
     is_active: z.boolean(),
+
     mode: z.enum(["Recurring", "OneTimeWindow", "OpenEndedRecurring"]),
-    months_before_inactivation: z
-      .union([
-        z.number().int().positive(),
-        z.string().transform((val, ctx) => {
-          if (!val) return undefined;
-          const parsed = parseInt(val);
-          if (isNaN(parsed) || parsed < 1) {
-            ctx.addIssue({
-              code: z.ZodIssueCode.custom,
-              message: "Must be a positive integer",
-            });
-            return z.NEVER;
-          }
-          return parsed;
-        }),
-      ])
-      .optional()
-      .nullable(),
+
     penalty_amount: z.union([
       z.number(),
       z.string().transform((val, ctx) => {
@@ -190,6 +176,7 @@ export const ContributionSchema = z
         return parsed;
       }),
     ]),
+
     period_months: z
       .union([
         z.number().int().positive(),
@@ -259,7 +246,6 @@ export type PaymentFormSchemaType = {
   penalty_month?: Date | undefined;
 };
 
-
 export const ContributionTypeSchema = z
   .object({
     type_name: z
@@ -276,7 +262,6 @@ export const ContributionTypeSchema = z
     end_date: z.string().optional(),
     period_months: z.number().optional(),
     penalty_amount: z.number().min(0, "Penalty must be 0 or more").optional(),
-    months_before_inactivation: z.number().int().positive().optional(),
     is_for_all: z.boolean(),
     is_active: z.boolean(),
     member_ids: z.array(z.number()).optional(),
@@ -284,7 +269,10 @@ export const ContributionTypeSchema = z
   .superRefine((data, ctx) => {
     const today = startOfDay(new Date());
 
-    if (data.start_date) {
+    if (
+      (data.mode === "Recurring" || data.mode === "OpenEndedRecurring") &&
+      data.start_date
+    ) {
       const startDate = parseISO(data.start_date);
       if (isBefore(startDate, today)) {
         ctx.addIssue({
@@ -347,17 +335,8 @@ export const ContributionTypeSchema = z
           path: ["period_months"],
         });
       }
-      if (
-        typeof data.months_before_inactivation !== "number" ||
-        data.months_before_inactivation <= 0
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message:
-            "Months before inactivation must be a positive number for OneTimeWindow mode",
-          path: ["months_before_inactivation"],
-        });
-      }
+
+      // Remove: months_before_inactivation check
       data.penalty_amount = undefined;
     } else if (data.mode === "OpenEndedRecurring") {
       if (!data.start_date) {
@@ -395,7 +374,6 @@ export const ContributionTypeSchema = z
     }
     return data;
   });
-
 
 export const penaltyFormSchema = z.object({
   member_id: z.number().min(1, "Member is required"),

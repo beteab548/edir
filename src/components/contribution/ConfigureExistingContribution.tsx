@@ -26,7 +26,6 @@ type ContributionType = {
   mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
   penalty_amount: Decimal | null;
   period_months: number | null;
-  months_before_inactivation?: number;
 };
 type ApiResponse = {
   contributionTypes: ContributionType[];
@@ -94,8 +93,7 @@ export default function ConfigureExistingContribution({
         contribution.penalty_amount instanceof Decimal
           ? contribution.penalty_amount.toNumber()
           : Number(contribution.penalty_amount ?? 0),
-      period_months: contribution.period_months ?? undefined,
-      months_before_inactivation: contribution.months_before_inactivation ?? 1,
+      period_months: Number(contribution.period_months) ?? undefined,
     });
   };
   function formatDateForInput(date: Date | string | null): string {
@@ -127,10 +125,6 @@ export default function ConfigureExistingContribution({
         penalty_amount: Number(data.penalty_amount),
         period_months:
           data.mode === "OneTimeWindow" ? Number(data.period_months) : null,
-        months_before_inactivation:
-          data.mode === "OneTimeWindow"
-            ? Number(data.months_before_inactivation)
-            : undefined,
       };
 
       await updateContribution({ success: false, error: false }, formData);
@@ -302,24 +296,7 @@ export default function ConfigureExistingContribution({
                       }}
                     />
 
-                    {watchMode === "OneTimeWindow" ? (
-                      <InputField
-                        label="Months Before Inactivation"
-                        name="months_before_inactivation"
-                        type="number"
-                        register={register}
-                        error={errors.months_before_inactivation}
-                        containerClass="bg-gray-50 p-4 rounded-lg"
-                        inputProps={{
-                          min: 1,
-                          step: 1,
-                          ...register("months_before_inactivation", {
-                            setValueAs: (v) =>
-                              v === "" ? undefined : Number(v),
-                          }),
-                        }}
-                      />
-                    ) : (
+                    {watchMode !== "OneTimeWindow" && (
                       <InputField
                         label="Penalty Amount"
                         name="penalty_amount"
@@ -348,6 +325,10 @@ export default function ConfigureExistingContribution({
                         inputProps={{
                           min: 1,
                           step: "1",
+                          ...register("period_months", {
+                            setValueAs: (v) =>
+                              v === "" ? undefined : Number(v),
+                          }),
                           onChange: (
                             e: React.ChangeEvent<HTMLInputElement>
                           ) => {
@@ -527,27 +508,24 @@ export default function ConfigureExistingContribution({
                         <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
                         Mode: {contribution.mode}
                       </div>
-                      {contribution.mode === "OneTimeWindow" ? (
+                      {contribution.mode !== "OneTimeWindow" &&
+                        contribution.mode !== "Recurring" && (
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                            Penalty: {Number(contribution.penalty_amount)}
+                          </div>
+                        )}
+                      {contribution.mode !== "OneTimeWindow" && (
                         <div className="flex items-center">
                           <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                          Months Before Inactivation:{" "}
-                          {contribution.months_before_inactivation ?? "N/A"}
-                        </div>
-                      ) : (
-                        <div className="flex items-center">
-                          <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                          Penalty: {Number(contribution.penalty_amount)}
+                          Start:{" "}
+                          {contribution.start_date
+                            ? typeof contribution.start_date === "string"
+                              ? contribution.start_date
+                              : contribution.start_date.toLocaleDateString()
+                            : "N/A"}
                         </div>
                       )}
-                      <div className="flex items-center">
-                        <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                        Start:{" "}
-                        {contribution.start_date
-                          ? typeof contribution.start_date === "string"
-                            ? contribution.start_date
-                            : contribution.start_date.toLocaleDateString()
-                          : "N/A"}
-                      </div>
                       {contribution.mode !== "OneTimeWindow" &&
                         contribution.mode !== "OpenEndedRecurring" && (
                           <div className="flex items-center">

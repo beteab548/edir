@@ -26,28 +26,27 @@ interface TabData {
   component: JSX.Element;
 }
 
-export default async function ContributionTabs() {
+export default  function ContributionTabs() {
    const { isLoaded, isSignedIn, user } = useUser();
-  const router = useRouter();
+  // const router = useRouter();
 
-  useEffect(() => {
-    if (!isLoaded) return; 
+  // useEffect(() => {
+  //   if (!isLoaded) return; 
 
-    if (!isSignedIn) {
-     return router.push("/sign-in");
-    } else {
-      const role = user?.publicMetadata?.role;
-      if (role !== "chairman") {
-      return  router.push("/dashboard");
-      }
-    }
-  }, [isLoaded, isSignedIn, user, router]);
+  //   if (!isSignedIn) {
+  //    return router.push("/sign-in");
+  //   } else {
+  //     const role = user?.publicMetadata?.role;
+  //     if (role !== "chairman") {
+  //     return  router.push("/dashboard");
+  //     }
+  //   }
+  // }, [isLoaded, isSignedIn, user, router]);
 
-  if (!isLoaded || !isSignedIn || user?.publicMetadata?.role !== "chairman") {
-    return null;
-  }
+  // if (!isLoaded || !isSignedIn || user?.publicMetadata?.role !== "chairman") {
+  //   return null;
+  // }
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
-
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);

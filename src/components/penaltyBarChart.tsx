@@ -23,9 +23,9 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
 interface PenaltyData {
-  name: string; // e.g. month name or label
-  expected: number; // total expected for this month
-  paid: number;     // total paid for this month
+  name: string; 
+  expected: number; 
+  paid: number; 
 }
 
 interface PenaltyType {
@@ -45,7 +45,6 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
   const [data, setData] = useState<PenaltyData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const typeOptions = [
     { name: "All Penalties", value: "all" },
@@ -67,9 +66,6 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
         const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to fetch data");
         const result = await response.json();
-
-        // Assuming the API returns an array of monthly penalty data objects:
-        // [{ name: "January", expected: number, paid: number }, ...]
         setData(result);
       } catch (err) {
         setError(
@@ -84,7 +80,6 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
     fetchData();
   }, [selectedYear, selectedType]);
 
-  // Calculate overall totals across all months
   const totals = data.reduce(
     (acc, item) => ({
       expected: acc.expected + item.expected,
@@ -92,11 +87,6 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
     }),
     { expected: 0, paid: 0 }
   );
-
-  const handleExport = (format: string) => {
-    setShowExportMenu(false);
-    console.log(`Exporting as ${format}...`);
-  };
 
   return (
     <div className="bg-white rounded-xl w-full h-[550px] p-6 relative">
@@ -154,43 +144,17 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
               ))}
             </select>
           </div>
-
-          {/* Export */}
-          <div className="relative">
-            <button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              aria-label="Export options"
-            >
-              <FiMoreVertical size={20} />
-            </button>
-
-            {showExportMenu && (
-              <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg z-20">
-                <div className="py-1">
-                  {["csv", "excel", "pdf"].map((format) => (
-                    <button
-                      key={format}
-                      onClick={() => handleExport(format)}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"
-                    >
-                      Export as {format.toUpperCase()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
-
       {/* Summary */}
       {!isLoading && !error && data.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 flex items-center gap-4">
             <FaMoneyBillWave className="text-amber-500 w-6 h-6" />
             <div>
-              <h3 className="text-sm font-medium text-amber-800">Total Expected</h3>
+              <h3 className="text-sm font-medium text-amber-800">
+                Total Expected
+              </h3>
               <p className="text-xl font-bold text-amber-900 mt-1">
                 {totals.expected.toLocaleString()} birr
               </p>
@@ -243,7 +207,11 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
               barGap={10}
               barCategoryGap={45}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="#e5e7eb"
+                vertical={false}
+              />
               <XAxis
                 dataKey="name"
                 tick={{ fill: "#6b7280", fontSize: 12 }}
