@@ -1,10 +1,16 @@
 import prisma from "@/lib/prisma";
+import { MemberType } from "@prisma/client";
 
 const validStatuses = ["Active", "Inactive", "Left", "Deceased"] as const;
 type Status = (typeof validStatuses)[number];
+const validMemberStatuses = ["New", "Existing"] as const;
+type MemberStatus = (typeof validMemberStatuses)[number];
 
 function isValidStatus(status: string): status is Status {
   return validStatuses.includes(status as Status);
+}
+function isValidMemberStatus(memberType: string): memberType is MemberStatus {
+  return validMemberStatuses.includes(memberType as MemberStatus);
 }
 
 export async function getFilteredMembers({
@@ -12,15 +18,22 @@ export async function getFilteredMembers({
   from,
   to,
   status,
+  profession,
+  member_type,
+  house_number,
+  title,
 }: {
   name?: string;
   from?: string;
   to?: string;
-  status?: string;
+  status?: Status;
+  profession?: string;
+  member_type?: MemberType;
+  house_number?: string;
+  title?: string;
 }) {
   const filters: any = {};
 
-  // Name/ID/Phone filter
   if (name) {
     filters.OR = [
       { first_name: { contains: name, mode: "insensitive" } },
@@ -31,12 +44,26 @@ export async function getFilteredMembers({
     ];
   }
 
-  // Status filter
   if (status && isValidStatus(status)) {
     filters.status = status;
-  } 
+  }
 
-  // Date filtering: default to this month if from/to not provided
+  if (profession) {
+    filters.profession = { contains: profession, mode: "insensitive" };
+  }
+
+  if (member_type && isValidMemberStatus(member_type)) {
+    filters.member_type = member_type;
+  }
+
+  if (house_number) {
+    filters.house_number = { contains: house_number, mode: "insensitive" };
+  }
+
+  if (title) {
+    filters.title = { contains: title, mode: "insensitive" };
+  }
+
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
