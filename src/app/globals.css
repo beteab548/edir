@@ -147,3 +147,17 @@
 *::-webkit-scrollbar-thumb:hover {
   background-color: #64748b; /* Darker on hover */
 }
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #report-content, #report-content * {
+    visibility: visible;
+  }
+  #report-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

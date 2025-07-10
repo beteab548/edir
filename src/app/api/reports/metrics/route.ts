@@ -160,14 +160,13 @@ export async function GET(req: NextRequest) {
               gte: startOfMonth,
               lte: endOfMonth,
             },
+            remark: "Inactivated due to missed contributions",
           },
         });
         break;
-
       default:
         return NextResponse.json({ error: "Unknown type" }, { status: 400 });
     }
-
     return NextResponse.json({ value: currentCount });
   } catch (error) {
     console.error("Error in metric calculation:", error);

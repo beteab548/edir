@@ -333,7 +333,6 @@ export default function ContributionTemplate({
               <PlusIcon className="w-5 h-5" />
               Add Payment
             </button>
-
             {(members.length <= 0 ||
               (ContributionType && !ContributionType.is_active)) && (
               <div className="absolute z-10 hidden group-hover:block w-48 bg-gray-800 text-white text-xs rounded p-1 bottom-full mb-2">
@@ -345,7 +344,6 @@ export default function ContributionTemplate({
           </div>
         </div>
         <FilterBar />
-
         {/* Payments Table */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Table Header with Search */}

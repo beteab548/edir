@@ -16,9 +16,10 @@ import {
   FiSettings,
   FiLogOut,
   FiMenu,
-  FiMoreHorizontal,
+  FiFileText,
 } from "react-icons/fi";
-
+import ReportDropdown from "./reportDropDown";
+import { LuUsers } from "react-icons/lu";
 const menuItems = [
   {
     title: "MENU",
@@ -31,7 +32,7 @@ const menuItems = [
         visible: ["admin", "secretary", "chairman"],
       },
       {
-        icon: <FiUsers size={20} />,
+        icon: <LuUsers size={20} />,
         label: "Members",
         href: "/list/members",
         visible: ["admin", "secretary"],
@@ -48,6 +49,13 @@ const menuItems = [
         label: "Penalty",
         href: "/penalty/payment",
         visible: ["admin", "chairman"],
+        hasDropdown: true,
+      },
+      {
+        icon: <FiFileText size={20} />,
+        label: "Report",
+        href: "/reports",
+        visible: ["admin", "chairman", "secretary"],
         hasDropdown: true,
       },
       {
@@ -102,12 +110,13 @@ const Menu = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-[550px]">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-          className="w-8 h-8 border-4 border-lamaSky border-t-transparent rounded-full"
-        />
+      <div className="h-[550px] p-4 mt-10 space-y-8 animate-pulse">
+        {[...Array(5)].map((_, i) => (
+          <div
+            key={i}
+            className="h-10 bg-gray-400 rounded-md dark:bg-gray-300/20"
+          />
+        ))}
       </div>
     );
   }
@@ -144,15 +153,13 @@ const Menu = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
               >
-                <span className="hidden lg:flex items-center uppercase text-xs font-bold tracking-wide text-gray-700 pl-2 mt-6 font-serif">
+                <span className="hidden lg:flex items-center uppercase text-xs font-bold tracking-wide text-gray-500 pl-2 mt-6 font-serif">
                   {icon}
                   {title}
                 </span>
-
                 {visibleItems.map((item, index) => {
                   const isItemActive = isActive(item.href);
                   const isItemHovered = hoveredItem === item.label;
-
                   if (item.hasDropdown && item.label === "Contribution") {
                     return (
                       <motion.div
@@ -174,7 +181,6 @@ const Menu = () => {
                       </motion.div>
                     );
                   }
-
                   if (item.hasDropdown && item.label === "Penalty") {
                     return (
                       <motion.div
@@ -186,6 +192,26 @@ const Menu = () => {
                         onHoverEnd={() => setHoveredItem(null)}
                       >
                         <PenaltyDropdown
+                          iconSrc="/contributionIcon.png"
+                          icon={<FiAlertCircle size={20} />}
+                          label={item.label}
+                          isActive={isItemActive}
+                          isHovered={isItemHovered}
+                        />
+                      </motion.div>
+                    );
+                  }
+                  if (item.hasDropdown && item.label === "Report") {
+                    return (
+                      <motion.div
+                        key={item.label}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05 * index }}
+                        onHoverStart={() => setHoveredItem(item.label)}
+                        onHoverEnd={() => setHoveredItem(null)}
+                      >
+                        <ReportDropdown
                           iconSrc="/contributionIcon.png"
                           icon={<FiAlertCircle size={20} />}
                           label={item.label}

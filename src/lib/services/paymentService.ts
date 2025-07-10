@@ -383,7 +383,6 @@ export async function applyCatchUpPayment({
         }
       }
 
-      // ✅ Update payment record with the updated balance
       const updatedBalance = await tx.balance.findUnique({
         where: {
           member_id_contribution_id: {
@@ -395,6 +394,15 @@ export async function applyCatchUpPayment({
 
       const remainingBalance = updatedBalance?.amount ?? new Decimal(0);
 
+      if (
+        contribution.contributionType.name === "Registration" &&
+        remainingBalance.eq(0)
+      ) {
+        await tx.member.update({
+          where: { id: memberId },
+          data: { member_type: "Existing" },
+        });
+      }
       await tx.paymentRecord.update({
         where: { id: paymentRecord.id },
         data: {

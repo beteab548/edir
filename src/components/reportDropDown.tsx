@@ -1,36 +1,50 @@
 "use client";
 
-import { FiAlertCircle } from "react-icons/fi";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
-import { FiSettings } from "react-icons/fi";
-type PenaltyDropdownProps = {
+import { FiAlertCircle } from "react-icons/fi";
+import { LuBanknote } from "react-icons/lu";
+import { MdGroups } from "react-icons/md";
+
+type reportDropDownType = {
   icon: React.ReactNode;
   label: string;
   isActive: boolean;
   isHovered?: boolean;
-  iconSrc?: string; // Add this prop for image URL before each penalty item
+  iconSrc?: string;
 };
 
-const penaltyItems = [{ label: "Payment", href: "/penalty/payment" }];
+const reportType = [
+  {
+    label: "members",
+    href: "/reports/members",
+    icon: <MdGroups />,
+  },
+  {
+    label: "contribution",
+    href: "/reports/contributions",
+    icon: <LuBanknote />,
+  },
+  {
+    label: "penalty",
+    href: "/reports/penalty",
+    icon: <FiAlertCircle />,
+  },
+];
 
-export default function PenaltyDropdown({
+export default function ReportDropdown({
   icon,
   label,
   isActive,
   isHovered = false,
-  iconSrc = "/default-penalty-icon.png", // default image path
-}: PenaltyDropdownProps) {
+}: reportDropDownType) {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isAnyPenaltyActive = penaltyItems.some(
-    (item) => pathname === item.href
-  );
+  const isAnyPenaltyActive = reportType.some((item) => pathname === item.href);
   return (
     <motion.div
       className={`relative flex flex-col w-full rounded-lg ${
@@ -94,27 +108,19 @@ export default function PenaltyDropdown({
             className="overflow-hidden"
           >
             <div className="mt-1 ml-4 flex flex-col bg-white/80 backdrop-blur-sm rounded-md shadow-sm w-[90%] border border-gray-200 px-2 py-2 gap-1">
-              {penaltyItems.map((item) => (
+              {reportType.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
-                    ${
-                      pathname === item.href
-                        ? "bg-lamaSkyLight/40 text-lama font-medium"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }
-                  `}
+      ${
+        pathname === item.href
+          ? "bg-lamaSkyLight/40 text-lama font-medium"
+          : "text-gray-600 hover:bg-gray-100"
+      }
+    `}
                 >
-                  <Image
-                    src={iconSrc}
-                    alt="penalty icon"
-                    width={28}
-                    height={28}
-                    className="rounded-sm"
-                    priority={false}
-                    unoptimized
-                  />
+                  <span className="text-lg text-gray-600">{item.icon}</span>
                   <motion.span
                     whileHover={{ x: 2 }}
                     transition={{ type: "spring", stiffness: 300 }}
@@ -131,35 +137,6 @@ export default function PenaltyDropdown({
                   )}
                 </Link>
               ))}
-              <Link
-                key={"penalty managment"}
-                href={"/penalty"}
-                className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
-                    ${
-                      pathname === "/penalty"
-                        ? "bg-lamaSkyLight/40 text-lama font-medium"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }
-                  `}
-              >
-
-<FiAlertCircle className="text-red-500 w-5 h-5 mr-2" />
-
-                <motion.span
-                  whileHover={{ x: 2 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  {"penalty managment"}
-                </motion.span>
-                {pathname === "/penalty" && (
-                  <motion.span
-                    className="w-1.5 h-1.5 bg-lama rounded-full"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                  />
-                )}
-              </Link>
             </div>
           </motion.div>
         )}

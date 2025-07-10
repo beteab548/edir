@@ -21,11 +21,14 @@ function generateMonthlyDates(start: Date, end: Date): Date[] {
 async function inactivateMember(memberId: number) {
   await prisma.member.update({
     where: { id: memberId },
-    data: { status: "Inactive", end_date: new Date() },
+    data: {
+      status: "Inactive",
+      remark: "Inactivated due to missed contributions",
+    },
   });
 }
 
-const test = true;
+const test = false;
 const realCurrentDate = new Date();
 const simulatedMonthsToAdd = 6;
 const currentMonthStart = normalizeToMonthStart(
@@ -289,7 +292,8 @@ export async function generateContributionSchedulesForAllActiveMembers() {
 
       if (existingUnpaidPenalty) {
         if (
-          Number(existingUnpaidPenalty.expected_amount) < calculatedPenaltyAmount
+          Number(existingUnpaidPenalty.expected_amount) <
+          calculatedPenaltyAmount
         ) {
           await prisma.penalty.update({
             where: { id: existingUnpaidPenalty.id },
@@ -345,8 +349,7 @@ export async function generateContributionSchedulesForAllActiveMembers() {
   });
 
   for (const contribution of oneTimeContributions) {
-    const gracePeriodMonths =
-      contribution.contributionType.period_months ?? 3;
+    const gracePeriodMonths = contribution.contributionType.period_months ?? 3;
 
     const schedule = await prisma.contributionSchedule.findFirst({
       where: {
