@@ -8,24 +8,25 @@ import { Status } from "@prisma/client";
 interface SearchParams {
   searchParams: {
     query?: string;
-    year?: string;
-    month?: string;
-    status?: Status;
+    from?: string;
+    to?: string;
+    status?: Status | string;
   };
 }
 
 export default async function ReportPage({ searchParams }: SearchParams) {
-  const user = await currentUser();
-  if (!user) return redirect("/sign-in");
+  // const user = await currentUser();
+  // if (!user) return redirect("/sign-in");
 
   // const role = user.publicMetadata?.role;
   // if (role !== "chairman") return redirect("/dashboard");
 
   const members = await getFilteredMembers({
     name: searchParams.query,
-    year: searchParams.year,
-    month: searchParams.month,
+    from: searchParams.from,
+    to: searchParams.to,
     status: searchParams.status,
   });
+
   return <MemberReport members={members} />;
 }

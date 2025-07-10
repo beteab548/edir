@@ -19,10 +19,10 @@ const Navbar = async () => {
         {/* Right side - Navigation controls */}
         <div className="flex items-center space-x-4">
           {/* Icons with subtle hover effects */}
-          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
+          {/* <button className="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
             <FiMessageSquare className="w-5 h-5 text-gray-600" />
             <span className="sr-only">Messages</span>
-          </button>
+          </button> */}
 
           <button className="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
             <FiBell className="w-5 h-5 text-gray-600" />

@@ -66,6 +66,7 @@ export const createMember = async (
           wereda: data.member.wereda,
           kebele: data.member.kebele,
           zone_or_district: data.member.zone_or_district,
+          house_number: data.member.house_number,
           member_type: data.member.member_type,
           ...(data.member.document ? { document: data.member.document } : {}),
           ...(data.member.document_file_id
@@ -223,6 +224,7 @@ export const updateMember = async (
           wereda: data.member.wereda,
           kebele: data.member.kebele,
           zone_or_district: data.member.zone_or_district,
+          house_number: data.member.house_number,
           sex: data.member.sex,
           status: data.member.status,
           ...(memberStatusChanged && { status_updated_at: new Date() }),

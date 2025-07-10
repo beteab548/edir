@@ -479,6 +479,13 @@ const MemberForm = ({
                 error={errors.member?.kebele}
                 defaultValue={data?.kebele}
               />
+              <InputField
+                label="House Number"
+                name="member.house_number"
+                register={register}
+                error={errors.member?.house_number}
+                defaultValue={data?.house_number}
+              />
 
               <SelectField
                 label="Bank Name"

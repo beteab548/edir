@@ -18,6 +18,7 @@ export const memberSchema = z.object({
   wereda: z.string().optional(),
   zone_or_district: z.string().optional(),
   kebele: z.string().optional(),
+  house_number:z.string().optional(),
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),
   phone_number: z
     .string()

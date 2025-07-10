@@ -1,4 +1,5 @@
 import Image from "next/image";
+import CurrentTime from "../ui/currentTime";
 
 export default function ReportLayout({
   children,
@@ -13,12 +14,11 @@ export default function ReportLayout({
           <Image src="/edirlogo.jpg" alt="Logo" width={50} height={50} />
           <h1 className="text-xl font-bold">ጀሞ እድር ማህበረሰብ</h1>
         </div>
-          <h3 className="text-xl font-semibold">Members Info Table </h3>
+        <h3 className="text-xl font-semibold">Members Info Table </h3>
         <span className="text-sm text-gray-500">
-          {new Date().toUTCString()}
+          <CurrentTime />
         </span>
       </div>
-
       {/* Content */}
       {children}
       {/* Footer */}

@@ -1,13 +1,5 @@
 import prisma from "@/lib/prisma";
 
-function isValidYear(year: string) {
-  return /^\d{4}$/.test(year);
-}
-
-function isValidMonth(month: string) {
-  const monthNum = Number(month);
-  return monthNum >= 1 && monthNum <= 12;
-}
 const validStatuses = ["Active", "Inactive", "Left", "Deceased"] as const;
 type Status = (typeof validStatuses)[number];
 
@@ -17,14 +9,14 @@ function isValidStatus(status: string): status is Status {
 
 export async function getFilteredMembers({
   name,
-  year,
-  month,
+  from,
+  to,
   status,
 }: {
   name?: string;
-  year?: string;
-  month?: string;
-  status?: Status;
+  from?: string;
+  to?: string;
+  status?: string;
 }) {
   const filters: any = {};
 
@@ -38,23 +30,25 @@ export async function getFilteredMembers({
       { custom_id: { contains: name, mode: "insensitive" } },
     ];
   }
+
+  // Status filter
   if (status && isValidStatus(status)) {
-    filters.status = status || "Active";
-  }
-  // Date filter with validation
-  if (year && isValidYear(year)) {
-    const validMonth =
-      month && isValidMonth(month) ? month.padStart(2, "0") : "01";
+    filters.status = status;
+  } 
 
-    const start = new Date(`${year}-${validMonth}-01`);
-    const end = new Date(start);
-    end.setMonth(start.getMonth() + (month && isValidMonth(month) ? 1 : 12));
+  // Date filtering: default to this month if from/to not provided
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-    filters.joined_date = {
-      gte: start,
-      lt: end,
-    };
-  }
+  const fromDate =
+    from && !isNaN(Date.parse(from)) ? new Date(from) : startOfMonth;
+  const toDate = to && !isNaN(Date.parse(to)) ? new Date(to) : endOfMonth;
+
+  filters.joined_date = {
+    gte: fromDate,
+    lte: toDate,
+  };
 
   return prisma.member.findMany({
     where: filters,
@@ -68,6 +62,26 @@ export async function getFilteredMembers({
       custom_id: true,
       joined_date: true,
       status: true,
+      house_number: true,
+      member_type: true,
+      created_at: true,
+      birth_date: true,
+      zone_or_district: true,
+      bank_account_name: true,
+      bank_account_number: true,
+      bank_name: true,
+      email: true,
+      email_2: true,
+      job_business: true,
+      id_number: true,
+      kebele: true,
+      profession: true,
+      wereda: true,
+      citizen: true,
+      phone_number_2: true,
+      sex: true,
+      title: true,
+      remark: true,
     },
   });
 }
