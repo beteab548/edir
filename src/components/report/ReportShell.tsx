@@ -107,7 +107,7 @@ export default function ReportShell({
           ref={scrollRef}
           className="overflow-auto border rounded print:overflow-visible print:max-h-none print:h-auto print-table-scale"
         >
-          {columns.length > 6 && (
+          {columns.length > 10 && (
             <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-300 rounded p-2 print:hidden">
               This table has many columns. For best results, consider using the{" "}
               <strong>Export to Excel</strong> option.

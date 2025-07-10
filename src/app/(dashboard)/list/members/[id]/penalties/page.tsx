@@ -18,7 +18,7 @@ export default async function MemberPenaltiesPage({
     }
   
     const role = user.publicMetadata?.role;
-    if (role !== "secretary") {
+    if (role !== "chairman") {
     return  redirect("/dashboard");
     }
   const memberId = parseInt(params.id);

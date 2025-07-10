@@ -112,3 +112,84 @@ export async function getFilteredMembers({
     },
   });
 }
+
+export async function getFilteredPenalties({
+  name,
+  from,
+  to,
+  status,
+  waived,
+  penalty_type,
+}: {
+  name?: string;
+  from?: string;
+  to?: string;
+  status?: string;
+  waived?: string;
+  penalty_type?: string;
+}) {
+  const filters: any = {};
+
+  const fromDate = from && !isNaN(Date.parse(from)) ? new Date(from) : null;
+  const toDate = to && !isNaN(Date.parse(to)) ? new Date(to) : null;
+  if (waived) {
+    filters.waived =
+      waived === "true" ? true : waived === "false" ? false : undefined;
+  }
+
+  if (penalty_type) {
+    filters.penalty_type = penalty_type;
+  }
+  
+  if (fromDate && toDate) {
+    filters.missed_month = {
+      gte: fromDate,
+      lte: toDate,
+    };
+  } else if (fromDate) {
+    filters.missed_month = { gte: fromDate };
+  } else if (toDate) {
+    filters.missed_month = { lte: toDate };
+  }
+
+  if (status === "Paid") {
+    filters.is_paid = true;
+  } else if (status === "Partially") {
+    filters.is_paid = false;
+    filters.paid_amount = {
+      gt: 0,
+    };
+  } else if (status === "Unpaid") {
+    filters.is_paid = false;
+    filters.paid_amount = {
+      equals: 0,
+    };
+  }
+
+  const memberFilters: any = {};
+
+  if (name) {
+    memberFilters.OR = [
+      { first_name: { contains: name, mode: "insensitive" } },
+      { second_name: { contains: name, mode: "insensitive" } },
+      { last_name: { contains: name, mode: "insensitive" } },
+      { phone_number: { contains: name, mode: "insensitive" } },
+      { custom_id: { contains: name, mode: "insensitive" } },
+    ];
+  }
+
+  memberFilters.status = "Active";
+
+  filters.member = memberFilters;
+
+  return prisma.penalty.findMany({
+    where: filters,
+    include: {
+      member: true,
+      penaltyType: true,
+    },
+    orderBy: {
+      applied_at: "desc",
+    },
+  });
+}

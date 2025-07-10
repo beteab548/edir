@@ -807,10 +807,10 @@ export const createPenalty = async (
     const penaltyData: any = {
       expected_amount: new Decimal(data.amount),
       member_id: data.member_id,
-      reason: data.reason ?? "",
       missed_month: data.missed_month,
       generated: "manually",
       penalty_type: data.penalty_type,
+      reason: data.penalty_type,
     };
     if (penaltyType?.id !== undefined) {
       penaltyData.penaltyTypeId = penaltyType.id;
