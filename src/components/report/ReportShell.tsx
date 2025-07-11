@@ -12,6 +12,7 @@ interface ReportShellProps {
   columns: { label: string; accessor: string; width?: string }[];
   filename: string;
   children?: React.ReactNode;
+  summaryRow?: Record<string, any>; // New
 }
 
 export default function ReportShell({
@@ -20,6 +21,7 @@ export default function ReportShell({
   columns,
   filename,
   children,
+  summaryRow
 }: ReportShellProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -140,20 +142,37 @@ export default function ReportShell({
                   </td>
                 </tr>
               ) : (
-                data.map((row, i) => (
-                  <tr key={i}>
-                    {columns.map((col) => (
-                      <td
-                        key={col.label}
-                        className={`border p-2 truncate ${
-                          col.width || "w-[150px]"
-                        }`}
-                      >
-                        {row[col.accessor]}
-                      </td>
-                    ))}
-                  </tr>
-                ))
+                <>
+                  {data.map((row, i) => (
+                    <tr key={i}>
+                      {columns.map((col) => (
+                        <td
+                          key={col.label}
+                          className={`border p-2 truncate ${
+                            col.width || "w-[150px]"
+                          }`}
+                        >
+                          {row[col.accessor]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+
+                  {/* Summary Row */}
+                  {summaryRow && (
+                    <tr className="bg-gray-200 font-semibold">
+                      {columns.map((col, i) => (
+                        <td key={i} className="border p-2 truncate">
+                          {summaryRow[col.accessor] !== undefined
+                            ? summaryRow[col.accessor]
+                            : i === 0
+                            ? "Total"
+                            : ""}
+                        </td>
+                      ))}
+                    </tr>
+                  )}
+                </>
               )}
             </tbody>
           </table>

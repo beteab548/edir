@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 function getStartOfMonthISO() {
   const now = new Date();
@@ -17,9 +17,14 @@ function getEndOfMonthISO() {
     .split("T")[0];
 }
 
-export default function FilterBar({ type }: { type: "member" | "penalty" }) {
+export default function FilterBar({
+  type,
+}: {
+  type: "members" | "penalty" | "contributions";
+}) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const hasMounted = useRef(false); // To skip first render
 
   const [filters, setFilters] = useState({
     query: searchParams.get("query") || "",
@@ -32,13 +37,21 @@ export default function FilterBar({ type }: { type: "member" | "penalty" }) {
     title: searchParams.get("title") || "",
     waived: searchParams.get("waived") || "",
     penalty_type: searchParams.get("penalty_type") || "",
+    contribution_type: searchParams.get("contribution_type") || "",
+    type:searchParams.get("type") || "",
   });
 
   useEffect(() => {
+    if (!hasMounted.current) {
+      hasMounted.current = true;
+      return;
+    }
+
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
       if (value) params.set(key, value);
     });
+
     router.push(`/reports/${type}?${params.toString()}`);
   }, [filters]);
 
@@ -50,7 +63,7 @@ export default function FilterBar({ type }: { type: "member" | "penalty" }) {
   };
 
   return (
-    <div className="flex gap-2 flex-wrap">
+    <div className="flex gap-2 flex-wrap print:hidden">
       {/* Common Filters */}
       <input
         type="text"
@@ -62,9 +75,9 @@ export default function FilterBar({ type }: { type: "member" | "penalty" }) {
       <input
         type="text"
         placeholder={
-          type === "member"
+          type === "members"
             ? "status (Active, Inactive...)"
-            : "status (paid, partilly...)"
+            : "status (Paid, Partially...)"
         }
         value={filters.status}
         onChange={(e) => handleChange("status", e.target.value)}
@@ -72,7 +85,7 @@ export default function FilterBar({ type }: { type: "member" | "penalty" }) {
       />
 
       {/* Member-only filters */}
-      {type === "member" && (
+      {type === "members" && (
         <>
           <input
             type="text"
@@ -104,6 +117,8 @@ export default function FilterBar({ type }: { type: "member" | "penalty" }) {
           />
         </>
       )}
+
+      {/* Penalty-only filters */}
       {type === "penalty" && (
         <>
           <input
@@ -122,7 +137,26 @@ export default function FilterBar({ type }: { type: "member" | "penalty" }) {
           />
         </>
       )}
-      {/* Date filters - common for both */}
+      {type === "contributions" && (
+        <>
+          <input
+            type="text"
+            placeholder="type (Monthly, Registration...)"
+            value={filters.contribution_type}
+            onChange={(e) => handleChange("contribution_type", e.target.value)}
+            className="border p-2 rounded"
+          />
+          <input
+            type="text"
+            placeholder="contribution type (Reccuring, oneTimeWindow...)"
+            value={filters.type}
+            onChange={(e) => handleChange("type", e.target.value)}
+            className="border p-2 rounded"
+          />
+        </>
+      )}
+
+      {/* Date filters - common for all */}
       <input
         type="date"
         value={filters.from}

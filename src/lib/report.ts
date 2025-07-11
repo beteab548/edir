@@ -1,16 +1,31 @@
 import prisma from "@/lib/prisma";
-import { MemberType } from "@prisma/client";
+import { ContributionMode, Member, MemberType } from "@prisma/client";
 
 const validStatuses = ["Active", "Inactive", "Left", "Deceased"] as const;
 type Status = (typeof validStatuses)[number];
 const validMemberStatuses = ["New", "Existing"] as const;
 type MemberStatus = (typeof validMemberStatuses)[number];
-
+type MemberForSearch = Pick<
+  Member,
+  "first_name" | "second_name" | "last_name" | "phone_number" | "custom_id"
+>;
 function isValidStatus(status: string): status is Status {
   return validStatuses.includes(status as Status);
 }
 function isValidMemberStatus(memberType: string): memberType is MemberStatus {
   return validMemberStatuses.includes(memberType as MemberStatus);
+}
+function matchesSearch(m: MemberForSearch, search: string) {
+  const fullName =
+    `${m.first_name} ${m.second_name} ${m.last_name}`.toLowerCase();
+  const normalizedPhone = m.phone_number?.replace(/^(\+?251)/, "0");
+  const n = search.toLowerCase().replace(/^(\+?251)/, "0");
+
+  return (
+    fullName.includes(n) ||
+    m.custom_id?.toLowerCase().includes(n) ||
+    normalizedPhone?.includes(n)
+  );
 }
 
 export async function getFilteredMembers({
@@ -33,16 +48,6 @@ export async function getFilteredMembers({
   title?: string;
 }) {
   const filters: any = {};
-
-  if (name) {
-    filters.OR = [
-      { first_name: { contains: name, mode: "insensitive" } },
-      { second_name: { contains: name, mode: "insensitive" } },
-      { last_name: { contains: name, mode: "insensitive" } },
-      { phone_number: { contains: name, mode: "insensitive" } },
-      { custom_id: { contains: name, mode: "insensitive" } },
-    ];
-  }
 
   if (status && isValidStatus(status)) {
     filters.status = status;
@@ -77,7 +82,8 @@ export async function getFilteredMembers({
     lte: toDate,
   };
 
-  return prisma.member.findMany({
+  // Fetch initial filtered members from Prisma
+  const members = await prisma.member.findMany({
     where: filters,
     orderBy: { created_at: "desc" },
     select: {
@@ -111,6 +117,12 @@ export async function getFilteredMembers({
       remark: true,
     },
   });
+
+  const filtered = name
+    ? members.filter((m) => matchesSearch(m, name))
+    : members;
+
+  return filtered;
 }
 
 export async function getFilteredPenalties({
@@ -129,61 +141,35 @@ export async function getFilteredPenalties({
   penalty_type?: string;
 }) {
   const filters: any = {};
-
   const fromDate = from && !isNaN(Date.parse(from)) ? new Date(from) : null;
   const toDate = to && !isNaN(Date.parse(to)) ? new Date(to) : null;
-  if (waived) {
-    filters.waived =
-      waived === "true" ? true : waived === "false" ? false : undefined;
-  }
-
-  if (penalty_type) {
-    filters.penalty_type = penalty_type;
-  }
-  
+  if (waived === "true") filters.waived = true;
+  else if (waived === "false") filters.waived = false;
+  if (penalty_type) filters.penalty_type = penalty_type;
   if (fromDate && toDate) {
-    filters.missed_month = {
-      gte: fromDate,
-      lte: toDate,
-    };
+    filters.missed_month = { gte: fromDate, lte: toDate };
   } else if (fromDate) {
     filters.missed_month = { gte: fromDate };
   } else if (toDate) {
     filters.missed_month = { lte: toDate };
   }
-
   if (status === "Paid") {
     filters.is_paid = true;
   } else if (status === "Partially") {
     filters.is_paid = false;
-    filters.paid_amount = {
-      gt: 0,
-    };
+    filters.paid_amount = { gt: 0 };
   } else if (status === "Unpaid") {
     filters.is_paid = false;
-    filters.paid_amount = {
-      equals: 0,
-    };
+    filters.paid_amount = { equals: 0 };
   }
-
-  const memberFilters: any = {};
-
-  if (name) {
-    memberFilters.OR = [
-      { first_name: { contains: name, mode: "insensitive" } },
-      { second_name: { contains: name, mode: "insensitive" } },
-      { last_name: { contains: name, mode: "insensitive" } },
-      { phone_number: { contains: name, mode: "insensitive" } },
-      { custom_id: { contains: name, mode: "insensitive" } },
-    ];
-  }
-
-  memberFilters.status = "Active";
-
-  filters.member = memberFilters;
-
-  return prisma.penalty.findMany({
-    where: filters,
+  // Fetch all penalties matching filters
+  const penalties = await prisma.penalty.findMany({
+    where: {
+      ...filters,
+      member: {
+        status: "Active",
+      },
+    },
     include: {
       member: true,
       penaltyType: true,
@@ -192,4 +178,85 @@ export async function getFilteredPenalties({
       applied_at: "desc",
     },
   });
+  // Filter by full name, custom_id, or phone_number in JS
+  // Filter by full name, custom_id, or phone_number in JS
+  const filtered = name
+    ? penalties.filter((m) => matchesSearch(m.member, name))
+    : penalties;
+
+  return filtered;
 }
+
+const validModes: ContributionMode[] = [
+  "OpenEndedRecurring",
+  "OneTimeWindow",
+  "Recurring",
+];
+
+export const getFilteredContributions = async ({
+  name,
+  from,
+  to,
+  type,
+  status,
+  contribution_type,
+}: {
+  name?: string;
+  from?: string;
+  to?: string;
+  type?: string;
+  status?: string;
+  contribution_type?: string;
+}) => {
+  const fromDate = from ? new Date(from) : undefined;
+  const toDate = to ? new Date(to) : undefined;
+
+  const whereClause: any = {
+    ContributionSchedule: {
+      some: {
+        ...(fromDate && { month: { gte: fromDate } }),
+        ...(toDate && {
+          month: {
+            ...(fromDate ? { gte: fromDate } : {}),
+            lte: toDate,
+          },
+        }),
+        ...(status === "Paid" && { paid_at: { not: null } }),
+        ...(status === "Unpaid" && { paid_amount: { equals: 0 } }),
+        ...(status === "Partially" && {
+          paid_amount: { gt: 0 },
+          paid_at: null,
+        }),
+      },
+    },
+  };
+
+  // Add contributionType filter if needed
+  if (type || contribution_type) {
+    whereClause.contributionType = {
+      is: {
+        ...(validModes.includes(type as ContributionMode) && {
+          mode: type as ContributionMode,
+        }),
+        ...(contribution_type && {
+          name: { contains: contribution_type, mode: "insensitive" },
+        }),
+      },
+    };
+  }
+
+  const contributions = await prisma.contribution.findMany({
+    where: whereClause,
+    include: {
+      member: true,
+      contributionType: true,
+      ContributionSchedule: true,
+    },
+  });
+
+  const filtered = name
+    ? contributions.filter((m) => matchesSearch(m.member, name))
+    : contributions;
+
+  return filtered;
+};

@@ -36,6 +36,7 @@ export default async function PenaltyReportPage({
     Reason: p.reason,
     Expected_amount: p.expected_amount,
     Paid_amount: p.paid_amount,
+    Remaining_Amount: Number(p.expected_amount) - Number(p.paid_amount),
     missed_month: p.missed_month.toLocaleDateString(),
     "Penalty Type": p.penalty_type,
     waived: p.waived ? "true" : "false",
@@ -46,7 +47,15 @@ export default async function PenaltyReportPage({
       ? "partially"
       : "Unpaid",
   }));
-
+  const totalExpected = processed.reduce(
+    (sum, row) => sum + Number(row["Expected_amount"]),
+    0
+  );
+  const totalPaid = processed.reduce(
+    (sum, row) => sum + Number(row["Paid_amount"]),
+    0
+  );
+  const totalRemaining = totalExpected - totalPaid;
   return (
     <ReportShell
       title="Penalty Report"
@@ -58,6 +67,7 @@ export default async function PenaltyReportPage({
         { label: "Phone", accessor: "Phone" },
         { label: "Expected Amount", accessor: "Expected_amount" },
         { label: "Paid Amount", accessor: "Paid_amount" },
+        { label: "Remaining Amount", accessor: "Remaining_Amount" },
         { label: "Penalty status", accessor: "status" },
         { label: "Missed Month", accessor: "missed_month" },
         { label: "Penalty Type", accessor: "Penalty Type" },
@@ -65,6 +75,11 @@ export default async function PenaltyReportPage({
         { label: "Reason", accessor: "Reason" },
         { label: "Date Issued", accessor: "Date Issued" },
       ]}
+      summaryRow={{
+        Expected_amount: totalExpected,
+        Paid_amount: totalPaid,
+        Remaining_Amount: totalRemaining,
+      }}
     >
       <FilterBar type="penalty" />
     </ReportShell>
