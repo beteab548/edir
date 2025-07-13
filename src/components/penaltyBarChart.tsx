@@ -60,7 +60,7 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
       setError(null);
 
       try {
-        const url = `/api/reports/penalty?year=${selectedYear}${
+        const url = `/api/dashboard/penalty?year=${selectedYear}${
           selectedType !== "all" ? `&penaltyType=${selectedType}` : ""
         }`;
         const response = await fetch(url);

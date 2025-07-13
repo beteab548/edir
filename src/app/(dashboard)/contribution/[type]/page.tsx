@@ -23,13 +23,14 @@ export default async function ContributionPage({
   const user = await currentUser();
 
   if (!user) {
-  return  redirect("/sign-in");
+    return redirect("/sign-in");
   }
 
   const role = user.publicMetadata?.role;
   if (role !== "chairman") {
-   return redirect("/dashboard");
+    return redirect("/dashboard");
   }
+
   const decodedType = decodeURIComponent(params.type).replace(/%20/g, " ");
   const { year, month, query } = searchParams;
 
@@ -39,7 +40,10 @@ export default async function ContributionPage({
       ...member,
       Penalty: member.Penalty.filter(
         (penalty) => penalty.contribution !== null
-      ).map((penalty) => ({ ...penalty, contribution: penalty.contribution! })),
+      ).map((penalty) => ({
+        ...penalty,
+        contribution: penalty.contribution!,
+      })),
     }));
     return (
       <div className="contribution-page">
@@ -56,7 +60,7 @@ export default async function ContributionPage({
     notFound();
   }
 
-  // Build member filter
+  // Build base member filter
   const memberFilter: any = {
     status: "Active",
     Contribution: {
@@ -90,18 +94,35 @@ export default async function ContributionPage({
     };
   }
 
-  // Shared search logic for both members and payments
+  // Query: Full name, phone, or custom ID
   if (query) {
-    const filterConditions = [
-      { first_name: { contains: query, mode: "insensitive" } },
-      { second_name: { contains: query, mode: "insensitive" } },
-      { last_name: { contains: query, mode: "insensitive" } },
-      { phone_number: { contains: query, mode: "insensitive" } },
-      { custom_id: { contains: query, mode: "insensitive" } },
+    const terms = query
+      .split(" ")
+      .map((t) => t.trim())
+      .filter((t) => t.length > 0);
+
+    const filterConditions = terms.map((term) => ({
+      OR: [
+        { first_name: { contains: term, mode: "insensitive" } },
+        { second_name: { contains: term, mode: "insensitive" } },
+        { last_name: { contains: term, mode: "insensitive" } },
+        { phone_number: { contains: term, mode: "insensitive" } },
+        { custom_id: { contains: term, mode: "insensitive" } },
+      ],
+    }));
+
+    memberFilter.AND = [
+      {
+        Contribution: {
+          some: { type_name: contributionType.name },
+        },
+      },
+      ...filterConditions,
     ];
 
-    memberFilter.OR = filterConditions;
-    paymentFilter.member = { OR: filterConditions };
+    paymentFilter.member = {
+      AND: filterConditions,
+    };
   }
 
   // Fetch filtered members

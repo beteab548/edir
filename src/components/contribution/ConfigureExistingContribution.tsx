@@ -280,7 +280,6 @@ export default function ConfigureExistingContribution({
                       error={errors.type_name}
                       containerClass="bg-gray-50 p-4 rounded-lg"
                     />
-
                     <InputField
                       label="Amount"
                       name="amount"
@@ -290,9 +289,9 @@ export default function ConfigureExistingContribution({
                       containerClass="bg-gray-50 p-4 rounded-lg"
                       inputProps={{
                         step: "0.01",
-                        onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                          setValue("amount", parseFloat(e.target.value) || 0);
-                        },
+                        ...register("amount", {
+                          setValueAs: (v) => (v === "" ? undefined : Number(v)),
+                        }),
                       }}
                     />
 

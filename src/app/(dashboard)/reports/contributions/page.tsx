@@ -53,7 +53,6 @@ export default async function EContributionReportPage({
       "Remaining Amount": expected - paid,
       Status:
         expected === paid ? "Paid" : paid > 0 ? "Partially Paid" : "Unpaid",
-      "Paid Dates": paidDates,
     };
   });
 
@@ -78,7 +77,6 @@ export default async function EContributionReportPage({
         { label: "Paid Amount", accessor: "Paid Amount" },
         { label: "Remaining Amount / balance", accessor: "Remaining Amount" },
         { label: "Status", accessor: "Status" },
-        { label: "Paid Dates", accessor: "Paid Dates" }, // optional: include paid dates column
       ]}
       summaryRow={{
         "Expected Amount": totalExpected,

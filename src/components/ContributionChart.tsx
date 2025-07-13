@@ -66,7 +66,7 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
       setError(null);
 
       try {
-        const url = `/api/reports/monthly?year=${selectedYear}${
+        const url = `/api/dashboard/monthly?year=${selectedYear}${
           selectedType !== "all" ? `&type=${selectedType}` : ""
         }`;
         const response = await fetch(url);

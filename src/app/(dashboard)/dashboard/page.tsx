@@ -6,16 +6,12 @@ import FinanceChart from "@/components/ContributionChart";
 import UserCard from "@/components/UserCard";
 import prisma from "@/lib/prisma";
 import RelativeRelationsChart from "@/components/relativesChart";
-import {
-  FiUsers,
-  FiUserCheck,
-  FiClock,
-  FiActivity,
-} from "react-icons/fi";
+import { FiUsers, FiUserCheck, FiClock, FiActivity } from "react-icons/fi";
 import Link from "next/link";
 import Activity from "@/components/activity";
-generateContributionSchedulesForAllActiveMembers();
+
 const AdminPage = async ({}: {}) => {
+  await generateContributionSchedulesForAllActiveMembers();
   const user = await currentUser();
   const role = user?.publicMetadata?.role as string;
   const contributionTypes = await prisma.contributionType.findMany({
@@ -25,15 +21,6 @@ const AdminPage = async ({}: {}) => {
   const penaltyTypes = Array.from(new Set(penalties.map((p) => p.penalty_type)))
     .filter((name): name is string => typeof name === "string" && name !== null)
     .map((name) => ({ name }));
-  const penalty = await prisma.penalty.findMany();
-  const newMembers = await prisma.member.count({
-    where: {
-      member_type: "New",
-      joined_date: {
-        gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-      },
-    },
-  });
   const isSecretary = role === "secretary";
   const isChairman = role === "chairman";
 
@@ -73,32 +60,30 @@ const AdminPage = async ({}: {}) => {
             {isSecretary && (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <UserCard type="New Members" />
-                  <UserCard type="Left Members" />
                   <UserCard type="Total Members" />
-                  <UserCard type="Deceased Members" />
                   <UserCard type="Active Members" />
+                  <UserCard type="Inactive Members" />
+                  <UserCard type="New Members" />
+                  <UserCard type="Deceased Members" />
+                  <UserCard type="Left Members" />
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
+
+                {/* ✅ Updated section below */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200 lg:col-span-1">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
                           <FiUsers className="w-5 h-5" />
                         </div>
                         <div>
-                          <h2 className="text-lg font-semibold text-gray-800">
+                          <h2 className="text-sm font-semibold text-gray-800">
                             Member Distribution
                           </h2>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-xs text-gray-500">
                             Breakdown by gender type
                           </p>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="px-3 py-1 text-xs bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors">
-                          All Active Members
-                        </button>
                       </div>
                     </div>
                     <div className="h-72">
@@ -106,9 +91,9 @@ const AdminPage = async ({}: {}) => {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
+                  <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200 lg:col-span-2">
                     <div className="h-72">
-                      <RelativeRelationsChart apiUrl="/api/reports/relatives" />
+                      <RelativeRelationsChart apiUrl="/api/dashboard/relatives" />
                     </div>
                   </div>
                 </div>
@@ -124,11 +109,11 @@ const AdminPage = async ({}: {}) => {
                     <UserCard type="Members set to inactivation" />
                   </div>
                   <div className="bg-white rounded-lg mb-16">
-                    <div className="h-[500px] ">
+                    <div className="h-[500px]">
                       <FinanceChart contributionTypes={contributionTypes} />
                     </div>
                   </div>
-                  <div className="bg-white rounded-lg p-2 shadow-md mb-4  ">
+                  <div className="bg-white rounded-lg p-2 shadow-md mb-4">
                     <div>
                       <PenaltyChart penaltyTypes={penaltyTypes} />
                     </div>
@@ -167,10 +152,16 @@ const AdminPage = async ({}: {}) => {
                     <FiUsers className="w-4 h-4" />
                   </button>
                 </Link>
+                <Link href={"/reports"} className="block w-full">
+                  <button className="w-full flex items-center justify-between p-3 bg-green-50 text-green-700 rounded-md hover:bg-green-100 transition-colors text-sm font-medium">
+                    <span>Reports</span>
+                    <FiUsers className="w-4 h-4" />
+                  </button>
+                </Link>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg ">
+            <div className="bg-white rounded-lg">
               {isChairman ? (
                 <Activity type="chairman" />
               ) : (

@@ -25,7 +25,7 @@ export const translations = {
         "Our collective contributions create a safety net that ensures dignified support when it's needed most.",
       community: "Community",
       communityDesc:
-        "We foster strong social bonds through regular meetings, cultural events, and shared traditions.",
+        "We foster strong social bonds through regular meetings and shared traditions.",
     },
     announcements: "Announcements",
     bylaws: "Bylaws",
@@ -60,7 +60,6 @@ export const translations = {
       "Our bylaws define how we operate — membership rules, contribution types, penalties, and more. These documents ensure transparency and fairness in all our operations.",
     download: "Download Documents",
     bylawsTitle: "Edir Bylaws - 2025 Edition",
-    updated: "Updated January 2025",
   },
   am: {
     nav: {
@@ -74,7 +73,7 @@ export const translations = {
     hero: {
       title: "በጋራ እንተጋገዝ",
       subtitle:
-        "በጣም አስቸጋሪ በሆነው የሕይወት ዘመን የገንዘብም ሆነ የስሜት እርዳታ የሚያቀርብ አሳቢ ማኅበረሰብ ነው ።",
+        "አስቸጋሪ በሆነው የሕይወት ዘመን የገንዘብም ሆነ የስሜት እርዳታ የሚያቀርብ አሳቢ ማኅበረሰብ ነው ።",
       join: "ወደ ማህበረሰባችን ይቀላቀሉ",
       learn: "ተጨማሪ ይወቁ",
     },
@@ -82,13 +81,13 @@ export const translations = {
       title: "ተልእኳችን እና እሴቶች",
       mutualSupport: "የጋራ ድጋፍ",
       mutualSupportDesc:
-        "አባላትን በሞት እና በከባድ ሁኔታዎች ወቅት የገንዘብ እና ስሜታዊ ድጋፍ እናቀርባለን.",
+        "በሐዘን ና በአስቸጋሪ ሁኔታዎች ወቅት ለአባላቶቻችን የገንዘብ እርዳታ እና ስሜታዊ ድጋፍ እንሰጣቸዋለን።",
       financialSecurity: "የገንዘብ ዋስትና",
       financialSecurityDesc:
-        "የጋራ አስተዋፆዎቻችን አስፈላጊ በሚሆንበት ጊዜ የተከበረ ድጋፍ እንዲኖር የሚያረጋግጥ የደህንነት አውታር ይፈጥራል.",
+        "የጋራ አስተዋፆዎቻችን አስፈላጊ በሚሆንበት ጊዜ ድጋፍ እንዲኖር የሚያረጋግጥ የደህንነት አውታር ይፈጥራል.",
       community: "ማህበረሰብ",
       communityDesc:
-        "በየጊዜው የምንገናኝበት፣ የባህል ዝግጅቶች እና የጋራ ልምዶች በማህበረሰባችን ውስጥ ጠንካራ ማህበራዊ ግንኙነቶችን እንፈጥራለን.",
+        "ቋሚ ስብሰባዎች በማድረግ እና በጋራ ባህሎች በመሳተፍ ጠንካራ ማህበራዊ ግንኙነትን እናዳብራለን።",
     },
     announcements: "ማስታወቂያዎች",
     bylaws: "ደንቦች",
@@ -110,10 +109,10 @@ export const translations = {
       send: "መልእክት ላክ",
     },
     footer: {
-      description: "ከ2000 ጀምሮ አባላትን በህይወት ከባድ ሁኔታዎች የምንደግፍ ማህበረሰብ.",
+      description: "ከ2000 ጀምሮ አባላቶቻችንን በህይወት ፈተናዎች ውስጥ ስንደግፍ ቆይተናል።",
       quickLinks: "ፈጣን አገናኞች",
       documents: "ሰነዶች",
-      copyright: "© {year} ጀሞ እድር ማህበረሰብ. ሁሉም መብቶች የተጠበቁ ናቸው.",
+      copyright: "© {year} የጀሞ እድር ማህበረሰብ. ሁሉም መብቶች የተጠበቁ ናቸው.",
     },
     readMore: "ተጨማሪ ያንብቡ",
     readLess: "በትንሹ ያንብቡ",
@@ -122,6 +121,5 @@ export const translations = {
       "ሕጎቻችን የአባልነት መመሪያዎችን፣ የመዋጮ ዓይነቶችን፣ ቅጣቶችንና ተጨማሪ ገጽታዎችን ጨምሮ አሠራራችንን ይዘረዝሩልናል። እነዚህ ሰነዶች የተዘጋጁት በሁሉም እንቅስቃሴዎቻችን ውስጥ ግልፅነትንእና ፍትሃዊነትን ለማስጠበቅ ነው።",
     download: "ሰነዶች ያውርዱ",
     bylawsTitle: "የእድር ደንቦች - 2025 እትም",
-    updated: "የተዘመነው ጥር 2025",
   },
 };

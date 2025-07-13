@@ -3,18 +3,14 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
-function getStartOfMonthISO() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1)
-    .toISOString()
-    .split("T")[0];
+import { startOfMonth, endOfMonth, format } from "date-fns";
+
+export function getStartOfMonthISO(date: Date = new Date()) {
+  return format(startOfMonth(date), "yyyy-MM-dd");
 }
 
-function getEndOfMonthISO() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    .toISOString()
-    .split("T")[0];
+export function getEndOfMonthISO(date: Date = new Date()) {
+  return format(endOfMonth(date), "yyyy-MM-dd");
 }
 
 export default function FilterBar({

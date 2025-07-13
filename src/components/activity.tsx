@@ -50,8 +50,8 @@ export default function Activity({ type }: { type: string }) {
         setLoading(true);
         const url =
           type === "secretary"
-            ? "/api/reports/members/recent"
-            : "/api/reports/members/payment";
+            ? "/api/dashboard/members/recent"
+            : "/api/dashboard/members/payment";
         const res = await fetch(url);
         if (!res.ok) throw new Error(`Error: ${res.status}`);
         const json = await res.json();

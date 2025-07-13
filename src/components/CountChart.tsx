@@ -25,7 +25,7 @@ const CountChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/reports/members/count");
+        const res = await fetch("/api/dashboard/members/count");
         const counts: GenderData = await res.json();
         const total = counts.males + counts.females;
         const malesPercent = total ? Math.round((counts.males / total) * 100) : 0;

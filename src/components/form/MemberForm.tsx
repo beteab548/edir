@@ -887,6 +887,7 @@ const MemberForm = ({
                         <option value="Spouse_Father">Spouse Father</option>
                         <option value="Spouse_Sister">Spouse Sister</option>
                         <option value="Spouse_Brother">Spouse Brother</option>
+                        <option value="other">other</option>
                       </select>
                     </div>
 

@@ -24,20 +24,20 @@ async function inactivateMember(memberId: number) {
     data: {
       status: "Inactive",
       remark: "Inactivated due to missed contributions",
+      status_updated_at: new Date(),
     },
   });
 }
 
-const test = true;
+const test = false;
 const realCurrentDate = new Date();
-const simulatedMonthsToAdd = 3;
+const simulatedMonthsToAdd = 5;
 const currentMonthStart = normalizeToMonthStart(
   test ? addMonths(realCurrentDate, simulatedMonthsToAdd) : realCurrentDate
 );
 
 export async function generateContributionSchedulesForAllActiveMembers() {
   const now = new Date();
-
   const activeMembers = await prisma.member.findMany({
     where: { status: "Active" },
     include: {
@@ -424,7 +424,8 @@ export async function generateContributionSchedulesForAllActiveMembers() {
 
     if (!contributionType.end_date) continue;
 
-    const hasEnded = new Date() > contributionType.end_date;
+    // const hasEnded = new Date() > contributionType.end_date;
+    const hasEnded = currentMonthStart > contributionType.end_date;
     if (hasEnded && ContributionSchedule.length > 0) {
       await inactivateMember(contribution.member_id);
     }

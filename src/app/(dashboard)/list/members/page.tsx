@@ -18,15 +18,15 @@ const MemberListPage = async ({
 }: {
   searchParams: { [key: string]: string | undefined };
 }) => {
-    const user = await currentUser();
+  const user = await currentUser();
 
   if (!user) {
-  return  redirect("/sign-in");
+    return redirect("/sign-in");
   }
 
   const role = user.publicMetadata?.role;
   if (role !== "secretary") {
-   return redirect("/dashboard");
+    return redirect("/dashboard");
   }
   const itemsPerPage = searchParams.perPage
     ? parseInt(searchParams.perPage as string)
@@ -225,7 +225,7 @@ const MemberListPage = async ({
   } else if (currentSort === "joined_date") {
     orderBy = { joined_date: sortDirection };
   } else {
-    orderBy = { created_at: "desc" };
+    orderBy = { joined_date: "desc" };
   }
 
   // Data fetching
@@ -294,7 +294,7 @@ const MemberListPage = async ({
                   searchParams as Record<string, string>
                 );
                 params.set("perPage", option.toString());
-                params.set("page", "1"); // Reset to first page
+                params.set("page", "1");
 
                 const isActive = itemsPerPage === option;
 
@@ -320,8 +320,6 @@ const MemberListPage = async ({
             page={currentPage}
             count={count}
             itemsPerPage={itemsPerPage}
-            // currentSort={currentSort}
-            // sortDirection={sortDirection}
           />
         </div>
       </div>

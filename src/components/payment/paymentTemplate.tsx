@@ -392,6 +392,7 @@ export default function ContributionTemplate({
                             <div>
                               <p className="font-medium text-gray-900">
                                 {payment.member.first_name}{" "}
+                                {payment.member.second_name}{" "}
                                 {payment.member.last_name}
                               </p>
                               <p className="text-sm text-gray-500">

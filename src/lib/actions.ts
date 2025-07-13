@@ -51,7 +51,6 @@ export const createMember = async (
           ...(data.member.id_number
             ? { id_number: data.member.id_number }
             : {}),
-
           birth_date: new Date(data.member.birth_date),
           citizen: data.member.citizen,
           ...(data.member.joined_date
@@ -60,7 +59,6 @@ export const createMember = async (
           ...(data.member.end_date
             ? { end_date: new Date(data.member.end_date) }
             : {}),
-
           phone_number: data.member.phone_number,
           phone_number_2: data.member.phone_number_2 ?? "",
           wereda: data.member.wereda,
@@ -107,42 +105,90 @@ export const createMember = async (
         },
       });
 
+      // Update custom_id formatted string
       const formattedId = `EDM-${createdMember.id.toString().padStart(4, "0")}`;
       await tx.member.update({
         where: { id: createdMember.id },
         data: { custom_id: formattedId },
       });
-      if (createdMember.member_type === "New") {
-        const today = new Date();
-        const activeContributionTypes = await tx.contributionType.findMany({
-          where: {
-            is_active: true,
-            is_for_all: true,
-            OR: [{ end_date: null }, { end_date: { gte: today } }],
-          },
-          select: {
-            id: true,
-            name: true,
-            amount: true,
-            start_date: true,
-            end_date: true,
-          },
-        });
 
-        const contributionsData = activeContributionTypes.map((type) => ({
-          contribution_type_id: type.id,
-          member_id: createdMember.id,
-          type_name: type.name,
-          amount: type.amount,
-          start_date: new Date(),
-          end_date: type.end_date || new Date(),
-        }));
+      const today = new Date();
 
-        if (contributionsData.length > 0) {
-          await tx.contribution.createMany({
-            data: contributionsData,
-          });
+      // Fetch all active, for-all contribution types
+      const activeContributionTypes = await tx.contributionType.findMany({
+        where: {
+          is_active: true,
+          is_for_all: true,
+          OR: [{ end_date: null }, { end_date: { gte: today } }],
+        },
+        select: {
+          id: true,
+          name: true,
+          amount: true,
+          start_date: true,
+          end_date: true,
+        },
+      });
+
+      // Filter contribution types:
+      // Exclude "Registration" contribution if member is not "New"
+      const filteredContributionTypes = activeContributionTypes.filter(
+        (type) => {
+          if (
+            type.name === "Registration" &&
+            createdMember.member_type !== "New"
+          ) {
+            return false;
+          }
+          return true;
         }
+      );
+
+      // Map filtered contributions
+      const contributionsData = filteredContributionTypes.map((type) => ({
+        contribution_type_id: type.id,
+        member_id: createdMember.id,
+        type_name: type.name,
+        amount: type.amount,
+        start_date: new Date(),
+        end_date: type.end_date || new Date(),
+      }));
+
+      // If member is "New", add "Registration" contribution only if not already included
+      if (createdMember.member_type === "New") {
+        const alreadyHasRegistration = contributionsData.some(
+          (c) => c.type_name === "Registration"
+        );
+
+        if (!alreadyHasRegistration) {
+          const registrationType = await tx.contributionType.findFirst({
+            where: { name: "Registration", is_active: true },
+            select: {
+              id: true,
+              name: true,
+              amount: true,
+              start_date: true,
+              end_date: true,
+            },
+          });
+
+          if (registrationType) {
+            contributionsData.push({
+              contribution_type_id: registrationType.id,
+              member_id: createdMember.id,
+              type_name: registrationType.name,
+              amount: registrationType.amount,
+              start_date: new Date(),
+              end_date: registrationType.end_date || new Date(),
+            });
+          }
+        }
+      }
+
+      if (contributionsData.length > 0) {
+        await tx.contribution.createMany({
+          data: contributionsData,
+        });
       }
 
       return createdMember;
@@ -163,11 +209,13 @@ export const updateMember = async (
     where: { id: data.member.id },
     select: { status: true, end_date: true },
   });
+
   const memberStatusChanged = existingMember?.status !== data.member.status;
   const memberStatusChangedToLeft = data.member.status === "Left";
   const memberStatusChangedToActive = data.member.status === "Active";
   const newDatePassed =
     existingMember?.end_date == null && data.member.end_date;
+
   if (!data.member?.id) return { success: false, error: true };
 
   try {
@@ -197,7 +245,6 @@ export const updateMember = async (
             : memberStatusChangedToActive
             ? { end_date: null }
             : {}),
-
           ...(data.member.document ? { document: data.member.document } : {}),
           ...(data.member.bank_name
             ? { bank_name: data.member.bank_name }
@@ -228,11 +275,59 @@ export const updateMember = async (
           sex: data.member.sex,
           status: data.member.status,
           ...(memberStatusChanged && { status_updated_at: new Date() }),
-
           remark: data.member.remark ?? "",
           member_type: data.member.member_type,
         },
       });
+
+      // 2. Handle Registration contribution logic based on member_type
+      if (data.member.member_type === "New") {
+        // Add Registration contribution if not exists
+        const registrationContribution = await prisma.contribution.findFirst({
+          where: {
+            member_id: data.member.id,
+            type_name: "Registration",
+          },
+        });
+
+        if (!registrationContribution) {
+          const registrationType = await prisma.contributionType.findFirst({
+            where: { name: "Registration", is_active: true },
+            select: {
+              id: true,
+              amount: true,
+              start_date: true,
+              end_date: true,
+            },
+          });
+          const memberId = Number(data.member.id);
+          if (!memberId || typeof memberId !== "number" || isNaN(memberId)) {
+            throw new Error("member_id must be a valid number.");
+          }
+          if (registrationType) {
+            await prisma.contribution.create({
+              data: {
+                contribution_type_id: registrationType.id,
+                member_id: memberId,
+                type_name: "Registration",
+                amount: registrationType.amount,
+                start_date: registrationType.start_date || new Date(),
+                end_date: registrationType.end_date || new Date(),
+              },
+            });
+          }
+        }
+      } else {
+        // Remove Registration contributions if member_type is NOT "New"
+        await prisma.contribution.deleteMany({
+          where: {
+            member_id: data.member.id,
+            type_name: "Registration",
+          },
+        });
+      }
+
+      // 3. Handle other contributions if member_type is "New" and none exist
       if (data.member.member_type === "New") {
         const existingContributions = await prisma.contribution.findFirst({
           where: { member_id: data.member.id },
@@ -254,9 +349,13 @@ export const updateMember = async (
               },
             });
 
+          const memberId = Number(data.member.id);
+          if (!memberId || typeof memberId !== "number" || isNaN(memberId)) {
+            throw new Error("member_id must be a valid number.");
+          }
           const contributionsData = activeContributionTypes.map((type) => ({
             contribution_type_id: type.id,
-            member_id: data.member.id as number,
+            member_id: memberId as number,
             type_name: type.name,
             amount: type.amount,
             start_date: type.start_date || new Date(),
@@ -268,6 +367,8 @@ export const updateMember = async (
           }
         }
       }
+
+      // 4. Handle relatives update/delete/create as you had before
       const existingRelatives = await prisma.relative.findMany({
         where: { member_id: data.member.id },
       });
@@ -329,6 +430,7 @@ export const updateMember = async (
         }
       }
     });
+
     return { success: true, error: false };
   } catch (err) {
     console.error("Update error:", err);
@@ -369,7 +471,7 @@ export const deleteMember = async (
 };
 
 export const updateContribution = async (
-  currentState: CurrentState,
+  currentState: any,
   data: {
     id: number;
     amount: number;
@@ -389,32 +491,41 @@ export const updateContribution = async (
       where: { id: data.id },
     });
 
-    if (!currentType) {
-      throw new Error("Contribution type not found");
-    }
+    if (!currentType) throw new Error("Contribution type not found");
 
     const currentContributions = await prisma.contribution.findMany({
       where: { type_name: currentType.name },
       select: { member_id: true, id: true },
     });
 
-    const newStartDate = data.start_date ? new Date(data.start_date) : null;
+    // Handle dates and OneTimeWindow logic
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+
+    if (data.mode === "OneTimeWindow" && data.period_months) {
+      startDate = new Date();
+      endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + data.period_months);
+      endDate.setDate(0); // last day of the end month
+    } else {
+      startDate = data.start_date ? new Date(data.start_date) : null;
+      endDate = data.end_date ? new Date(data.end_date) : null;
+    }
+
     const keepOldStartDate =
-      newStartDate &&
-      currentType.start_date &&
-      newStartDate < currentType.start_date;
+      startDate && currentType.start_date && startDate < currentType.start_date;
 
     const effectiveStartDate = keepOldStartDate
       ? currentType.start_date
-      : newStartDate ?? new Date();
+      : startDate ?? new Date();
 
     const updatedType = await prisma.contributionType.update({
       where: { id: data.id },
       data: {
         amount: data.amount,
         name: data.type_name,
-        start_date: newStartDate ?? new Date(),
-        end_date: data.end_date,
+        start_date: startDate ?? new Date(),
+        end_date: endDate,
         is_active: data.is_active,
         is_for_all: data.is_for_all,
         mode: data.mode,
@@ -426,12 +537,12 @@ export const updateContribution = async (
 
     const transactionOps = [];
 
-    const amountChanged = currentType.amount !== Decimal(data.amount);
+    const amountChanged = !currentType.amount.equals(data.amount);
     const typeNameChanged = currentType.name !== data.type_name;
     const startDateChanged =
-      currentType.start_date?.toISOString() !== data.start_date?.toISOString();
+      currentType.start_date?.toISOString() !== startDate?.toISOString();
     const endDateChanged =
-      currentType.end_date?.toISOString() !== data.end_date?.toISOString();
+      currentType.end_date?.toISOString() !== endDate?.toISOString();
 
     if (
       amountChanged ||
@@ -446,33 +557,48 @@ export const updateContribution = async (
             amount: updatedType.amount,
             type_name: updatedType.name,
             start_date: effectiveStartDate,
-            end_date: updatedType.end_date || new Date(),
+            end_date: endDate || new Date(),
           },
         })
       );
     }
 
     if (data.is_for_all) {
-      const missingMembers = await prisma.member.findMany({
-        where: {
-          status: "Active",
-          id: {
-            notIn: currentContributions.map((c) => c.member_id),
-          },
-        },
-        select: { id: true },
-      });
+      let membersToAdd;
 
-      if (missingMembers.length > 0) {
+      if (updatedType.name === "Registration") {
+        membersToAdd = await prisma.member.findMany({
+          where: {
+            status: "Active",
+            member_type: "New",
+            id: {
+              notIn: currentContributions.map((c) => c.member_id),
+            },
+          },
+          select: { id: true },
+        });
+      } else {
+        membersToAdd = await prisma.member.findMany({
+          where: {
+            status: "Active",
+            id: {
+              notIn: currentContributions.map((c) => c.member_id),
+            },
+          },
+          select: { id: true },
+        });
+      }
+
+      if (membersToAdd.length > 0) {
         transactionOps.push(
           prisma.contribution.createMany({
-            data: missingMembers.map((member) => ({
+            data: membersToAdd.map((member) => ({
               contribution_type_id: currentType.id,
               member_id: member.id,
               type_name: updatedType.name,
               amount: updatedType.amount,
-              start_date: new Date(),
-              end_date: updatedType.end_date || new Date(),
+              start_date: startDate ?? new Date(),
+              end_date: endDate,
             })),
           })
         );
@@ -503,20 +629,18 @@ export const updateContribution = async (
       );
 
       if (membersToAdd.length > 0) {
-        const existingContributionsForNewMembers =
-          await prisma.contribution.findMany({
-            where: {
-              member_id: { in: membersToAdd },
-              type_name: updatedType.name,
-            },
-            select: { member_id: true },
-          });
+        let trulyNewMembers = membersToAdd;
 
-        const membersAlreadyHaveContribution =
-          existingContributionsForNewMembers.map((c) => c.member_id);
-        const trulyNewMembers = membersToAdd.filter(
-          (id) => !membersAlreadyHaveContribution.includes(id)
-        );
+        if (updatedType.name === "Registration") {
+          const newMembers = await prisma.member.findMany({
+            where: {
+              id: { in: membersToAdd },
+              member_type: "New",
+            },
+            select: { id: true },
+          });
+          trulyNewMembers = newMembers.map((m) => m.id);
+        }
 
         if (trulyNewMembers.length > 0) {
           transactionOps.push(
@@ -526,8 +650,8 @@ export const updateContribution = async (
                 member_id,
                 type_name: updatedType.name,
                 amount: updatedType.amount,
-                start_date: new Date(),
-                end_date: updatedType.end_date || new Date(),
+                start_date: startDate ?? new Date(),
+                end_date: endDate,
               })),
             })
           );
@@ -625,16 +749,32 @@ export const createContributionType = async (data: {
       }
 
       if (memberIds.length > 0) {
-        await tx.contribution.createMany({
-          data: memberIds.map((member_id) => ({
-            contribution_type_id: contributionType.id,
-            member_id,
-            type_name: contributionType.name,
-            amount: contributionType.amount,
-            start_date: contributionType.start_date!,
-            end_date: contributionType.end_date,
-          })),
-        });
+        let filteredMemberIds = memberIds;
+
+        if (contributionType.name === "Registration") {
+          const newMembers = await tx.member.findMany({
+            where: {
+              id: { in: memberIds },
+              member_type: "New",
+              status: "Active",
+            },
+            select: { id: true },
+          });
+          filteredMemberIds = newMembers.map((m) => m.id);
+        }
+
+        if (filteredMemberIds.length > 0) {
+          await tx.contribution.createMany({
+            data: filteredMemberIds.map((member_id) => ({
+              contribution_type_id: contributionType.id,
+              member_id,
+              type_name: contributionType.name,
+              amount: contributionType.amount,
+              start_date: contributionType.start_date!,
+              end_date: contributionType.end_date,
+            })),
+          });
+        }
       }
 
       return contributionType;

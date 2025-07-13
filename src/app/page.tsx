@@ -161,13 +161,7 @@ export default function PublicPage() {
               >
                 {t.nav.announcements}
               </a>
-              <a
-                href="#contact"
-                onClick={(e) => smoothScroll(e, "contact")}
-                className="text-blue-100 hover:text-white font-medium"
-              >
-                {t.nav.contact}
-              </a>
+
               <button
                 onClick={toggleLanguage}
                 className="text-blue-100 hover:text-white font-medium px-2 py-1 border border-blue-100 rounded"
@@ -199,11 +193,6 @@ export default function PublicPage() {
             {t.hero.subtitle}
           </p>
           <div className="mt-10">
-            <a href="#contact" onClick={(e) => smoothScroll(e, "contact")}>
-              <button className="bg-white text-blue-700 px-8 py-4 rounded-xl font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg mr-4">
-                {t.hero.join}
-              </button>
-            </a>
             <a href="#about" onClick={(e) => smoothScroll(e, "about")}>
               <button className="bg-transparent border-2 border-white text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white hover:text-blue-700 transition-colors">
                 {t.hero.learn}
@@ -331,36 +320,81 @@ export default function PublicPage() {
             {activeTab === "announcements" && (
               <div id="announcements">
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {isLoadingAnnouncements
-                    ? Array.from({ length: 3 }).map((_, idx) => (
-                        <div
-                          key={idx}
-                          className="border border-gray-200 rounded-xl overflow-hidden animate-pulse"
-                        >
-                          <div className="bg-blue-100 h-12" />
-                          <div className="p-5 space-y-3">
-                            <div className="h-4 bg-gray-300 rounded w-3/4" />
-                            <div className="h-3 bg-gray-200 rounded w-full" />
-                            <div className="h-3 bg-gray-200 rounded w-5/6" />
-                            <div className="h-3 bg-gray-200 rounded w-2/3" />
-                          </div>
+                  {isLoadingAnnouncements ? (
+                    Array.from({ length: 3 }).map((_, idx) => (
+                      <div
+                        key={idx}
+                        className="border border-gray-200 rounded-xl overflow-hidden animate-pulse"
+                      >
+                        <div className="bg-blue-100 h-12" />
+                        <div className="p-5 space-y-3">
+                          <div className="h-4 bg-gray-300 rounded w-3/4" />
+                          <div className="h-3 bg-gray-200 rounded w-full" />
+                          <div className="h-3 bg-gray-200 rounded w-5/6" />
+                          <div className="h-3 bg-gray-200 rounded w-2/3" />
                         </div>
-                      ))
-                    : announcements.map((a) => (
-                        <div
-                          key={a.id}
-                          className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
-                        >
-                          <div className="bg-blue-600 px-4 py-3">
-                            <h3 className="font-semibold text-white text-lg">
-                              {a.title}
-                            </h3>
+                      </div>
+                    ))
+                  ) : announcements.length === 0 ? (
+                    <div className="col-span-3 text-center text-gray-500 py-12 text-lg font-medium">
+                      {language == "en"
+                        ? " No announcements to view yet."
+                        : "ሊያዩት የሚችሏቸዉ ማስታወቂያዎች የሉም ።"}
+                    </div>
+                  ) : (
+                    announcements.map((a) => (
+                      <div
+                        key={a.id}
+                        className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
+                      >
+                        <div className="bg-blue-600 px-4 py-3">
+                          <h3 className="font-semibold text-white text-lg">
+                            {a.title}
+                          </h3>
+                        </div>
+                        <div className="p-5">
+                          <div className="flex items-center text-sm text-gray-500 mb-3">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4 mr-1"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              />
+                            </svg>
+                            {new Date(a.calendar).toLocaleDateString(
+                              language === "am" ? "en-US" : "en-US",
+                              {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              }
+                            )}
                           </div>
-                          <div className="p-5">
-                            <div className="flex items-center text-sm text-gray-500 mb-3">
+                          <p className="text-gray-700">
+                            {expandedAnnouncements.has(a.id.toString())
+                              ? a.Description
+                              : `${a.Description.substring(0, 100)}${
+                                  a.Description.length > 100 ? "..." : ""
+                                }`}
+                          </p>
+                          {a.Description.length > 100 && (
+                            <button
+                              onClick={() => toggleExpand(a.id.toString())}
+                              className="mt-4 text-blue-600 hover:text-blue-800 font-medium flex items-center"
+                            >
+                              {expandedAnnouncements.has(a.id.toString())
+                                ? t.readLess
+                                : t.readMore}
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4 mr-1"
+                                className="h-4 w-4 ml-1"
                                 fill="none"
                                 viewBox="0 0 24 24"
                                 stroke="currentColor"
@@ -369,56 +403,19 @@ export default function PublicPage() {
                                   strokeLinecap="round"
                                   strokeLinejoin="round"
                                   strokeWidth={2}
-                                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                  d={
+                                    expandedAnnouncements.has(a.id.toString())
+                                      ? "M19 12H5"
+                                      : "M9 5l7 7-7 7"
+                                  }
                                 />
                               </svg>
-                              {new Date(a.calendar).toLocaleDateString(
-                                language === "am" ? "en-US" : "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                }
-                              )}
-                            </div>
-                            <p className="text-gray-700">
-                              {expandedAnnouncements.has(a.id.toString())
-                                ? a.Description
-                                : `${a.Description.substring(0, 100)}${
-                                    a.Description.length > 100 ? "..." : ""
-                                  }`}
-                            </p>
-                            {a.Description.length > 100 && (
-                              <button
-                                onClick={() => toggleExpand(a.id.toString())}
-                                className="mt-4 text-blue-600 hover:text-blue-800 font-medium flex items-center"
-                              >
-                                {expandedAnnouncements.has(a.id.toString())
-                                  ? t.readLess
-                                  : t.readMore}
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  className="h-4 w-4 ml-1"
-                                  fill="none"
-                                  viewBox="0 0 24 24"
-                                  stroke="currentColor"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d={
-                                      expandedAnnouncements.has(a.id.toString())
-                                        ? "M19 12H5"
-                                        : "M9 5l7 7-7 7"
-                                    }
-                                  />
-                                </svg>
-                              </button>
-                            )}
-                          </div>
+                            </button>
+                          )}
                         </div>
-                      ))}
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
             )}
@@ -451,7 +448,6 @@ export default function PublicPage() {
                           <h4 className="font-medium text-gray-900">
                             {t.bylawsTitle}
                           </h4>
-                          <p className="text-sm text-gray-500">{t.updated}</p>
                         </div>
                       </div>
                     </div>
@@ -517,7 +513,7 @@ export default function PublicPage() {
         </section>
 
         {/* Contact Section */}
-        <section id="contact" className="mb-20">
+        {/* <section id="contact" className="mb-20">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
               {t.contact.title}
@@ -675,7 +671,7 @@ export default function PublicPage() {
               </form>
             </div>
           </div>
-        </section>
+        </section> */}
       </main>
 
       {/* Footer */}
@@ -722,11 +718,6 @@ export default function PublicPage() {
                     {t.nav.announcements}
                   </a>
                 </li>
-                <li>
-                  <a href="#contact" className="text-gray-400 hover:text-white">
-                    {t.nav.contact}
-                  </a>
-                </li>
               </ul>
             </div>
             <div>
@@ -752,15 +743,7 @@ export default function PublicPage() {
                     {t.nav.announcements}
                   </a>
                 </li>
-                <li>
-                  <a
-                    href="#contact"
-                    onClick={(e) => smoothScroll(e, "contact")}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    {t.nav.contact}
-                  </a>
-                </li>
+                <li></li>
               </ul>
             </div>
           </div>

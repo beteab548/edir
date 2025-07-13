@@ -125,8 +125,8 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
             <FiPieChart className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-gray-900">
-              Family Relatives Distribution
+            <h2 className="text-lg font-semibold text-gray-900">
+              Member Relatives Distribution
               {memberId && (
                 <span className="text-xs font-normal text-gray-500 ml-2">
                   (Member #{memberId})
@@ -137,28 +137,6 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
               Showing {total} relatives grouped by relation type
             </p>
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Refresh button */}
-          <motion.button
-            whileHover={{ rotate: 180 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={fetchRelatives}
-            className="p-1.5 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-            title="Refresh data"
-            disabled={isRefreshing}
-          >
-            <motion.div
-              animate={{ rotate: isRefreshing ? 360 : 0 }}
-              transition={{
-                repeat: isRefreshing ? Infinity : 0,
-                duration: 1,
-                ease: "linear",
-              }}
-            >
-              <FiRefreshCw className="w-4 h-4" />
-            </motion.div>
-          </motion.button>
         </div>
       </div>
 
@@ -179,14 +157,14 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
             <PieChart>
               <Pie
                 data={chartData}
-                cx="55%"
+                cx="50%"
                 cy="50%"
                 innerRadius={30}
                 outerRadius={60}
                 paddingAngle={2}
                 dataKey="value"
                 label={({ name, percent }) =>
-                  `${name} ${(percent * 100).toFixed(0)}%`
+                  `${name.replace(/_/g, " ")} ${(percent * 100).toFixed(0)}%`
                 }
                 labelLine={false}
               >
@@ -199,7 +177,12 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
                   />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltip
+                formatter={(value: number, name: string) => [
+                  value,
+                  name.replace(/_/g, " "),
+                ]}
+              />
             </PieChart>
           </ResponsiveContainer>
         </div>

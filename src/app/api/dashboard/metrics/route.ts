@@ -6,7 +6,6 @@ const prisma = new PrismaClient();
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type")?.toLowerCase();
-
   if (!type) {
     return NextResponse.json(
       { error: "Missing type parameter" },
@@ -34,6 +33,14 @@ export async function GET(req: NextRequest) {
         currentCount = await prisma.member.count({
           where: { status: "Active" },
         });
+        break;
+
+      case "inactive members":
+        currentCount = await prisma.member.count({
+          where: { status: "Inactive" },
+        });
+        break;
+
       case "new members":
         currentCount = await prisma.member.count({
           where: {
@@ -164,9 +171,11 @@ export async function GET(req: NextRequest) {
           },
         });
         break;
+
       default:
         return NextResponse.json({ error: "Unknown type" }, { status: 400 });
     }
+
     return NextResponse.json({ value: currentCount });
   } catch (error) {
     console.error("Error in metric calculation:", error);

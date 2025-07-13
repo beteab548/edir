@@ -1,7 +1,4 @@
 "use client";
-
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
 import * as XLSX from "xlsx";
 import ReportLayout from "./ReportLayout";
 import { useRef } from "react";
@@ -12,7 +9,7 @@ interface ReportShellProps {
   columns: { label: string; accessor: string; width?: string }[];
   filename: string;
   children?: React.ReactNode;
-  summaryRow?: Record<string, any>; // New
+  summaryRow?: Record<string, any>; 
 }
 
 export default function ReportShell({
@@ -35,27 +32,22 @@ export default function ReportShell({
       .replace("overflow-auto", "overflow-visible")
       .replace(/max-h-\[\d+px\]/, "");
     await callback();
-    el.className = prevClass; // Restore scroll after export
+    el.className = prevClass; 
   };
 
   const exportToExcel = () => {
     const workbook = XLSX.utils.book_new();
 
-    // Prepare header row
     const headerRow = columns.map((col) => col.label);
 
-    // Prepare body rows
     const bodyRows = data.map((row) =>
       columns.map((col) => row[col.accessor] ?? "")
     );
 
-    // Combine header and body
     const fullData = [headerRow, ...bodyRows];
 
-    // Create worksheet from data
     const worksheet = XLSX.utils.aoa_to_sheet(fullData);
 
-    // Bold header row
     const headerRange = XLSX.utils.decode_range(worksheet["!ref"] || "");
     for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
       const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
@@ -65,15 +57,13 @@ export default function ReportShell({
       };
     }
 
-    // Auto-fit column widths
     const maxColWidths = columns.map((col, index) => {
       const values = [col.label, ...data.map((row) => row[col.accessor] ?? "")];
       const maxLen = Math.max(...values.map((v) => String(v).length));
-      return { wch: maxLen + 2 }; // +2 padding
+      return { wch: maxLen + 2 };
     });
     worksheet["!cols"] = maxColWidths;
 
-    // Add to workbook and export
     XLSX.utils.book_append_sheet(workbook, worksheet, title || "Report");
     XLSX.writeFile(workbook, `${filename}.xlsx`);
   };
@@ -88,7 +78,6 @@ export default function ReportShell({
     <div className="space-y-4" id="report-content">
       {children}
 
-      {/* Export Buttons */}
       <div className="flex gap-2 flex-wrap print:hidden">
         <button
           onClick={exportToExcel}
@@ -103,7 +92,6 @@ export default function ReportShell({
           Print
         </button>
       </div>
-      {/* Report Table */}
       <ReportLayout>
         <div
           ref={scrollRef}
@@ -158,7 +146,6 @@ export default function ReportShell({
                     </tr>
                   ))}
 
-                  {/* Summary Row */}
                   {summaryRow && (
                     <tr className="bg-gray-200 font-semibold">
                       {columns.map((col, i) => (

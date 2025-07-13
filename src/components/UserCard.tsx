@@ -30,11 +30,12 @@ const UserCard = ({ type }: { type: string }) => {
         setError(null);
 
         const res = await fetch(
-          `/api/reports/metrics?type=${type.toLowerCase()}`
+          `/api/dashboard/metrics?type=${type.toLowerCase()}`
         );
         if (!res.ok) throw new Error("Failed to fetch");
 
         const data: CardData = await res.json();
+        console.log(data);
         setCardData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
