@@ -1,7 +1,9 @@
 import FilterBar from "@/components/report/FilterBar";
 import ReportShell from "@/components/report/ReportShell";
 import { getFilteredContributions } from "@/lib/report";
+import { currentUser } from "@clerk/nextjs/server";
 import { format } from "date-fns";
+import { redirect } from "next/navigation";
 interface SearchParams {
   searchParams: {
     query?: string;
@@ -13,11 +15,11 @@ interface SearchParams {
   };
 }
 
-export default async function EContributionReportPage({
+export default async function ContributionReportPage({
   searchParams,
 }: SearchParams) {
-  // const user = await currentUser();
-  // if (!user) return redirect("/sign-in");
+  const user = await currentUser();
+  if (!user) return redirect("/sign-in");
 
   const contributions = await getFilteredContributions({
     name: searchParams.query,
@@ -28,19 +30,16 @@ export default async function EContributionReportPage({
     contribution_type: searchParams.contribution_type,
   });
 
-  // contributions is an array of Contribution objects
   const processed = contributions.map((c) => {
     const expected = c.ContributionSchedule.reduce(
-      (sum, s) => sum + Number(s.expected_amount),
+      (sum: number, s: { expected_amount: any }) =>
+        sum + Number(s.expected_amount),
       0
     );
     const paid = c.ContributionSchedule.reduce(
-      (sum, s) => sum + Number(s.paid_amount),
+      (sum: number, s: { paid_amount: any }) => sum + Number(s.paid_amount),
       0
     );
-    const paidDates = c.ContributionSchedule.filter((s) => s.paid_at)
-      .map((s) => format(new Date(s.paid_at!), "yyyy-MM-dd"))
-      .join(", ");
 
     const m = c.member;
     return {
@@ -65,9 +64,9 @@ export default async function EContributionReportPage({
 
   return (
     <ReportShell
-      title="Contribution Report"
-      filename="contribution_report"
-      data={processed}
+    title="Contribution Report"
+    filename="contribution_report"
+    data={processed}
       columns={[
         { label: "ID", accessor: "ID" },
         { label: "Full Name", accessor: "Full Name" },
@@ -83,7 +82,7 @@ export default async function EContributionReportPage({
         "Paid Amount": totalPaid,
         "Remaining Amount": totalRemaining,
       }}
-    >
+      >
       <FilterBar type="contributions" />
     </ReportShell>
   );

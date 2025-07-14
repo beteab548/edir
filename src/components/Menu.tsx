@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import ContributionDropdown from "./ContributionDropdown";
 import PenaltyDropdown from "./penaltyDropdown";
+import ReportDropdown from "./reportDropDown";
 import { ContributionType } from "@prisma/client";
 import { usePathname } from "next/navigation";
 import {
@@ -18,8 +19,8 @@ import {
   FiMenu,
   FiFileText,
 } from "react-icons/fi";
-import ReportDropdown from "./reportDropDown";
 import { LuUsers } from "react-icons/lu";
+
 const menuItems = [
   {
     title: "MENU",
@@ -40,7 +41,7 @@ const menuItems = [
       {
         icon: <FiDollarSign size={20} />,
         label: "Contribution",
-        href: "/Contribution",
+        href: "/contribution",
         visible: ["admin", "chairman"],
         hasDropdown: true,
       },
@@ -62,7 +63,7 @@ const menuItems = [
         icon: <FiSettings size={20} />,
         label: "Settings",
         href: "/configure-setting",
-        visible: ["admin", "chairman", "secretary"],
+        visible: ["admin", "chairman", ],
       },
       {
         icon: <FiLogOut size={20} />,
@@ -86,8 +87,11 @@ const Menu = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false); // 👈 hydration-safe
 
   useEffect(() => {
+    setMounted(true); // Prevent hydration error
+
     const fetchTypes = async () => {
       try {
         const res = await fetch("/api/contributions/contributionTypes");
@@ -103,7 +107,7 @@ const Menu = () => {
     if (role) fetchTypes();
   }, [role]);
 
-  if (!user || !role) return null;
+  if (!user || !role || !mounted) return null;
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href);
@@ -157,69 +161,61 @@ const Menu = () => {
                   {icon}
                   {title}
                 </span>
+
                 {visibleItems.map((item, index) => {
                   const isItemActive = isActive(item.href);
                   const isItemHovered = hoveredItem === item.label;
-                  if (item.hasDropdown && item.label === "Contribution") {
-                    return (
-                      <motion.div
-                        key={item.label}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 * index }}
-                        onHoverStart={() => setHoveredItem(item.label)}
-                        onHoverEnd={() => setHoveredItem(null)}
-                      >
-                        <ContributionDropdown
-                          iconSrc="/contributionIcon.png"
-                          icon={<FiDollarSign size={20} />}
-                          label={item.label}
-                          contributionTypes={contributionTypes}
-                          isActive={isItemActive}
-                          isHovered={isItemHovered}
-                        />
-                      </motion.div>
-                    );
-                  }
-                  if (item.hasDropdown && item.label === "Penalty") {
-                    return (
-                      <motion.div
-                        key={item.label}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 * index }}
-                        onHoverStart={() => setHoveredItem(item.label)}
-                        onHoverEnd={() => setHoveredItem(null)}
-                      >
-                        <PenaltyDropdown
-                          iconSrc="/contributionIcon.png"
-                          icon={<FiAlertCircle size={20} />}
-                          label={item.label}
-                          isActive={isItemActive}
-                          isHovered={isItemHovered}
-                        />
-                      </motion.div>
-                    );
-                  }
-                  if (item.hasDropdown && item.label === "Report") {
-                    return (
-                      <motion.div
-                        key={item.label}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 * index }}
-                        onHoverStart={() => setHoveredItem(item.label)}
-                        onHoverEnd={() => setHoveredItem(null)}
-                      >
-                        <ReportDropdown
-                          iconSrc="/contributionIcon.png"
-                          icon={<FiAlertCircle size={20} />}
-                          label={item.label}
-                          isActive={isItemActive}
-                          isHovered={isItemHovered}
-                        />
-                      </motion.div>
-                    );
+
+                  const sharedProps = {
+                    isActive: isItemActive,
+                    isHovered: isItemHovered,
+                    label: item.label,
+                  };
+
+                  const dropdownMotion = {
+                    initial: { opacity: 0, x: -10 },
+                    animate: { opacity: 1, x: 0 },
+                    transition: { delay: 0.05 * index },
+                    onHoverStart: () => setHoveredItem(item.label),
+                    onHoverEnd: () => setHoveredItem(null),
+                  };
+
+                  if (item.hasDropdown) {
+                    if (item.label === "Contribution") {
+                      return (
+                        <motion.div key={item.label} {...dropdownMotion}>
+                          <ContributionDropdown
+                            {...sharedProps}
+                            contributionTypes={contributionTypes}
+                            iconSrc="/contributionIcon.png"
+                          />
+                        </motion.div>
+                      );
+                    }
+
+                    if (item.label === "Penalty") {
+                      return (
+                        <motion.div key={item.label} {...dropdownMotion}>
+                          <PenaltyDropdown
+                            {...sharedProps}
+                            icon={<FiAlertCircle size={20} />}
+                            iconSrc="/contributionIcon.png"
+                          />
+                        </motion.div>
+                      );
+                    }
+
+                    if (item.label === "Report") {
+                      return (
+                        <motion.div key={item.label} {...dropdownMotion}>
+                          <ReportDropdown
+                            {...sharedProps}
+                            icon={<FiFileText size={20} />}
+                            iconSrc="/contributionIcon.png"
+                          />
+                        </motion.div>
+                      );
+                    }
                   }
 
                   const logoutItem = item.label === "Logout";
@@ -246,8 +242,7 @@ const Menu = () => {
                               isItemActive
                                 ? "bg-lamaSkyLight/80 text-lama font-medium shadow"
                                 : "text-gray-600 hover:bg-lamaSkyLight/60 hover:text-gray-800"
-                            }
-                          `}
+                            }`}
                         >
                           {isItemActive && (
                             <motion.span
@@ -301,8 +296,7 @@ const Menu = () => {
                               isItemActive
                                 ? "bg-lamaSkyLight/80 text-lama font-medium shadow"
                                 : "text-gray-600 hover:bg-lamaSkyLight/60 hover:text-gray-800"
-                            }
-                          `}
+                            }`}
                         >
                           {isItemActive && (
                             <motion.span

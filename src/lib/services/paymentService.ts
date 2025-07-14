@@ -127,7 +127,7 @@ export async function applyCatchUpPayment({
         const remainingAfter = remaining.minus(amountToPay);
 
         if (amountToPay.gt(0)) {
-          tx.payment.create({
+          await tx.payment.create({
             data: {
               payment_record_id: paymentRecord.id,
               member_id: memberId,

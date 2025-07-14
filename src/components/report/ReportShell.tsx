@@ -9,7 +9,7 @@ interface ReportShellProps {
   columns: { label: string; accessor: string; width?: string }[];
   filename: string;
   children?: React.ReactNode;
-  summaryRow?: Record<string, any>; 
+  summaryRow?: Record<string, any>;
 }
 
 export default function ReportShell({
@@ -18,7 +18,7 @@ export default function ReportShell({
   columns,
   filename,
   children,
-  summaryRow
+  summaryRow,
 }: ReportShellProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -32,7 +32,7 @@ export default function ReportShell({
       .replace("overflow-auto", "overflow-visible")
       .replace(/max-h-\[\d+px\]/, "");
     await callback();
-    el.className = prevClass; 
+    el.className = prevClass;
   };
 
   const exportToExcel = () => {
@@ -78,7 +78,7 @@ export default function ReportShell({
     <div className="space-y-4" id="report-content">
       {children}
 
-      <div className="flex gap-2 flex-wrap print:hidden">
+      <div className="flex gap-2 flex-wrap print:hidden m-2 p-2 justify-end">
         <button
           onClick={exportToExcel}
           className="px-4 py-2 bg-green-600 text-white rounded"
@@ -92,7 +92,7 @@ export default function ReportShell({
           Print
         </button>
       </div>
-      <ReportLayout>
+      <ReportLayout title={title}>
         <div
           ref={scrollRef}
           className="overflow-auto border rounded print:overflow-visible print:max-h-none print:h-auto print-table-scale"

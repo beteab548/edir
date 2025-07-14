@@ -69,7 +69,7 @@ export default function AnnouncementFormModal({
   const processSubmit = async (data: AnnouncementFormValues) => {
     setIsSubmitting(true);
     try {
-      await onSubmit({
+       onSubmit({
         ...data,
         calendar: new Date(data.calendar),
         created_at: initialData?.created_at || new Date(),

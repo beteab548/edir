@@ -19,11 +19,8 @@ interface SearchParams {
 }
 
 export default async function ReportPage({ searchParams }: SearchParams) {
-  // const user = await currentUser();
-  // if (!user) return redirect("/sign-in");
-
-  // const role = user.publicMetadata?.role;
-  // if (role !== "chairman") return redirect("/dashboard");
+  const user = await currentUser();
+  if (!user) return redirect("/sign-in");
 
   const members = await getFilteredMembers({
     name: searchParams.query,

@@ -89,7 +89,7 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
   );
 
   return (
-    <div className="bg-white rounded-xl w-full h-[550px] p-6 relative">
+    <div className="bg-white rounded-xl w-full h-[530px] p-6 relative">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-6">
         <div className="flex items-center gap-4">

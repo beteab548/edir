@@ -197,14 +197,32 @@ const MemberListPage = async ({
 
   // Query filters
   const query: Prisma.MemberWhereInput = {};
-  if (queryParams.search) {
-    query.OR = [
-      { first_name: { contains: queryParams.search, mode: "insensitive" } },
-      { second_name: { contains: queryParams.search, mode: "insensitive" } },
-      { last_name: { contains: queryParams.search, mode: "insensitive" } },
-      { phone_number: { contains: queryParams.search, mode: "insensitive" } },
-    ];
+if (queryParams.search) {
+  const searchTerm = queryParams.search.trim();
+
+  // Prepare phone variants for search
+  let phoneVariants = [searchTerm];
+
+  // If searchTerm starts with 0, add variant with 251 prefix (without +)
+  if (/^0\d+$/.test(searchTerm)) {
+    phoneVariants.push("251" + searchTerm.slice(1));
   }
+  // If searchTerm starts with 251, add variant with 0 prefix
+  else if (/^251\d+$/.test(searchTerm)) {
+    phoneVariants.push("0" + searchTerm.slice(3));
+  }
+
+  query.OR = [
+    { first_name: { contains: searchTerm, mode: "insensitive" } },
+    { second_name: { contains: searchTerm, mode: "insensitive" } },
+    { last_name: { contains: searchTerm, mode: "insensitive" } },
+    ...phoneVariants.flatMap((variant) => [
+      { phone_number: { contains: variant, mode: Prisma.QueryMode.insensitive } },
+      { phone_number_2: { contains: variant, mode: Prisma.QueryMode.insensitive } },
+    ]),
+  ];
+}
+
 
   // Sorting logic
   let orderBy:

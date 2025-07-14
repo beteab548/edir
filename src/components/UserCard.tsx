@@ -21,7 +21,7 @@ const UserCard = ({ type }: { type: string }) => {
     even: "bg-amber-100 text-amber-800",
   };
 
-  const isOdd = Math.random() > 0.5;
+  const isOdd = type.length % 2 === 1;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,12 +30,11 @@ const UserCard = ({ type }: { type: string }) => {
         setError(null);
 
         const res = await fetch(
-          `/api/dashboard/metrics?type=${type.toLowerCase()}`
+          `/api/dashboard/userCards?type=${type.toLowerCase()}`
         );
         if (!res.ok) throw new Error("Failed to fetch");
 
         const data: CardData = await res.json();
-        console.log(data);
         setCardData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "An error occurred");
@@ -58,7 +57,7 @@ const UserCard = ({ type }: { type: string }) => {
         <span
           className={`text-xs font-medium ${
             isOdd ? badgeVariants.odd : badgeVariants.even
-          } px-2.5 py-1 rounded-full`}
+          }  py-1 rounded-full`}
         >
           {type}
         </span>
@@ -78,9 +77,6 @@ const UserCard = ({ type }: { type: string }) => {
             {cardData.value.toLocaleString()}
           </h1>
           <div className="flex items-center justify-between">
-            <h2 className="capitalize text-sm font-medium text-gray-500 tracking-wide">
-              {type}
-            </h2>
             {cardData.percentageChange !== undefined && (
               <span
                 className={`text-xs font-semibold px-2 py-1 rounded-full ${

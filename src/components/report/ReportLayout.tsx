@@ -1,20 +1,20 @@
 import Image from "next/image";
 import CurrentTime from "../ui/currentTime";
 
-export default function ReportLayout({
-  children,
-}: {
+interface ReportLayoutProps {
   children: React.ReactNode;
-}) {
+  title?: string; 
+}
+
+export default function ReportLayout({ children, title }: ReportLayoutProps) {
   return (
     <div className="bg-white p-4 border rounded-md w-full" id="report-content">
-      {/* Header */}
       <div className="flex items-center justify-between border-b pb-2 mb-4">
         <div className="flex items-center gap-2">
           <Image src="/edirlogo.jpg" alt="Logo" width={50} height={50} />
-          <h1 className="text-xl font-bold">ጀሞ እድር ማህበረሰብ</h1>
+          <h1 className="text-xl font-bold">Jemo Edir Community</h1>
         </div>
-        <h3 className="text-xl font-semibold">Members Info Table </h3>
+        <h3 className="text-xl font-semibold">{title || "Members Info Table"}</h3>
         <span className="text-sm text-gray-500">
           <CurrentTime />
         </span>

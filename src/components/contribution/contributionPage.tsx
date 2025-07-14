@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import CreateNewContribution from "./createNewContribution";
 import ConfigureExistingContribution from "./ConfigureExistingContribution";
-import {  Member } from "@prisma/client";
+import { Member } from "@prisma/client";
+import { FiPlus } from "react-icons/fi";
 
 export default function ContributionPage() {
   const [showAdd, setShowAdd] = useState(false);
@@ -32,14 +33,15 @@ export default function ContributionPage() {
       </div>
     );
   }
-console.log("showmodal",showAdd);
+  console.log("showmodal", showAdd);
   return (
     <div className="min-h-screen p-4 space-y-4">
       <div className="flex justify-end mb-4">
         <button
-          className={`px-4 py-2 rounded-md text-white font-semibold transition-colors bg-blue-600 hover:bg-blue-700`}
+          className={`flex items-center px-4 py-2 rounded-md text-white font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700`}
           onClick={() => setShowAdd((prev) => !prev)}
         >
+        <FiPlus className="w-5 h-5" />
           Add New Contribution
         </button>
       </div>

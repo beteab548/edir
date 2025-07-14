@@ -18,8 +18,8 @@ interface SearchParams {
 export default async function PenaltyReportPage({
   searchParams,
 }: SearchParams) {
-  //   const user = await currentUser();
-  //   if (!user) return redirect("/sign-in");
+  const user = await currentUser();
+  if (!user) return redirect("/sign-in");
 
   const penalties = await getFilteredPenalties({
     name: searchParams.query,
@@ -37,7 +37,7 @@ export default async function PenaltyReportPage({
     Expected_amount: p.expected_amount,
     Paid_amount: p.paid_amount,
     Remaining_Amount: Number(p.expected_amount) - Number(p.paid_amount),
-    missed_month: p.missed_month.toLocaleDateString(),
+    missed_month: new Date(p.missed_month).toLocaleDateString(),
     "Penalty Type": p.penalty_type,
     waived: p.waived ? "true" : "false",
     "Date Issued": new Date(p.applied_at).toLocaleDateString(),

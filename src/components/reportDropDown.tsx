@@ -17,24 +17,6 @@ type reportDropDownType = {
   iconSrc?: string;
 };
 
-const reportType = [
-  {
-    label: "members",
-    href: "/reports/members",
-    icon: <MdGroups />,
-  },
-  {
-    label: "contribution",
-    href: "/reports/contributions",
-    icon: <LuBanknote />,
-  },
-  {
-    label: "penalty",
-    href: "/reports/penalty",
-    icon: <FiAlertCircle />,
-  },
-];
-
 export default function ReportDropdown({
   icon,
   label,
@@ -42,6 +24,35 @@ export default function ReportDropdown({
   isHovered = false,
 }: reportDropDownType) {
   const pathname = usePathname();
+  const reportType = [
+    {
+      label: "members",
+      href: "/reports/members",
+      icon: (
+        <MdGroups
+          size={20}
+          style={{
+            fill: "none",
+            stroke: "currentColor",
+            strokeWidth: 1.5,
+            color: pathname.includes("/reports/members")
+              ? "rgb(11, 126, 183) "
+              : "gray",
+          }}
+        />
+      ),
+    },
+    {
+      label: "contribution",
+      href: "/reports/contributions",
+      icon: <LuBanknote />,
+    },
+    {
+      label: "penalty",
+      href: "/reports/penalty",
+      icon: <FiAlertCircle />,
+    },
+  ];
   const [isOpen, setIsOpen] = useState(false);
 
   const isAnyPenaltyActive = reportType.some((item) => pathname === item.href);

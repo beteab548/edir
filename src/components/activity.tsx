@@ -69,13 +69,13 @@ export default function Activity({ type }: { type: string }) {
 
   if (loading) {
     return (
-      <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow border border-gray-200 animate-pulse">
+      <div className="max-w-md mx-auto p-6  bg-white rounded-xl shadow border border-gray-200 animate-pulse">
         <div className="h-8 bg-gray-300 rounded w-3/4 mb-6"></div>
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
+        <div className="space-y-5">
+          {[1, 2, 3,4].map((i) => (
             <div
               key={i}
-              className="h-6 bg-gray-300 rounded w-2/3"
+              className="h-10 bg-gray-300 rounded w-3/3"
               style={{ animationDelay: `${i * 150}ms` }}
             />
           ))}
@@ -94,8 +94,8 @@ export default function Activity({ type }: { type: string }) {
 
   return (
     <section className="max-w-md mx-auto p-6 bg-white rounded-xl shadow border border-gray-200">
-      <h3 className="text-xl font-semibold text-gray-900 mb-5 border-b pb-2">
-        {isSecretary ? "🧾 Recent Members" : "💰 Recent Payments"}
+      <h3 className="text-md font-semibold text-gray-900 mb-5 border-b pb-2">
+        {isSecretary ? "🧾 Recent Members" : "💵 Recent Payments"}
       </h3>
 
       {data.length === 0 ? (
@@ -131,10 +131,10 @@ export default function Activity({ type }: { type: string }) {
                 }) => (
                   <li
                     key={id}
-                    className="p-4 border border-gray-200 rounded-lg shadow-sm bg-gray-50 hover:bg-gray-100 transition"
+                    className="p-2 border border-gray-200 rounded-lg shadow-sm bg-gray-50 hover:bg-gray-100 transition"
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="font-semibold text-gray-800">
+                      <span className="font-semibold text-sm text-gray-800">
                         {member.first_name}
                       </span>
                       <span className="text-xs text-gray-500">

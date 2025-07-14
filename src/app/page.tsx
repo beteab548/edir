@@ -339,7 +339,7 @@ export default function PublicPage() {
                     <div className="col-span-3 text-center text-gray-500 py-12 text-lg font-medium">
                       {language == "en"
                         ? " No announcements to view yet."
-                        : "ሊያዩት የሚችሏቸዉ ማስታወቂያዎች የሉም ።"}
+                        : "ሊያዩአቸዉ የሚችሏቸዉ ማስታወቂያዎች የሉም ።"}
                     </div>
                   ) : (
                     announcements.map((a) => (

@@ -1126,6 +1126,7 @@ export async function deletePayment(
   },
   type: PenaltyType
 ) {
+  console.log("data to delete is ", data);
   return await prisma.$transaction(async (tx) => {
     if (type === "manually") {
       const penaltyPayments = await tx.paymentRecord.findUnique({

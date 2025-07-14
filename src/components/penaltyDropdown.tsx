@@ -28,9 +28,8 @@ export default function PenaltyDropdown({
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isAnyPenaltyActive = penaltyItems.some(
-    (item) => pathname === item.href
-  );
+  const isAnyPenaltyActive = pathname.startsWith("/penalty");
+
   return (
     <motion.div
       className={`relative flex flex-col w-full rounded-lg ${
@@ -142,8 +141,7 @@ export default function PenaltyDropdown({
                     }
                   `}
               >
-
-<FiAlertCircle className="text-red-500 w-5 h-5 mr-2" />
+                <FiAlertCircle className="text-red-500 w-5 h-5 mr-2" />
 
                 <motion.span
                   whileHover={{ x: 2 }}

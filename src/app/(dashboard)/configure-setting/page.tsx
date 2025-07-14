@@ -11,7 +11,6 @@ import {
 } from "@heroicons/react/24/outline";
 import AddNewPenaltyType from "@/components/AddNewPenaltyType";
 import { AnnouncementManager } from "@/components/AnnouncementManager ";
-import { Announcements } from "@prisma/client";
 import { useRouter } from "next/navigation";
 
 type Tab =
@@ -26,54 +25,35 @@ interface TabData {
   component: JSX.Element;
 }
 
-export default  function ContributionTabs() {
-   const { isLoaded, isSignedIn, user } = useUser();
-  // const router = useRouter();
-
-  // useEffect(() => {
-  //   if (!isLoaded) return; 
-
-  //   if (!isSignedIn) {
-  //    return router.push("/sign-in");
-  //   } else {
-  //     const role = user?.publicMetadata?.role;
-  //     if (role !== "chairman") {
-  //     return  router.push("/dashboard");
-  //     }
-  //   }
-  // }, [isLoaded, isSignedIn, user, router]);
-
-  // if (!isLoaded || !isSignedIn || user?.publicMetadata?.role !== "chairman") {
-  //   return null;
-  // }
+export default function ContributionTabs() {
+  const { isLoaded, isSignedIn, user } = useUser();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("contribution");
-  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [Announcements, setAnnouncements] = useState<Announcements[]>([]);
+  const [isClient, setIsClient] = useState(false);
+
   useEffect(() => {
-    async function loadData() {
-      try {
-        setIsLoading(true);
-        setError(null);
-        const res = await fetch("/api/announcements");
-        const data = await res.json();
-        setAnnouncements(data);
-        if (!res.ok) throw new Error("Failed to fetch data");
-      } catch (err: unknown) {
-        if (err instanceof Error) {
-          setError({ message: err.message });
-        } else {
-          setError({
-            message: "An unknown error occurred while fetching data.",
-          });
-        }
-      } finally {
-        setIsLoading(false);
-      }
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded) return;
+
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
     }
-    loadData();
-  }, [retryCount]);
+
+    const role = user?.publicMetadata?.role;
+    if (role !== "chairman") {
+      router.push("/dashboard");
+    }
+  }, [isLoaded, isSignedIn, user, router]);
+
+  if (!isClient) {
+    return null;
+  }
 
   if (!isLoaded) {
     return (
@@ -82,7 +62,7 @@ export default  function ContributionTabs() {
           <Skeleton className="h-10 " />
         </div>
         <div className="flex space-x-8 justify-center">
-          {[1, 2].map((i) => (
+          {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-10 w-32" />
           ))}
         </div>
@@ -90,7 +70,8 @@ export default  function ContributionTabs() {
       </div>
     );
   }
-  if (!user) {
+
+  if (!isSignedIn) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
         <Alert variant="destructive">
@@ -103,7 +84,22 @@ export default  function ContributionTabs() {
       </div>
     );
   }
-  const role = user.publicMetadata.role as string;
+
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
+        <Alert variant="destructive">
+          <ExclamationTriangleIcon className="h-5 w-5" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Unable to load user information.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  const role = user.publicMetadata?.role as string;
   const isChairman = role && role.includes("chairman");
   if (!isChairman) {
     return (
@@ -140,29 +136,12 @@ export default  function ContributionTabs() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="w-[1000px] flex flex-col mx-auto p-10 space-y-4">
-        <div className=" w-full items-center ">
-          <Skeleton className="h-10 " />
-        </div>
-        <div className="flex space-x-8 justify-center">
-          {[1, 2].map((i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </div>
-        <Skeleton className="h-80 w-full" />
-      </div>
-    );
-  }
-
   const allTabs: TabData[] = [
     {
       id: "contribution",
       label: "Configure Contribution",
       component: <ContributionTab />,
     },
-
     {
       id: "configurePenalty",
       label: "Configure Penalty",
@@ -170,20 +149,20 @@ export default  function ContributionTabs() {
     },
     {
       id: "Announcements Manager",
-      label: "Announcements Manager",
-      component: <AnnouncementManager initialAnnouncements={Announcements} />,
+      label: "Configure Announcements",
+      component: <AnnouncementManager />,
     },
   ];
 
   return (
-    <div className=" mt-1 bg-gray-50 rounded-xl  p-8">
-      <div className=" flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4 ">
+    <div className="mt-1 bg-gray-50 rounded-xl p-8">
+      <div className="flex flex-col items-center justify-center">
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">
           View and manage contribution details
         </h2>
       </div>
 
-      <div className="border-b ">
+      <div className="border-b">
         <nav className="-mb-px flex space-x-8 justify-center">
           {allTabs.map((tab) => (
             <button
@@ -201,7 +180,7 @@ export default  function ContributionTabs() {
         </nav>
       </div>
 
-      <div className="mt-2 p-4  rounded-lg min-h-[200px] transition-all duration-300">
+      <div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300">
         {allTabs.find((tab) => tab.id === activeTab)?.component}
       </div>
     </div>

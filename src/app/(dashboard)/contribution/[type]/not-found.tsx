@@ -4,8 +4,8 @@ import { usePathname } from "next/navigation";
 
 export default function NotFound() {
   const pathname = usePathname();
-  const segments = pathname.split("/").filter(Boolean); // removes empty strings
-  const lastSegment = segments[segments.length - 1]; // e.g., "Monthly"
+  const segments = pathname.split("/").filter(Boolean); 
+  const lastSegment = segments[segments.length - 1]; 
 
   return (
     <div className="flex flex-col items-center justify-center h-screen text-center px-4">
@@ -14,10 +14,10 @@ export default function NotFound() {
         Sorry, we couldn’t find anything at <strong>{lastSegment}</strong>.
       </p>
       <a
-        href="/"
+        href="/dashboard"
         className="mt-6 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
       >
-        Go Home
+        Go to Dashboard
       </a>
     </div>
   );

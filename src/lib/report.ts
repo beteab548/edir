@@ -1,5 +1,12 @@
 import prisma from "@/lib/prisma";
-import { ContributionMode, Member, MemberType } from "@prisma/client";
+import {
+  Contribution,
+  ContributionMode,
+  ContributionSchedule,
+  ContributionType,
+  Member,
+  MemberType,
+} from "@prisma/client";
 
 const validStatuses = ["Active", "Inactive", "Left", "Deceased"] as const;
 type Status = (typeof validStatuses)[number];
@@ -26,6 +33,28 @@ function matchesSearch(m: MemberForSearch, search: string) {
     m.custom_id?.toLowerCase().includes(n) ||
     normalizedPhone?.includes(n)
   );
+}
+// Utility to convert Decimal to number recursively if needed
+function convertDecimalToNumber(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+
+  if (typeof obj === "object") {
+    if ("toNumber" in obj && typeof obj.toNumber === "function") {
+      // Prisma Decimal detected
+      return obj.toNumber();
+    }
+    if (Array.isArray(obj)) {
+      return obj.map(convertDecimalToNumber);
+    }
+    // For regular objects, recurse keys
+    const newObj: any = {};
+    for (const key in obj) {
+      newObj[key] = convertDecimalToNumber(obj[key]);
+    }
+    return newObj;
+  }
+
+  return obj;
 }
 
 export async function getFilteredMembers({
@@ -163,23 +192,19 @@ export async function getFilteredPenalties({
     filters.paid_amount = { equals: 0 };
   }
   // Fetch all penalties matching filters
-  const penalties = await prisma.penalty.findMany({
+  const penaltiesRaw = await prisma.penalty.findMany({
     where: {
       ...filters,
-      member: {
-        status: "Active",
-      },
+      member: { status: "Active" },
     },
-    include: {
-      member: true,
-      penaltyType: true,
-    },
-    orderBy: {
-      applied_at: "desc",
-    },
+    include: { member: true, penaltyType: true },
+    orderBy: { applied_at: "desc" },
   });
-  // Filter by full name, custom_id, or phone_number in JS
-  // Filter by full name, custom_id, or phone_number in JS
+
+  // Convert Decimal fields to number recursively
+  const penalties = penaltiesRaw.map(convertDecimalToNumber);
+
+  // Then filter by name if needed
   const filtered = name
     ? penalties.filter((m) => matchesSearch(m.member, name))
     : penalties;
@@ -221,12 +246,6 @@ export const getFilteredContributions = async ({
             lte: toDate,
           },
         }),
-        ...(status === "Paid" && { paid_at: { not: null } }),
-        ...(status === "Unpaid" && { paid_amount: { equals: 0 } }),
-        ...(status === "Partially" && {
-          paid_amount: { gt: 0 },
-          paid_at: null,
-        }),
       },
     },
   };
@@ -245,7 +264,12 @@ export const getFilteredContributions = async ({
     };
   }
 
-  const contributions = await prisma.contribution.findMany({
+  // Raw query returns Decimal fields
+  const contributionsRaw: (Contribution & {
+    member: Member;
+    contributionType: ContributionType;
+    ContributionSchedule: ContributionSchedule[];
+  })[] = await prisma.contribution.findMany({
     where: whereClause,
     include: {
       member: true,
@@ -254,9 +278,33 @@ export const getFilteredContributions = async ({
     },
   });
 
-  const filtered = name
-    ? contributions.filter((m) => matchesSearch(m.member, name))
+  // Convert Decimal fields to number recursively
+  const contributions = contributionsRaw.map(convertDecimalToNumber);
+
+  // Filter by name if given
+  const filteredByName = name
+    ? contributions.filter((c) => matchesSearch(c.member, name))
     : contributions;
 
-  return filtered;
+  // Filter by status if given
+  const filteredByStatus = status
+    ? filteredByName.filter((contribution) => {
+        const expected = contribution.ContributionSchedule.reduce(
+          (sum: any, s: { expected_amount: any }) => sum + s.expected_amount,
+          0
+        );
+        const paid = contribution.ContributionSchedule.reduce(
+          (sum: any, s: { paid_amount: any }) => sum + s.paid_amount,
+          0
+        );
+
+        if (status === "Paid") return paid === expected && expected > 0;
+        if (status === "Partially Paid") return paid > 0 && paid < expected;
+        if (status === "Unpaid") return paid === 0;
+
+        return true;
+      })
+    : filteredByName;
+
+  return filteredByStatus;
 };

@@ -66,12 +66,14 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
       setError(null);
 
       try {
-        const url = `/api/dashboard/monthly?year=${selectedYear}${
+        const url = `/api/dashboard/contribution?year=${selectedYear}${
           selectedType !== "all" ? `&type=${selectedType}` : ""
         }`;
         const response = await fetch(url);
         if (!response.ok) throw new Error("Failed to fetch data");
         const result = await response.json();
+        // console.log("sent url", url);
+        console.log("response", result);
         setData(result);
       } catch (err) {
         setError(
@@ -95,7 +97,7 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
   );
 
   return (
-    <div className="bg-white rounded-xl w-full h-[570px]  p-6 shadow-md relative">
+    <div className="bg-white rounded-xl w-full h-[530px]  p-6 relative">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-6">
         <div className="flex items-center gap-4">

@@ -7,28 +7,40 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 const LoginPage = () => {
-  const {  user } = useUser();
+  const { user } = useUser();
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [connectionError, setConnectionError] = useState(false);
+
   useEffect(() => {
-    const role = user?.publicMetadata.role;
-    if (role) {
-      setIsAuthenticating(true);
-      switch (role) {
-        case "secretary":
-          router.push("/dashboard");
-          break;
-        case "chairman":
-          router.push("/dashboard");
-          break;
-        default:
-          router.push("/unauthorized");
-          break;
+    try {
+      const role = user?.publicMetadata.role;
+      if (role) {
+        setIsAuthenticating(true);
+        switch (role) {
+          case "secretary":
+          case "chairman":
+            router.push("/dashboard");
+            break;
+          default:
+            router.push("/unauthorized");
+            break;
+        }
       }
+    } catch (error) {
+      setConnectionError(true);
     }
   }, [user, router]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center p-4">
+      {connectionError && (
+        <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm w-full">
+          <div className="flex items-center justify-center px-6 py-4 text-red-600 text-sm">
+            Connection timeout. Please refresh
+          </div>
+        </header>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

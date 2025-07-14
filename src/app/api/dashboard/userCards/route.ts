@@ -159,7 +159,7 @@ export async function GET(req: NextRequest) {
         currentCount = unpaidActive;
         break;
 
-      case "members set to inactivation":
+      case "inactivated members":
         currentCount = await prisma.member.count({
           where: {
             status: "Inactive",

@@ -21,6 +21,7 @@ export default function AddNewPenaltyType() {
   const [editedName, setEditedName] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [typeToDelete, setTypeToDelete] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true); // 👈 added loading state
 
   useEffect(() => {
     fetchPenaltyTypes();
@@ -28,10 +29,13 @@ export default function AddNewPenaltyType() {
 
   const fetchPenaltyTypes = async () => {
     try {
+      setLoading(true); // 👈 show loading
       const types = await getPenaltyTypesModel();
       setPenaltyTypes(types);
     } catch (err) {
       console.error("Failed to fetch penalty types:", err);
+    } finally {
+      setLoading(false); // 👈 hide loading
     }
   };
 
@@ -94,17 +98,21 @@ export default function AddNewPenaltyType() {
         <button
           type="button"
           onClick={handleAddPenaltyType}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2 shadow-sm"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition flex items-center gap-2 shadow-sm"
         >
           <FiPlus className="w-5 h-5" />
-          Add Type
+          Add Penalty Type
         </button>
       </div>
 
       {/* Penalty Types List */}
-      <div className="space-y-3">
-        {penaltyTypes.length === 0 ? (
-          <div className="text-center py-6 text-gray-500">
+      <div className="space-y-3 min-h-[100px]">
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : penaltyTypes.length === 0 ? (
+          <div className="text-center text-gray-500 py-6">
             No penalty types added yet
           </div>
         ) : (
@@ -167,7 +175,7 @@ export default function AddNewPenaltyType() {
         )}
       </div>
 
-      {/* Tailwind Modal */}
+      {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">

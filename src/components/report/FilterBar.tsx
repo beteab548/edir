@@ -59,7 +59,7 @@ export default function FilterBar({
   };
 
   return (
-    <div className="flex gap-2 flex-wrap print:hidden">
+    <div className="flex gap-2 flex-wrap print:hidden m-2 p-2 bg-white rounded shadow">
       {/* Common Filters */}
       <input
         type="text"
