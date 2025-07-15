@@ -148,7 +148,7 @@ const MemberListPage = async ({
   // Row rendering function
   const renderRow = (item: Member) => (
     <>
-      <td className="px-6 py-4 text-gray-700 font-medium whitespace-nowrap">
+      <td className="px-3 py-4 text-gray-700 font-medium whitespace-nowrap">
         {item.custom_id || item.id}
       </td>
       <td className="py-4 pl-6 pr-3">
@@ -314,7 +314,7 @@ const MemberListPage = async ({
           columns={columns}
           renderRow={renderRow}
           data={data}
-          headerClassName="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+          headerClassName="px-5 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
           rowClassName="border-b border-gray-100 hover:bg-gray-50 transition-colors"
         />
       </div>
