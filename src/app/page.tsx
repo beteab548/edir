@@ -71,7 +71,10 @@ export default function PublicPage() {
   useEffect(() => {
     async function fetchData() {
       setIsLoadingAnnouncements(true);
-      const res = await fetch("/api/announcements");
+      const res = await fetch("/api/announcements", {
+        cache: "no-store",
+        next: { revalidate: 0 },
+      });
       const data = await res.json();
       console.log("data", data);
       setAnnouncements(data);
