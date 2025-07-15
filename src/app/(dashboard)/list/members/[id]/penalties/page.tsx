@@ -1,4 +1,4 @@
-// app/members/[id]/penalties/page.tsx
+export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
 import { WaivePenaltyButton } from "../../../../../../components/WaivePenaltyButton";
 import { currentUser } from "@clerk/nextjs/server";

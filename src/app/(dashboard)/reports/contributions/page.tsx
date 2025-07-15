@@ -1,8 +1,9 @@
+export const dynamic = "force-dynamic";
+
 import FilterBar from "@/components/report/FilterBar";
 import ReportShell from "@/components/report/ReportShell";
 import { getFilteredContributions } from "@/lib/report";
 import { currentUser } from "@clerk/nextjs/server";
-import { format } from "date-fns";
 import { redirect } from "next/navigation";
 interface SearchParams {
   searchParams: {

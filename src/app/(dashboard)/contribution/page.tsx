@@ -1,10 +1,10 @@
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import prisma from "@/lib/prisma";
 import Image from "next/image";
 import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-export const dynamic = "force-dynamic";
 
 export default async function ContributionPage() {
   try {

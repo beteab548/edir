@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { currentUser } from "@clerk/nextjs/server";
 import PaymentComponent from "../../../../components/payment/paymentTemplate";
 import prisma from "@/lib/prisma";

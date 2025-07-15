@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import MemberForm from "@/components/form/MemberForm";
 import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import { currentUser } from "@clerk/nextjs/server";
