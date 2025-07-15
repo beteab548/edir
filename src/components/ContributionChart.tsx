@@ -72,7 +72,7 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
           cache: "no-store",
           next: { revalidate: 0 },
         });
-        if (!response.ok) throw new Error("Failed to fetch data");
+        if (!response.ok) throw new Error("refresh page");
         const result = await response.json();
         // console.log("sent url", url);
         console.log("response", result);

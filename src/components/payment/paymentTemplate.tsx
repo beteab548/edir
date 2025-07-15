@@ -237,6 +237,7 @@ export default function ContributionTemplate({
     try {
       setLoading(true);
       if (!selectedMember) {
+        setLoading(false)
         toast.error("Please select a member first");
         return;
       }
@@ -254,6 +255,7 @@ export default function ContributionTemplate({
           setAmountError(
             `The entered amount (${enteredAmount}) is greater than the amount owed (${balanceNumber})`
           );
+          setLoading(false);
           return;
         }
       }
