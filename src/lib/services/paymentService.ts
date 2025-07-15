@@ -231,8 +231,6 @@ export async function applyCatchUpPayment({
           throw new PaymentProcessingError("No unpaid schedules found");
         }
 
-        const monthlyAmount = contribution.amount;
-
         for (const sched of schedules) {
           if (remaining.lte(0)) break;
 
@@ -293,14 +291,16 @@ export async function applyCatchUpPayment({
               remaining = remaining.minus(penaltyToPay);
             }
           }
+
           const currentPaid = sched.paid_amount ?? new Decimal(0);
-          const unpaid = monthlyAmount.minus(currentPaid);
+          const expectedAmount = sched.expected_amount;
+          const unpaid = expectedAmount.minus(currentPaid);
           const toPay = Decimal.min(unpaid, remaining);
 
           if (toPay.gt(0)) {
             const newTotalPaid = currentPaid.plus(toPay);
             const isFullyPaid =
-              newTotalPaid.greaterThanOrEqualTo(monthlyAmount);
+              newTotalPaid.greaterThanOrEqualTo(expectedAmount);
 
             await tx.payment.create({
               data: {

@@ -28,14 +28,12 @@ async function inactivateMember(memberId: number) {
     },
   });
 }
-
-const test = false;
+const test = true;
 const realCurrentDate = new Date();
-const simulatedMonthsToAdd = 5;
+const simulatedMonthsToAdd = 3;
 const currentMonthStart = normalizeToMonthStart(
   test ? addMonths(realCurrentDate, simulatedMonthsToAdd) : realCurrentDate
 );
-
 export async function generateContributionSchedulesForAllActiveMembers() {
   const now = new Date();
   const activeMembers = await prisma.member.findMany({

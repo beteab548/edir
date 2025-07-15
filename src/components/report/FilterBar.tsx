@@ -34,7 +34,7 @@ export default function FilterBar({
     waived: searchParams.get("waived") || "",
     penalty_type: searchParams.get("penalty_type") || "",
     contribution_type: searchParams.get("contribution_type") || "",
-    type:searchParams.get("type") || "",
+    type: searchParams.get("type") || "",
   });
 
   useEffect(() => {
@@ -49,13 +49,26 @@ export default function FilterBar({
     });
 
     router.push(`/reports/${type}?${params.toString()}`);
-  }, [filters]);
+  }, [filters, router, type]);
 
   const handleChange = (key: keyof typeof filters, value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFilters((prev) => {
+      if (key === "to") {
+        // If new "to" is earlier than "from", reset to "from"
+        if (value < prev.from) {
+          return { ...prev, to: prev.from };
+        }
+      }
+
+      if (key === "from") {
+        // If new "from" is after current "to", update "to" to match "from"
+        if (value > prev.to) {
+          return { ...prev, from: value, to: value };
+        }
+      }
+
+      return { ...prev, [key]: value };
+    });
   };
 
   return (

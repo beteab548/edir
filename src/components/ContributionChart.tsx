@@ -17,7 +17,6 @@ import {
   FiTrendingUp,
   FiAlertCircle,
   FiBarChart2,
-  FiMoreVertical,
 } from "react-icons/fi";
 import { FaMoneyBillWave } from "react-icons/fa";
 import Skeleton from "react-loading-skeleton";
@@ -69,7 +68,10 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
         const url = `/api/dashboard/contribution?year=${selectedYear}${
           selectedType !== "all" ? `&type=${selectedType}` : ""
         }`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          cache: "no-store",
+          next: { revalidate: 0 },
+        });
         if (!response.ok) throw new Error("Failed to fetch data");
         const result = await response.json();
         // console.log("sent url", url);

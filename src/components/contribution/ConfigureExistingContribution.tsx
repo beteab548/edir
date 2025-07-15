@@ -32,7 +32,11 @@ type ApiResponse = {
   members: Member[];
 };
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const fetcher = (url: string) =>
+  fetch(url, {
+    cache: "no-store",
+    next: { revalidate: 0 },
+  }).then((res) => res.json());
 
 export default function ConfigureExistingContribution({
   revalidate,
@@ -140,7 +144,7 @@ export default function ConfigureExistingContribution({
   };
   useEffect(() => {
     mutateData();
-  }, [revalidate]);
+  }, [revalidate, mutateData]);
   const handleDelete = async () => {
     if (!toDelete) return;
     try {
@@ -218,7 +222,7 @@ export default function ConfigureExistingContribution({
                 </svg>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Delete "{toDelete.name}"?
+                Delete &quot;{toDelete.name}&quot;?
               </h3>
               <p className="text-gray-600 mb-6">
                 This will permanently remove the

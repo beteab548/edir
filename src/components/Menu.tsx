@@ -11,7 +11,6 @@ import { ContributionType } from "@prisma/client";
 import { usePathname } from "next/navigation";
 import {
   FiHome,
-  FiUsers,
   FiDollarSign,
   FiAlertCircle,
   FiSettings,
@@ -63,7 +62,7 @@ const menuItems = [
         icon: <FiSettings size={20} />,
         label: "Settings",
         href: "/configure-setting",
-        visible: ["admin", "chairman", ],
+        visible: ["admin", "chairman"],
       },
       {
         icon: <FiLogOut size={20} />,
@@ -94,7 +93,10 @@ const Menu = () => {
 
     const fetchTypes = async () => {
       try {
-        const res = await fetch("/api/contributions/contributionTypes");
+        const res = await fetch("/api/contributions/contributionTypes", {
+          cache: "no-store",
+          next: { revalidate: 0 },
+        });
         const { contributionTypes } = await res.json();
         setContributionTypes(contributionTypes);
       } catch (err) {

@@ -153,7 +153,7 @@ const MemberForm = ({
       }
     }
     if (state.error) toast.error("Something went wrong");
-  }, [state, router, type]);
+  }, [state, router, type,setOpen]);
 
   // Relative management functions
   const openRelativesDialog = (index?: number) => {
@@ -230,7 +230,7 @@ const MemberForm = ({
   useEffect(() => {
     setValue("member.phone_number", phone ?? "");
     setValue("member.phone_number_2", phone2 ?? "");
-  }, [phone, setValue]);
+  }, [phone, setValue,phone2]);
   return (
     <div
       className={`${

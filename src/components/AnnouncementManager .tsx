@@ -14,7 +14,7 @@ import { FiPlus } from "react-icons/fi";
 import { toast } from "react-toastify";
 // lib/fetcher.ts
 export const fetcher = async (url: string) => {
-  const res = await fetch(url);
+  const res = await fetch(url, { cache: "no-store", next: { revalidate: 0 } });
   if (!res.ok) {
     throw new Error("Failed to fetch data");
   }

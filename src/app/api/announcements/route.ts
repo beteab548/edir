@@ -1,5 +1,6 @@
-// app/api/announcements/route.ts
-import  prisma  from "@/lib/prisma";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function GET() {

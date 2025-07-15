@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { FiRefreshCw, FiUsers, FiPieChart, FiInfo } from "react-icons/fi";
 import { motion } from "framer-motion";
@@ -66,39 +66,40 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [activeOnly, setActiveOnly] = useState<boolean>(false);
 
-  const fetchRelatives = async () => {
-    try {
-      setLoading(true);
-      setIsRefreshing(true);
-      setError(null);
+ const fetchRelatives = useCallback(async () => {
+  try {
+    setLoading(true);
+    setIsRefreshing(true);
+    setError(null);
 
-      const params = new URLSearchParams();
-      if (memberId) params.append("member_id", memberId.toString());
-      if (activeOnly) params.append("activeOnly", "true");
+    const params = new URLSearchParams();
+    if (memberId) params.append("member_id", memberId.toString());
+    if (activeOnly) params.append("activeOnly", "true");
 
-      const url = `${apiUrl}?${params.toString()}`;
+    const url = `${apiUrl}?${params.toString()}`;
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setRelatives(data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch relatives"
-      );
-      console.error("Error fetching relatives:", err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
 
-  useEffect(() => {
-    fetchRelatives();
-  }, [apiUrl, memberId, activeOnly]);
+    const data = await response.json();
+    setRelatives(data);
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : "Failed to fetch relatives"
+    );
+    console.error("Error fetching relatives:", err);
+  } finally {
+    setLoading(false);
+    setIsRefreshing(false);
+  }
+}, [apiUrl, memberId, activeOnly]); // ✅ include dependencies
+
+useEffect(() => {
+  fetchRelatives();
+}, [fetchRelatives]); // ✅ use the memoized version
+
 
   const relationCounts = relatives.reduce((acc, relative) => {
     const relation = relative.relation_type;

@@ -28,7 +28,7 @@ import {
   FaHourglassHalf,
 } from "react-icons/fa";
 import Image from "next/image";
-
+export const dynamic = "force-dynamic";
 type Member = {
   id: number;
   first_name: string;
@@ -85,16 +85,20 @@ export default function ManualPenaltyManagement() {
   const [isloading, setIsloading] = useState<boolean>(false);
 
   const fetchSettingDatas = async () => {
-    const res = await fetch("/api/fetchSettingDatas");
+    const res = await fetch("/api/fetchSettingDatas", {
+      cache: "no-store",
+      next: { revalidate: 0 },
+    });
     if (!res.ok) throw new Error("Failed to fetch data");
     return res.json();
   };
-
   const { data, error, isLoading, mutate } = useSWR(
     "/api/fetchSettingDatas",
     fetchSettingDatas
   );
-  const penaltiesWithNumberAmount = data?.penalties ?? [];
+  const penaltiesWithNumberAmount = useMemo(() => {
+    return data?.penalties ?? [];
+  }, [data?.penalties]);
   const allMembers = data?.allMembers ?? [];
   const [state, formAction] = useFormState(createPenalty, {
     success: false,
@@ -169,7 +173,7 @@ export default function ManualPenaltyManagement() {
       mutate();
     }
     if (state.error) toast.error("Something went wrong");
-  }, [state, router]);
+  }, [state, router, form, mutate]);
   const sortedPenalties = useMemo(() => {
     let sortableItems = [...penaltiesWithNumberAmount];
     if (sortConfig.key) {

@@ -22,7 +22,7 @@ function DeleteConfirmationModal({
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
         <h3 className="text-lg font-medium text-gray-900">Confirm Deletion</h3>
         <p className="mt-2 text-gray-600">
-          Are you sure you want to delete the announcement "{announcementTitle}"? This action cannot
+          Are you sure you want to delete the announcement 	&quot;{announcementTitle}	&quot;? This action cannot
           be undone.
         </p>
         <div className="mt-4 flex justify-end space-x-3">

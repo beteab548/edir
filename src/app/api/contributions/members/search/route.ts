@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { headers } from "next/headers";
-
+export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -16,7 +15,6 @@ if (!id) {
 
 const contributionTypeId = parseInt(id, 10);
 
-    // Example: Get all member_ids for this contribution type
     const contributions = await prisma.contribution.findMany({
       where: {
         type_name: (
@@ -28,7 +26,6 @@ const contributionTypeId = parseInt(id, 10);
       select: { member_id: true },
     });
 
-    // Return just the member IDs as an array
     const memberIds = contributions.map((c) => c.member_id);
 
     return NextResponse.json(memberIds);

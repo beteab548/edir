@@ -16,12 +16,6 @@ export default function NavbarClient({ fullName, role }: NavbarClientProps) {
         <div className="flex-1"></div>
 
         <div className="flex items-center space-x-4">
-          <button className="p-2 rounded-full hover:bg-gray-100 transition-colors relative">
-            <FiBell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-            <span className="sr-only">Notifications</span>
-          </button>
-
           <div className="flex items-center space-x-2 pl-2">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-gray-900 truncate max-w-[160px]">

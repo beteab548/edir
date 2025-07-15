@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import React, { ReactEventHandler, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useCallback } from "react";
 import InputField from "../InputField";
 import SelectField from "../SelectField";
 import { toast } from "react-toastify";
@@ -177,7 +178,8 @@ export default function ContributionTemplate({
       setSearchResults([]);
     }
   }, [searchTerm, selectedMember, members]);
-  const resetValues = () => {
+
+  const resetValues = useCallback(() => {
     setShowAddModal(false);
     setSearchResults([]);
     setSelectedMember(null);
@@ -195,7 +197,8 @@ export default function ContributionTemplate({
       member_id: 1,
       contribution_id: ContributionType?.id?.toString() || "",
     });
-  };
+  }, [reset, ContributionType?.id]);
+
   const toggleDetails = (id: number) => {
     setOpenPaymentId((prev) => (prev === id ? null : id));
   };
@@ -297,7 +300,7 @@ export default function ContributionTemplate({
       return router.refresh();
     }
     if (state.error) toast.error("Something went wrong");
-  }, [state, router, type]);
+  }, [state, router, type, ContributionType?.name, resetValues]);
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -312,7 +315,7 @@ export default function ContributionTemplate({
             <p className="text-gray-600 mt-1">
               {type === "manually"
                 ? "Manage manually generated penalty payments"
-                : `Track all ${ContributionType?.name} contributions`}
+                : `Track all ${ContributionType?.name} contribution Payments`}
             </p>
           </div>
           {/* Add Payment Button */}

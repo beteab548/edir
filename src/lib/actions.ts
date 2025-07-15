@@ -6,6 +6,7 @@ import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
 import { ContributionMode, PenaltyType } from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
+import { addMonths, startOfMonth } from "date-fns";
 type Payment = {
   amount?: number;
   paid_amount?: Number;
@@ -498,7 +499,6 @@ export const updateContribution = async (
       select: { member_id: true, id: true },
     });
 
-    // Handle dates and OneTimeWindow logic
     let startDate: Date | null = null;
     let endDate: Date | null = null;
 
@@ -506,7 +506,7 @@ export const updateContribution = async (
       startDate = new Date();
       endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + data.period_months);
-      endDate.setDate(0); // last day of the end month
+      endDate.setDate(0);
     } else {
       startDate = data.start_date ? new Date(data.start_date) : null;
       endDate = data.end_date ? new Date(data.end_date) : null;
@@ -557,12 +557,88 @@ export const updateContribution = async (
             amount: updatedType.amount,
             type_name: updatedType.name,
             start_date: effectiveStartDate,
-            end_date: endDate || new Date(),
+            end_date:
+              data.mode === "OpenEndedRecurring" ? null : endDate || new Date(),
           },
         })
       );
     }
 
+    if (amountChanged) {
+      const firstOfThisMonth = startOfMonth(new Date());
+
+      const contributionsOfType = await prisma.contribution.findMany({
+        where: {
+          contribution_type_id: updatedType.id,
+        },
+        select: {
+          id: true,
+          member_id: true,
+        },
+      });
+
+      const contributionIds = contributionsOfType.map((c) => c.id);
+
+      if (contributionIds.length > 0) {
+        await prisma.contributionSchedule.updateMany({
+          where: {
+            contribution_id: {
+              in: contributionIds,
+            },
+            is_paid: false,
+            month: {
+              gte: firstOfThisMonth,
+            },
+          },
+          data: {
+            expected_amount: updatedType.amount,
+          },
+        });
+        await prisma.penalty.updateMany({
+          where: {
+            contribution_id: {
+              in: contributionIds,
+            },
+            is_paid: false,
+          },
+          data: {
+            expected_amount: Number(updatedType.penalty_amount),
+          },
+        });
+
+        for (const contribution of contributionsOfType) {
+          const unpaidSchedules = await prisma.contributionSchedule.findMany({
+            where: {
+              contribution_id: contribution.id,
+              is_paid: false,
+            },
+            select: {
+              expected_amount: true,
+              paid_amount: true,
+            },
+          });
+
+          const totalRemaining = unpaidSchedules.reduce((sum, sched) => {
+            const paid = sched.paid_amount ?? new Decimal(0);
+            return sum.plus(sched.expected_amount.minus(paid));
+          }, new Decimal(0));
+
+          transactionOps.push(
+            prisma.balance.updateMany({
+              where: {
+                member_id: contribution.member_id,
+                contribution_id: contribution.id,
+              },
+              data: {
+                amount: totalRemaining,
+              },
+            })
+          );
+        }
+      }
+    }
+
+    // Add new contributions
     if (data.is_for_all) {
       let membersToAdd;
 
@@ -659,6 +735,7 @@ export const updateContribution = async (
       }
     }
 
+    // Run all transaction operations
     if (transactionOps.length > 0) {
       await prisma.$transaction(transactionOps);
     }

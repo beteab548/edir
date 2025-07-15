@@ -1,9 +1,14 @@
-// next.config.js
-/** @type {import('next').NextConfig} */
-const nextConfig = {
+export default {
   images: {
-    domains: ['ik.imagekit.io',"example.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+      },
+      {
+        protocol: "https",
+        hostname: "ik.imagekit.io",
+      },
+    ],
   },
 };
-
-export default nextConfig;

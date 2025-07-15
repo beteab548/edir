@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-
+body {
+  font-family: "Inter", sans-serif;
+}
 
 .react-calendar {
   width: 100% !important;
@@ -151,7 +153,8 @@
   body * {
     visibility: hidden;
   }
-  #report-content, #report-content * {
+  #report-content,
+  #report-content * {
     visibility: visible;
   }
   #report-content {
