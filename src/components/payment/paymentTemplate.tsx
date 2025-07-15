@@ -235,6 +235,7 @@ export default function ContributionTemplate({
     data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
   ) => {
     try {
+      setLoading(true);
       if (!selectedMember) {
         toast.error("Please select a member first");
         return;
@@ -292,6 +293,7 @@ export default function ContributionTemplate({
   };
   useEffect(() => {
     if (state.success) {
+      setLoading(false);
       toast.success(` Payment created successfully!`);
       resetValues();
       type === "automatically"
@@ -299,7 +301,10 @@ export default function ContributionTemplate({
         : router.push("/penalty/payment");
       return router.refresh();
     }
-    if (state.error) toast.error("Something went wrong");
+    if (state.error) {
+      setLoading(false);
+      toast.error("Something went wrong");
+    }
   }, [state, router, type, ContributionType?.name, resetValues]);
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

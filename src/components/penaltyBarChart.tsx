@@ -23,9 +23,9 @@ import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 
 interface PenaltyData {
-  name: string; 
-  expected: number; 
-  paid: number; 
+  name: string;
+  expected: number;
+  paid: number;
 }
 
 interface PenaltyType {
@@ -63,7 +63,10 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
         const url = `/api/dashboard/penalty?year=${selectedYear}${
           selectedType !== "all" ? `&penaltyType=${selectedType}` : ""
         }`;
-        const response = await fetch(url);
+        const response = await fetch(url, {
+          cache: "no-store",
+          next: { revalidate: 0 },
+        });
         if (!response.ok) throw new Error("Failed to fetch data");
         const result = await response.json();
         setData(result);
@@ -177,7 +180,9 @@ export default function PenaltyChart({ penaltyTypes }: PenaltyChartProps) {
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center gap-4">
             <Skeleton height={300} width="100%" />
-            <p className="text-gray-400 text-sm">Loading chart data...</p>
+            <div className="h-16 flex items-center justify-center">
+              <div className="h-6 w-6 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            </div>{" "}
           </div>
         ) : error ? (
           <div className="h-full flex flex-col items-center justify-center gap-3 text-red-500">

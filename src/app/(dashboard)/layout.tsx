@@ -3,7 +3,6 @@ import Navbar from "@/components/Navbar";
 import ClientOnly from "@/components/ui/ClientOnly";
 import Image from "next/image";
 import Link from "next/link";
-import "react-phone-number-input/style.css";
 
 export default function DashboardLayout({
   children,

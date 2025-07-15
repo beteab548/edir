@@ -188,7 +188,9 @@ const FinanceChart = ({ contributionTypes }: FinanceChartProps) => {
         {isLoading ? (
           <div className="h-full flex flex-col items-center justify-center gap-4">
             <Skeleton height={300} width="100%" />
-            <p className="text-gray-400 text-sm">Loading chart data...</p>
+            <div className="h-16 flex items-center justify-center">
+              <div className="h-6 w-6 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+            </div>
           </div>
         ) : error ? (
           <div className="h-full flex flex-col items-center justify-center gap-3 text-red-500">

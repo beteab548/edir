@@ -66,40 +66,42 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [activeOnly, setActiveOnly] = useState<boolean>(false);
 
- const fetchRelatives = useCallback(async () => {
-  try {
-    setLoading(true);
-    setIsRefreshing(true);
-    setError(null);
+  const fetchRelatives = useCallback(async () => {
+    try {
+      setLoading(true);
+      setIsRefreshing(true);
+      setError(null);
 
-    const params = new URLSearchParams();
-    if (memberId) params.append("member_id", memberId.toString());
-    if (activeOnly) params.append("activeOnly", "true");
+      const params = new URLSearchParams();
+      if (memberId) params.append("member_id", memberId.toString());
+      if (activeOnly) params.append("activeOnly", "true");
 
-    const url = `${apiUrl}?${params.toString()}`;
+      const url = `${apiUrl}?${params.toString()}`;
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const response = await fetch(url,{
+          cache: "no-store",
+          next: { revalidate: 0 },
+        });
+      if (!response.ok) {
+        throw new Error(`failed to fetch, refresh page`);
+      }
+
+      const data = await response.json();
+      setRelatives(data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch relatives"
+      );
+      console.error("Error fetching relatives:", err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
     }
+  }, [apiUrl, memberId, activeOnly]); // ✅ include dependencies
 
-    const data = await response.json();
-    setRelatives(data);
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "Failed to fetch relatives"
-    );
-    console.error("Error fetching relatives:", err);
-  } finally {
-    setLoading(false);
-    setIsRefreshing(false);
-  }
-}, [apiUrl, memberId, activeOnly]); // ✅ include dependencies
-
-useEffect(() => {
-  fetchRelatives();
-}, [fetchRelatives]); // ✅ use the memoized version
-
+  useEffect(() => {
+    fetchRelatives();
+  }, [fetchRelatives]); // ✅ use the memoized version
 
   const relationCounts = relatives.reduce((acc, relative) => {
     const relation = relative.relation_type;

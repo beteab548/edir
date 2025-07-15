@@ -33,6 +33,7 @@ const MemberForm = ({
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(
     null
   );
+  const [isLoading, setIsLoading] = useState(false);
   const [relativeError, setRelativeError] = useState<string | undefined>(
     undefined
   );
@@ -121,7 +122,8 @@ const MemberForm = ({
   };
 
   const onSubmit = handleSubmit(
-    (formData) => {
+    async (formData) => {
+      setIsLoading(true);
       const submissionData = {
         member: {
           ...formData.member,
@@ -133,7 +135,7 @@ const MemberForm = ({
         relatives: relatives,
       };
       console.log(submissionData);
-      formAction(submissionData);
+      await formAction(submissionData);
     },
     (errors) => {
       console.error("Validation errors:", errors);
@@ -143,6 +145,7 @@ const MemberForm = ({
   const router = useRouter();
   useEffect(() => {
     if (state.success) {
+      setIsLoading(false);
       toast.success(
         `Member has been ${type === "create" ? "created" : "updated"}!`
       );
@@ -152,8 +155,11 @@ const MemberForm = ({
         if (setOpen) setOpen(false);
       }
     }
-    if (state.error) toast.error("Something went wrong");
-  }, [state, router, type,setOpen]);
+    if (state.error) {
+      setIsLoading(false);
+      toast.error("Something went wrong");
+    }
+  }, [state, router, type, setOpen]);
 
   // Relative management functions
   const openRelativesDialog = (index?: number) => {
@@ -230,7 +236,7 @@ const MemberForm = ({
   useEffect(() => {
     setValue("member.phone_number", phone ?? "");
     setValue("member.phone_number_2", phone2 ?? "");
-  }, [phone, setValue,phone2]);
+  }, [phone, setValue, phone2]);
   return (
     <div
       className={`${
@@ -286,6 +292,9 @@ const MemberForm = ({
               register={register}
               defaultValue={formatDate(data?.birth_date)}
               error={errors?.member?.birth_date}
+              inputProps={{
+                max: formatDate(new Date().toISOString()),
+              }}
             />
 
             <div className="flex flex-col gap-2 ">
@@ -999,38 +1008,14 @@ const MemberForm = ({
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
-            disabled={!imageReady || !documentReady || isSubmitting}
+            disabled={!imageReady || !documentReady || isLoading}
             type="submit"
           >
-            {isSubmitting ? (
-              <>
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing...
-              </>
-            ) : type === "create" ? (
-              "Create Member"
-            ) : (
-              "Update Member"
-            )}
+            {isLoading
+              ? "saving..."
+              : type === "create"
+              ? "Create Member"
+              : "Update Member"}
           </button>
         </div>
       </form>

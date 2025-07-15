@@ -5,6 +5,7 @@ import { ToastContainer } from "react-toastify";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 import "react-toastify/dist/ReactToastify.css";
+
 export const metadata: Metadata = {
   title: "Edir System DashBoard",
   description: "Next.js Edir Management System",
@@ -17,7 +18,8 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
-        <body >
+        <body>
+
           {children}
           <ToastContainer position="bottom-right" theme="dark" />
         </body>

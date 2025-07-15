@@ -30,10 +30,13 @@ const UserCard = ({ type }: { type: string }) => {
         setError(null);
 
         const res = await fetch(
-          `/api/dashboard/userCards?type=${type.toLowerCase()}`
+          `/api/dashboard/userCards?type=${type.toLowerCase()}`,
+          {
+            cache: "no-store",
+            next: { revalidate: 0 },
+          }
         );
         if (!res.ok) throw new Error("Failed to fetch");
-
         const data: CardData = await res.json();
         setCardData(data);
       } catch (err) {
@@ -65,7 +68,7 @@ const UserCard = ({ type }: { type: string }) => {
 
       {loading ? (
         <div className="h-16 flex items-center justify-center">
-          <div className="animate-pulse text-gray-400">Loading...</div>
+          <div className="h-6 w-6 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
         </div>
       ) : error ? (
         <div className="h-16 flex items-center justify-center text-red-500 text-xs">

@@ -35,165 +35,170 @@ export const createMember = async (
   data: CombinedSchema
 ) => {
   try {
-    const result = await prisma.$transaction(async (tx) => {
-      const createdMember = await tx.member.create({
-        data: {
-          custom_id: "EDM-000",
-          first_name: data.member.first_name,
-          second_name: data.member.second_name,
-          last_name: data.member.last_name,
-          ...(data.member.profession
-            ? { profession: data.member.profession }
-            : {}),
-          ...(data.member.title ? { title: data.member.title } : {}),
-          ...(data.member.job_business
-            ? { job_business: data.member.job_business }
-            : {}),
-          ...(data.member.id_number
-            ? { id_number: data.member.id_number }
-            : {}),
-          birth_date: new Date(data.member.birth_date),
-          citizen: data.member.citizen,
-          ...(data.member.joined_date
-            ? { joined_date: new Date(data.member.joined_date) }
-            : {}),
-          ...(data.member.end_date
-            ? { end_date: new Date(data.member.end_date) }
-            : {}),
-          phone_number: data.member.phone_number,
-          phone_number_2: data.member.phone_number_2 ?? "",
-          wereda: data.member.wereda,
-          kebele: data.member.kebele,
-          zone_or_district: data.member.zone_or_district,
-          house_number: data.member.house_number,
-          member_type: data.member.member_type,
-          ...(data.member.document ? { document: data.member.document } : {}),
-          ...(data.member.document_file_id
-            ? { document_file_id: data.member.document_file_id }
-            : {}),
-          ...(data.member.bank_name
-            ? { bank_name: data.member.bank_name }
-            : {}),
-          ...(data.member.bank_account_number
-            ? { bank_account_number: data.member.bank_account_number }
-            : {}),
-          ...(data.member.bank_account_name
-            ? { bank_account_name: data.member.bank_account_name }
-            : {}),
-          ...(data.member.email ? { email: data.member.email } : {}),
-          ...(data.member.email_2 ? { email_2: data.member.email_2 } : {}),
-          ...(data.member.phone_number_2
-            ? { phone_number_2: data.member.phone_number_2 }
-            : {}),
-          ...(data.member.image_url
-            ? { image_url: data.member.image_url }
-            : {}),
-          ...(data.member.image_file_id
-            ? { image_file_id: data.member.image_file_id }
-            : {}),
-          sex: data.member.sex,
-          status: data.member.status,
-          remark: data.member.remark ?? "",
-          relative: {
-            create: data.relatives?.map((relative: RelativeSchema) => ({
-              first_name: relative.first_name,
-              second_name: relative.second_name,
-              last_name: relative.last_name,
-              relation_type: relative.relation_type,
-              status: relative.status,
-            })),
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const createdMember = await tx.member.create({
+          data: {
+            custom_id: "EDM-000",
+            first_name: data.member.first_name,
+            second_name: data.member.second_name,
+            last_name: data.member.last_name,
+            ...(data.member.profession
+              ? { profession: data.member.profession }
+              : {}),
+            ...(data.member.title ? { title: data.member.title } : {}),
+            ...(data.member.job_business
+              ? { job_business: data.member.job_business }
+              : {}),
+            ...(data.member.id_number
+              ? { id_number: data.member.id_number }
+              : {}),
+            birth_date: new Date(data.member.birth_date),
+            citizen: data.member.citizen,
+            ...(data.member.joined_date
+              ? { joined_date: new Date(data.member.joined_date) }
+              : {}),
+            ...(data.member.end_date
+              ? { end_date: new Date(data.member.end_date) }
+              : {}),
+            phone_number: data.member.phone_number,
+            phone_number_2: data.member.phone_number_2 ?? "",
+            wereda: data.member.wereda,
+            kebele: data.member.kebele,
+            zone_or_district: data.member.zone_or_district,
+            house_number: data.member.house_number,
+            member_type: data.member.member_type,
+            ...(data.member.document ? { document: data.member.document } : {}),
+            ...(data.member.document_file_id
+              ? { document_file_id: data.member.document_file_id }
+              : {}),
+            ...(data.member.bank_name
+              ? { bank_name: data.member.bank_name }
+              : {}),
+            ...(data.member.bank_account_number
+              ? { bank_account_number: data.member.bank_account_number }
+              : {}),
+            ...(data.member.bank_account_name
+              ? { bank_account_name: data.member.bank_account_name }
+              : {}),
+            ...(data.member.email ? { email: data.member.email } : {}),
+            ...(data.member.email_2 ? { email_2: data.member.email_2 } : {}),
+            ...(data.member.phone_number_2
+              ? { phone_number_2: data.member.phone_number_2 }
+              : {}),
+            ...(data.member.image_url
+              ? { image_url: data.member.image_url }
+              : {}),
+            ...(data.member.image_file_id
+              ? { image_file_id: data.member.image_file_id }
+              : {}),
+            sex: data.member.sex,
+            status: data.member.status,
+            remark: data.member.remark ?? "",
+            relative: {
+              create: data.relatives?.map((relative: RelativeSchema) => ({
+                first_name: relative.first_name,
+                second_name: relative.second_name,
+                last_name: relative.last_name,
+                relation_type: relative.relation_type,
+                status: relative.status,
+              })),
+            },
           },
-        },
-      });
+        });
 
-      // Update custom_id formatted string
-      const formattedId = `EDM-${createdMember.id.toString().padStart(4, "0")}`;
-      await tx.member.update({
-        where: { id: createdMember.id },
-        data: { custom_id: formattedId },
-      });
+        // Update custom_id formatted string
+        const formattedId = `EDM-${createdMember.id
+          .toString()
+          .padStart(4, "0")}`;
+        await tx.member.update({
+          where: { id: createdMember.id },
+          data: { custom_id: formattedId },
+        });
 
-      const today = new Date();
+        const today = new Date();
 
-      // Fetch all active, for-all contribution types
-      const activeContributionTypes = await tx.contributionType.findMany({
-        where: {
-          is_active: true,
-          is_for_all: true,
-          OR: [{ end_date: null }, { end_date: { gte: today } }],
-        },
-        select: {
-          id: true,
-          name: true,
-          amount: true,
-          start_date: true,
-          end_date: true,
-        },
-      });
+        // Fetch all active, for-all contribution types
+        const activeContributionTypes = await tx.contributionType.findMany({
+          where: {
+            is_active: true,
+            is_for_all: true,
+            OR: [{ end_date: null }, { end_date: { gte: today } }],
+          },
+          select: {
+            id: true,
+            name: true,
+            amount: true,
+            start_date: true,
+            end_date: true,
+          },
+        });
 
-      // Filter contribution types:
-      // Exclude "Registration" contribution if member is not "New"
-      const filteredContributionTypes = activeContributionTypes.filter(
-        (type) => {
-          if (
-            type.name === "Registration" &&
-            createdMember.member_type !== "New"
-          ) {
-            return false;
+        // Filter contribution types:
+        // Exclude "Registration" contribution if member is not "New"
+        const filteredContributionTypes = activeContributionTypes.filter(
+          (type) => {
+            if (
+              type.name === "Registration" &&
+              createdMember.member_type !== "New"
+            ) {
+              return false;
+            }
+            return true;
           }
-          return true;
-        }
-      );
-
-      // Map filtered contributions
-      const contributionsData = filteredContributionTypes.map((type) => ({
-        contribution_type_id: type.id,
-        member_id: createdMember.id,
-        type_name: type.name,
-        amount: type.amount,
-        start_date: new Date(),
-        end_date: type.end_date || new Date(),
-      }));
-
-      // If member is "New", add "Registration" contribution only if not already included
-      if (createdMember.member_type === "New") {
-        const alreadyHasRegistration = contributionsData.some(
-          (c) => c.type_name === "Registration"
         );
 
-        if (!alreadyHasRegistration) {
-          const registrationType = await tx.contributionType.findFirst({
-            where: { name: "Registration", is_active: true },
-            select: {
-              id: true,
-              name: true,
-              amount: true,
-              start_date: true,
-              end_date: true,
-            },
-          });
+        // Map filtered contributions
+        const contributionsData = filteredContributionTypes.map((type) => ({
+          contribution_type_id: type.id,
+          member_id: createdMember.id,
+          type_name: type.name,
+          amount: type.amount,
+          start_date: new Date(),
+          end_date: type.end_date || new Date(),
+        }));
 
-          if (registrationType) {
-            contributionsData.push({
-              contribution_type_id: registrationType.id,
-              member_id: createdMember.id,
-              type_name: registrationType.name,
-              amount: registrationType.amount,
-              start_date: new Date(),
-              end_date: registrationType.end_date || new Date(),
+        // If member is "New", add "Registration" contribution only if not already included
+        if (createdMember.member_type === "New") {
+          const alreadyHasRegistration = contributionsData.some(
+            (c) => c.type_name === "Registration"
+          );
+
+          if (!alreadyHasRegistration) {
+            const registrationType = await tx.contributionType.findFirst({
+              where: { name: "Registration", is_active: true },
+              select: {
+                id: true,
+                name: true,
+                amount: true,
+                start_date: true,
+                end_date: true,
+              },
             });
+
+            if (registrationType) {
+              contributionsData.push({
+                contribution_type_id: registrationType.id,
+                member_id: createdMember.id,
+                type_name: registrationType.name,
+                amount: registrationType.amount,
+                start_date: new Date(),
+                end_date: registrationType.end_date || new Date(),
+              });
+            }
           }
         }
-      }
 
-      if (contributionsData.length > 0) {
-        await tx.contribution.createMany({
-          data: contributionsData,
-        });
-      }
+        if (contributionsData.length > 0) {
+          await tx.contribution.createMany({
+            data: contributionsData,
+          });
+        }
 
-      return createdMember;
-    });
+        return createdMember;
+      },
+      { timeout: 20000 }
+    );
 
     return { success: true, error: false, member: result };
   } catch (err) {
@@ -220,217 +225,222 @@ export const updateMember = async (
   if (!data.member?.id) return { success: false, error: true };
 
   try {
-    await prisma.$transaction(async (prisma) => {
-      // 1. Update the member
-      await prisma.member.update({
-        where: { id: data.member.id },
-        data: {
-          first_name: data.member.first_name,
-          second_name: data.member.second_name,
-          last_name: data.member.last_name,
-          ...(data.member.profession && { profession: data.member.profession }),
-          ...(data.member.title && { title: data.member.title }),
-          ...(data.member.job_business && {
-            job_business: data.member.job_business,
-          }),
-          ...(data.member.id_number && { id_number: data.member.id_number }),
-          birth_date: new Date(data.member.birth_date),
-          citizen: data.member.citizen,
-          ...(data.member.joined_date && {
-            joined_date: new Date(data.member.joined_date),
-          }),
-          ...(newDatePassed
-            ? { end_date: new Date(data.member.end_date ?? new Date()) }
-            : memberStatusChangedToLeft
-            ? { end_date: new Date() }
-            : memberStatusChangedToActive
-            ? { end_date: null }
-            : {}),
-          ...(data.member.document ? { document: data.member.document } : {}),
-          ...(data.member.bank_name
-            ? { bank_name: data.member.bank_name }
-            : {}),
-          ...(data.member.bank_account_number
-            ? { bank_account_number: data.member.bank_account_number }
-            : {}),
-          ...(data.member.bank_account_name
-            ? { bank_account_name: data.member.bank_account_name }
-            : {}),
-          ...(data.member.email ? { email: data.member.email } : {}),
-          ...(data.member.email_2 ? { email_2: data.member.email_2 } : {}),
-          ...(data.member.phone_number_2
-            ? { phone_number_2: data.member.phone_number_2 }
-            : {}),
-          ...(data.member.image_url
-            ? { image_url: data.member.image_url }
-            : {}),
-          ...(data.member.image_file_id
-            ? { image_file_id: data.member.image_file_id }
-            : {}),
-          phone_number: data.member.phone_number,
-          phone_number_2: data.member.phone_number_2 ?? "",
-          wereda: data.member.wereda,
-          kebele: data.member.kebele,
-          zone_or_district: data.member.zone_or_district,
-          house_number: data.member.house_number,
-          sex: data.member.sex,
-          status: data.member.status,
-          ...(memberStatusChanged && { status_updated_at: new Date() }),
-          remark: data.member.remark ?? "",
-          member_type: data.member.member_type,
-        },
-      });
-
-      // 2. Handle Registration contribution logic based on member_type
-      if (data.member.member_type === "New") {
-        // Add Registration contribution if not exists
-        const registrationContribution = await prisma.contribution.findFirst({
-          where: {
-            member_id: data.member.id,
-            type_name: "Registration",
+    await prisma.$transaction(
+      async (prisma) => {
+        // 1. Update the member
+        await prisma.member.update({
+          where: { id: data.member.id },
+          data: {
+            first_name: data.member.first_name,
+            second_name: data.member.second_name,
+            last_name: data.member.last_name,
+            ...(data.member.profession && {
+              profession: data.member.profession,
+            }),
+            ...(data.member.title && { title: data.member.title }),
+            ...(data.member.job_business && {
+              job_business: data.member.job_business,
+            }),
+            ...(data.member.id_number && { id_number: data.member.id_number }),
+            birth_date: new Date(data.member.birth_date),
+            citizen: data.member.citizen,
+            ...(data.member.joined_date && {
+              joined_date: new Date(data.member.joined_date),
+            }),
+            ...(newDatePassed
+              ? { end_date: new Date(data.member.end_date ?? new Date()) }
+              : memberStatusChangedToLeft
+              ? { end_date: new Date() }
+              : memberStatusChangedToActive
+              ? { end_date: null }
+              : {}),
+            ...(data.member.document ? { document: data.member.document } : {}),
+            ...(data.member.bank_name
+              ? { bank_name: data.member.bank_name }
+              : {}),
+            ...(data.member.bank_account_number
+              ? { bank_account_number: data.member.bank_account_number }
+              : {}),
+            ...(data.member.bank_account_name
+              ? { bank_account_name: data.member.bank_account_name }
+              : {}),
+            ...(data.member.email ? { email: data.member.email } : {}),
+            ...(data.member.email_2 ? { email_2: data.member.email_2 } : {}),
+            ...(data.member.phone_number_2
+              ? { phone_number_2: data.member.phone_number_2 }
+              : {}),
+            ...(data.member.image_url
+              ? { image_url: data.member.image_url }
+              : {}),
+            ...(data.member.image_file_id
+              ? { image_file_id: data.member.image_file_id }
+              : {}),
+            phone_number: data.member.phone_number,
+            phone_number_2: data.member.phone_number_2 ?? "",
+            wereda: data.member.wereda,
+            kebele: data.member.kebele,
+            zone_or_district: data.member.zone_or_district,
+            house_number: data.member.house_number,
+            sex: data.member.sex,
+            status: data.member.status,
+            ...(memberStatusChanged && { status_updated_at: new Date() }),
+            remark: data.member.remark ?? "",
+            member_type: data.member.member_type,
           },
         });
 
-        if (!registrationContribution) {
-          const registrationType = await prisma.contributionType.findFirst({
-            where: { name: "Registration", is_active: true },
-            select: {
-              id: true,
-              amount: true,
-              start_date: true,
-              end_date: true,
+        // 2. Handle Registration contribution logic based on member_type
+        if (data.member.member_type === "New") {
+          // Add Registration contribution if not exists
+          const registrationContribution = await prisma.contribution.findFirst({
+            where: {
+              member_id: data.member.id,
+              type_name: "Registration",
             },
           });
-          const memberId = Number(data.member.id);
-          if (!memberId || typeof memberId !== "number" || isNaN(memberId)) {
-            throw new Error("member_id must be a valid number.");
-          }
-          if (registrationType) {
-            await prisma.contribution.create({
-              data: {
-                contribution_type_id: registrationType.id,
-                member_id: memberId,
-                type_name: "Registration",
-                amount: registrationType.amount,
-                start_date: registrationType.start_date || new Date(),
-                end_date: registrationType.end_date || new Date(),
-              },
-            });
-          }
-        }
-      } else {
-        // Remove Registration contributions if member_type is NOT "New"
-        await prisma.contribution.deleteMany({
-          where: {
-            member_id: data.member.id,
-            type_name: "Registration",
-          },
-        });
-      }
 
-      // 3. Handle other contributions if member_type is "New" and none exist
-      if (data.member.member_type === "New") {
-        const existingContributions = await prisma.contribution.findFirst({
-          where: { member_id: data.member.id },
-        });
-
-        if (!existingContributions) {
-          const activeContributionTypes =
-            await prisma.contributionType.findMany({
-              where: {
-                is_active: true,
-                is_for_all: true,
-              },
+          if (!registrationContribution) {
+            const registrationType = await prisma.contributionType.findFirst({
+              where: { name: "Registration", is_active: true },
               select: {
                 id: true,
-                name: true,
                 amount: true,
                 start_date: true,
                 end_date: true,
               },
             });
-
-          const memberId = Number(data.member.id);
-          if (!memberId || typeof memberId !== "number" || isNaN(memberId)) {
-            throw new Error("member_id must be a valid number.");
+            const memberId = Number(data.member.id);
+            if (!memberId || typeof memberId !== "number" || isNaN(memberId)) {
+              throw new Error("member_id must be a valid number.");
+            }
+            if (registrationType) {
+              await prisma.contribution.create({
+                data: {
+                  contribution_type_id: registrationType.id,
+                  member_id: memberId,
+                  type_name: "Registration",
+                  amount: registrationType.amount,
+                  start_date: registrationType.start_date || new Date(),
+                  end_date: registrationType.end_date || new Date(),
+                },
+              });
+            }
           }
-          const contributionsData = activeContributionTypes.map((type) => ({
-            contribution_type_id: type.id,
-            member_id: memberId as number,
-            type_name: type.name,
-            amount: type.amount,
-            start_date: type.start_date || new Date(),
-            end_date: type.end_date || new Date(),
-          }));
+        } else {
+          // Remove Registration contributions if member_type is NOT "New"
+          await prisma.contribution.deleteMany({
+            where: {
+              member_id: data.member.id,
+              type_name: "Registration",
+            },
+          });
+        }
 
-          if (contributionsData.length > 0) {
-            await prisma.contribution.createMany({ data: contributionsData });
+        // 3. Handle other contributions if member_type is "New" and none exist
+        if (data.member.member_type === "New") {
+          const existingContributions = await prisma.contribution.findFirst({
+            where: { member_id: data.member.id },
+          });
+
+          if (!existingContributions) {
+            const activeContributionTypes =
+              await prisma.contributionType.findMany({
+                where: {
+                  is_active: true,
+                  is_for_all: true,
+                },
+                select: {
+                  id: true,
+                  name: true,
+                  amount: true,
+                  start_date: true,
+                  end_date: true,
+                },
+              });
+
+            const memberId = Number(data.member.id);
+            if (!memberId || typeof memberId !== "number" || isNaN(memberId)) {
+              throw new Error("member_id must be a valid number.");
+            }
+            const contributionsData = activeContributionTypes.map((type) => ({
+              contribution_type_id: type.id,
+              member_id: memberId as number,
+              type_name: type.name,
+              amount: type.amount,
+              start_date: type.start_date || new Date(),
+              end_date: type.end_date || new Date(),
+            }));
+
+            if (contributionsData.length > 0) {
+              await prisma.contribution.createMany({ data: contributionsData });
+            }
           }
         }
-      }
 
-      // 4. Handle relatives update/delete/create as you had before
-      const existingRelatives = await prisma.relative.findMany({
-        where: { member_id: data.member.id },
-      });
+        // 4. Handle relatives update/delete/create as you had before
+        const existingRelatives = await prisma.relative.findMany({
+          where: { member_id: data.member.id },
+        });
 
-      const existingMap = new Map(existingRelatives.map((r) => [r.id, r]));
-      const inputRelatives = Array.isArray(data.relatives)
-        ? data.relatives
-        : [];
-      const inputIds = inputRelatives
-        .filter((r) => typeof r.id === "number")
-        .map((r) => r.id as number);
+        const existingMap = new Map(existingRelatives.map((r) => [r.id, r]));
+        const inputRelatives = Array.isArray(data.relatives)
+          ? data.relatives
+          : [];
+        const inputIds = inputRelatives
+          .filter((r) => typeof r.id === "number")
+          .map((r) => r.id as number);
 
-      await prisma.relative.deleteMany({
-        where: {
-          member_id: data.member.id,
-          id: {
-            notIn: inputIds.length > 0 ? inputIds : [0],
+        await prisma.relative.deleteMany({
+          where: {
+            member_id: data.member.id,
+            id: {
+              notIn: inputIds.length > 0 ? inputIds : [0],
+            },
           },
-        },
-      });
+        });
 
-      for (const relative of inputRelatives) {
-        if (relative.id && existingMap.has(relative.id)) {
-          const existing = existingMap.get(relative.id);
-          const updateData: any = {
-            first_name: relative.first_name,
-            second_name: relative.second_name,
-            last_name: relative.last_name,
-            relation_type: relative.relation_type,
-          };
+        for (const relative of inputRelatives) {
+          if (relative.id && existingMap.has(relative.id)) {
+            const existing = existingMap.get(relative.id);
+            const updateData: any = {
+              first_name: relative.first_name,
+              second_name: relative.second_name,
+              last_name: relative.last_name,
+              relation_type: relative.relation_type,
+            };
 
-          if (relative.status !== existing?.status) {
-            updateData.status = relative.status;
-            updateData.status_updated_at = new Date();
-          }
+            if (relative.status !== existing?.status) {
+              updateData.status = relative.status;
+              updateData.status_updated_at = new Date();
+            }
 
-          await prisma.relative.update({
-            where: { id: relative.id },
-            data: updateData,
-          });
-        } else {
-          if (typeof data.member.id === "number") {
-            await prisma.relative.create({
-              data: {
-                member_id: data.member.id,
-                first_name: relative.first_name,
-                second_name: relative.second_name,
-                last_name: relative.last_name,
-                relation_type: relative.relation_type,
-                status: relative.status,
-                status_updated_at: new Date(),
-              },
+            await prisma.relative.update({
+              where: { id: relative.id },
+              data: updateData,
             });
           } else {
-            throw new Error(
-              "member_id is undefined when creating a new relative."
-            );
+            if (typeof data.member.id === "number") {
+              await prisma.relative.create({
+                data: {
+                  member_id: data.member.id,
+                  first_name: relative.first_name,
+                  second_name: relative.second_name,
+                  last_name: relative.last_name,
+                  relation_type: relative.relation_type,
+                  status: relative.status,
+                  status_updated_at: new Date(),
+                },
+              });
+            } else {
+              throw new Error(
+                "member_id is undefined when creating a new relative."
+              );
+            }
           }
         }
-      }
-    });
+      },
+      { timeout: 20000 }
+    );
 
     return { success: true, error: false };
   } catch (err) {
@@ -580,34 +590,37 @@ export const updateContribution = async (
       const contributionIds = contributionsOfType.map((c) => c.id);
 
       if (contributionIds.length > 0) {
-        await prisma.contributionSchedule.updateMany({
-          where: {
-            contribution_id: {
-              in: contributionIds,
+        transactionOps.push(
+          prisma.contributionSchedule.updateMany({
+            where: {
+              contribution_id: {
+                in: contributionIds,
+              },
+              is_paid: false,
+              month: {
+                gte: firstOfThisMonth,
+              },
             },
-            is_paid: false,
-            month: {
-              gte: firstOfThisMonth,
+            data: {
+              expected_amount: updatedType.amount,
             },
-          },
-          data: {
-            expected_amount: updatedType.amount,
-          },
-        });
-        await prisma.penalty.updateMany({
-          where: {
-            contribution_id: {
-              in: contributionIds,
+          }),
+          prisma.penalty.updateMany({
+            where: {
+              contribution_id: {
+                in: contributionIds,
+              },
+              is_paid: false,
             },
-            is_paid: false,
-          },
-          data: {
-            expected_amount: Number(updatedType.penalty_amount),
-          },
-        });
+            data: {
+              expected_amount: Number(updatedType.penalty_amount),
+            },
+          })
+        );
 
-        for (const contribution of contributionsOfType) {
-          const unpaidSchedules = await prisma.contributionSchedule.findMany({
+        // 🔄 Optimize: Batch find unpaid schedules in parallel
+        const schedulePromises = contributionsOfType.map((contribution) =>
+          prisma.contributionSchedule.findMany({
             where: {
               contribution_id: contribution.id,
               is_paid: false,
@@ -616,7 +629,14 @@ export const updateContribution = async (
               expected_amount: true,
               paid_amount: true,
             },
-          });
+          })
+        );
+
+        const unpaidSchedulesList = await Promise.all(schedulePromises);
+
+        // 🔄 Batch balance updates based on totalRemaining
+        contributionsOfType.forEach((contribution, idx) => {
+          const unpaidSchedules = unpaidSchedulesList[idx];
 
           const totalRemaining = unpaidSchedules.reduce((sum, sched) => {
             const paid = sched.paid_amount ?? new Decimal(0);
@@ -634,11 +654,10 @@ export const updateContribution = async (
               },
             })
           );
-        }
+        });
       }
     }
 
-    // Add new contributions
     if (data.is_for_all) {
       let membersToAdd;
 
@@ -735,7 +754,6 @@ export const updateContribution = async (
       }
     }
 
-    // Run all transaction operations
     if (transactionOps.length > 0) {
       await prisma.$transaction(transactionOps);
     }
@@ -796,66 +814,69 @@ export const createContributionType = async (data: {
       throw new Error("Invalid configuration for contribution period.");
     }
 
-    const result = await prisma.$transaction(async (tx) => {
-      const contributionType = await tx.contributionType.create({
-        data: {
-          name: data.type_name,
-          amount: data.amount,
-          penalty_amount:
-            data.mode === "OneTimeWindow" ? null : data.penalty_amount,
-          is_active: data.is_active ?? true,
-          is_for_all: data.is_for_all,
-          start_date: startDate,
-          end_date: endDate,
-          mode: data.mode,
-          period_months:
-            data.mode === "OneTimeWindow" ? data.period_months : null,
-        },
-      });
-
-      let memberIds: number[] = [];
-
-      if (data.is_for_all) {
-        const activeMembers = await tx.member.findMany({
-          where: { status: "Active" },
-          select: { id: true },
+    const result = await prisma.$transaction(
+      async (tx) => {
+        const contributionType = await tx.contributionType.create({
+          data: {
+            name: data.type_name,
+            amount: data.amount,
+            penalty_amount:
+              data.mode === "OneTimeWindow" ? null : data.penalty_amount,
+            is_active: data.is_active ?? true,
+            is_for_all: data.is_for_all,
+            start_date: startDate,
+            end_date: endDate,
+            mode: data.mode,
+            period_months:
+              data.mode === "OneTimeWindow" ? data.period_months : null,
+          },
         });
-        memberIds = activeMembers.map((m) => m.id);
-      } else if (data.member_ids?.length) {
-        memberIds = data.member_ids;
-      }
 
-      if (memberIds.length > 0) {
-        let filteredMemberIds = memberIds;
+        let memberIds: number[] = [];
 
-        if (contributionType.name === "Registration") {
-          const newMembers = await tx.member.findMany({
-            where: {
-              id: { in: memberIds },
-              member_type: "New",
-              status: "Active",
-            },
+        if (data.is_for_all) {
+          const activeMembers = await tx.member.findMany({
+            where: { status: "Active" },
             select: { id: true },
           });
-          filteredMemberIds = newMembers.map((m) => m.id);
+          memberIds = activeMembers.map((m) => m.id);
+        } else if (data.member_ids?.length) {
+          memberIds = data.member_ids;
         }
 
-        if (filteredMemberIds.length > 0) {
-          await tx.contribution.createMany({
-            data: filteredMemberIds.map((member_id) => ({
-              contribution_type_id: contributionType.id,
-              member_id,
-              type_name: contributionType.name,
-              amount: contributionType.amount,
-              start_date: contributionType.start_date!,
-              end_date: contributionType.end_date,
-            })),
-          });
-        }
-      }
+        if (memberIds.length > 0) {
+          let filteredMemberIds = memberIds;
 
-      return contributionType;
-    });
+          if (contributionType.name === "Registration") {
+            const newMembers = await tx.member.findMany({
+              where: {
+                id: { in: memberIds },
+                member_type: "New",
+                status: "Active",
+              },
+              select: { id: true },
+            });
+            filteredMemberIds = newMembers.map((m) => m.id);
+          }
+
+          if (filteredMemberIds.length > 0) {
+            await tx.contribution.createMany({
+              data: filteredMemberIds.map((member_id) => ({
+                contribution_type_id: contributionType.id,
+                member_id,
+                type_name: contributionType.name,
+                amount: contributionType.amount,
+                start_date: contributionType.start_date!,
+                end_date: contributionType.end_date,
+              })),
+            });
+          }
+        }
+
+        return contributionType;
+      },
+      { timeout: 20000 }
+    );
 
     return { success: true, error: false, contributionType: result };
   } catch (err) {
@@ -1204,21 +1225,75 @@ export async function deletePayment(
   type: PenaltyType
 ) {
   console.log("data to delete is ", data);
-  return await prisma.$transaction(async (tx) => {
-    if (type === "manually") {
-      const penaltyPayments = await tx.paymentRecord.findUnique({
+  return await prisma.$transaction(
+    async (tx) => {
+      if (type === "manually") {
+        const penaltyPayments = await tx.paymentRecord.findUnique({
+          where: {
+            id: data.paymentId,
+          },
+          select: {
+            Penalty_id: true,
+          },
+        });
+
+        if (penaltyPayments?.Penalty_id) {
+          await tx.penalty.update({
+            where: {
+              id: penaltyPayments.Penalty_id,
+            },
+            data: {
+              is_paid: false,
+              resolved_at: null,
+              paid_amount: 0,
+            },
+          });
+        }
+
+        await tx.paymentRecord.delete({ where: { id: data.paymentId } });
+        return { success: true, error: false };
+      }
+
+      const contribution = await tx.contribution.findUnique({
         where: {
-          id: data.paymentId,
-        },
-        select: {
-          Penalty_id: true,
+          member_id_contribution_type_id: {
+            member_id: data.memberId,
+            contribution_type_id: data.contributionTypeID,
+          },
         },
       });
 
-      if (penaltyPayments?.Penalty_id) {
-        await tx.penalty.update({
+      const contributionPayments = await tx.payment.findMany({
+        where: {
+          payment_record_id: data.paymentId,
+          payment_type: { not: "penalty" },
+        },
+        select: {
+          paid_amount: true,
+          contribution_schedule_id: true,
+          contribution_id: true,
+          member_id: true,
+        },
+      });
+
+      const penaltyPayments = await tx.payment.findMany({
+        where: {
+          payment_record_id: data.paymentId,
+          payment_type: "penalty",
+        },
+        select: {
+          contribution_id: true,
+          contribution_schedule_id: true,
+          member_id: true,
+        },
+      });
+
+      for (const payment of penaltyPayments) {
+        await tx.penalty.updateMany({
           where: {
-            id: penaltyPayments.Penalty_id,
+            member_id: payment.member_id,
+            contribution_id: payment.contribution_id,
+            contribution_schedule_id: payment.contribution_schedule_id,
           },
           data: {
             is_paid: false,
@@ -1228,114 +1303,63 @@ export async function deletePayment(
         });
       }
 
-      await tx.paymentRecord.delete({ where: { id: data.paymentId } });
-      return { success: true, error: false };
-    }
+      for (const p of contributionPayments) {
+        const schedule = await tx.contributionSchedule.findUnique({
+          where: { id: p.contribution_schedule_id ?? 1 },
+          select: { paid_amount: true },
+        });
 
-    const contribution = await tx.contribution.findUnique({
-      where: {
-        member_id_contribution_type_id: {
-          member_id: data.memberId,
-          contribution_type_id: data.contributionTypeID,
-        },
-      },
-    });
+        if (!schedule) continue;
 
-    const contributionPayments = await tx.payment.findMany({
-      where: {
-        payment_record_id: data.paymentId,
-        payment_type: { not: "penalty" },
-      },
-      select: {
-        paid_amount: true,
-        contribution_schedule_id: true,
-        contribution_id: true,
-        member_id: true,
-      },
-    });
+        const newPaidAmount =
+          schedule.paid_amount.toNumber() - Number(p.paid_amount);
 
-    const penaltyPayments = await tx.payment.findMany({
-      where: {
-        payment_record_id: data.paymentId,
-        payment_type: "penalty",
-      },
-      select: {
-        contribution_id: true,
-        contribution_schedule_id: true,
-        member_id: true,
-      },
-    });
+        await tx.contributionSchedule.update({
+          where: { id: p.contribution_schedule_id ?? 1 },
+          data: {
+            paid_amount: newPaidAmount,
+            is_paid: newPaidAmount > 0 ? false : false,
+            paid_at: newPaidAmount > 0 ? null : null,
+          },
+        });
+      }
 
-    for (const payment of penaltyPayments) {
-      await tx.penalty.updateMany({
+      const totalContributionPaidAmount = contributionPayments.reduce(
+        (sum, payment) => sum + Number(payment.paid_amount),
+        0
+      );
+
+      const memberBalance = await tx.balance.findUnique({
         where: {
-          member_id: payment.member_id,
-          contribution_id: payment.contribution_id,
-          contribution_schedule_id: payment.contribution_schedule_id,
+          member_id_contribution_id: {
+            member_id: data.memberId,
+            contribution_id: contribution?.id ?? 0,
+          },
         },
-        data: {
-          is_paid: false,
-          resolved_at: null,
-          paid_amount: 0,
-        },
-      });
-    }
-
-    for (const p of contributionPayments) {
-      const schedule = await tx.contributionSchedule.findUnique({
-        where: { id: p.contribution_schedule_id ?? 1 },
-        select: { paid_amount: true },
+        select: { amount: true },
       });
 
-      if (!schedule) continue;
+      const updatedBalance =
+        (memberBalance?.amount?.toNumber() ?? 0) + totalContributionPaidAmount;
 
-      const newPaidAmount =
-        schedule.paid_amount.toNumber() - Number(p.paid_amount);
-
-      await tx.contributionSchedule.update({
-        where: { id: p.contribution_schedule_id ?? 1 },
-        data: {
-          paid_amount: newPaidAmount,
-          is_paid: newPaidAmount > 0 ? false : false,
-          paid_at: newPaidAmount > 0 ? null : null,
+      await tx.balance.update({
+        where: {
+          member_id_contribution_id: {
+            member_id: data.memberId,
+            contribution_id: contribution?.id ?? 0,
+          },
         },
+        data: { amount: updatedBalance },
       });
-    }
 
-    const totalContributionPaidAmount = contributionPayments.reduce(
-      (sum, payment) => sum + Number(payment.paid_amount),
-      0
-    );
+      await tx.paymentRecord.delete({
+        where: { id: data.paymentId },
+      });
 
-    const memberBalance = await tx.balance.findUnique({
-      where: {
-        member_id_contribution_id: {
-          member_id: data.memberId,
-          contribution_id: contribution?.id ?? 0,
-        },
-      },
-      select: { amount: true },
-    });
-
-    const updatedBalance =
-      (memberBalance?.amount?.toNumber() ?? 0) + totalContributionPaidAmount;
-
-    await tx.balance.update({
-      where: {
-        member_id_contribution_id: {
-          member_id: data.memberId,
-          contribution_id: contribution?.id ?? 0,
-        },
-      },
-      data: { amount: updatedBalance },
-    });
-
-    await tx.paymentRecord.delete({
-      where: { id: data.paymentId },
-    });
-
-    return { success: true, error: false };
-  });
+      return { success: true, error: false };
+    },
+    { timeout: 20000 }
+  );
 }
 
 export async function createAnnouncement(data: {

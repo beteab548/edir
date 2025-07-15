@@ -1,22 +1,15 @@
 "use client";
-
 import { deleteMember } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Dispatch, SetStateAction, useEffect, useState } from "react";
-import { useFormState } from "react-dom";
+import { Dispatch, SetStateAction, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
-
 const deleteActionMap = { member: deleteMember };
-
-// USE LAZY LOADING
-
 const MemberForm = dynamic(() => import("./form/MemberForm"), {
   loading: () => <h1>Loading...</h1>,
 });
-
 const forms: {
   [key: string]: (
     setOpen: Dispatch<SetStateAction<boolean>>,
@@ -29,7 +22,6 @@ const forms: {
     <MemberForm type={type} data={data} setOpen={setOpen} />
   ),
 };
-
 const FormModal = ({
   table,
   type,
@@ -46,31 +38,43 @@ const FormModal = ({
       : "bg-purple-200";
 
   const [open, setOpen] = useState(false);
-
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
   const Form = () => {
-    const [state, formAction] = useFormState(deleteActionMap[table], {
-      success: false,
-      error: false,
-    });
-
-    const router = useRouter();
-
-    useEffect(() => {
-      if (state.success) {
-        toast(`${table} has been deleted!`);
-        setOpen(false);
-        router.refresh();
-      }
-    }, [state, router]);
+    const handleDeleteSubmit = (formData: FormData) => {
+      startTransition(async () => {
+        const action = deleteActionMap[table];
+        const currentState = {
+          id: formData.get("id"),
+          success: false,
+          error: false,
+        };
+        const result = await action(currentState, formData);
+        if (result.success) {
+          toast.success(`${table} has been deleted!`);
+          setOpen(false);
+          router.refresh();
+        } else {
+          toast.error(`Failed to delete ${table}`);
+        }
+      });
+    };
 
     return type === "delete" && id ? (
-      <form action={formAction} className="p-4 flex flex-col gap-4">
-        <input type="text | number" name="id" value={id} hidden />
+      <form action={handleDeleteSubmit} className="p-4 flex flex-col gap-4">
+        <input type="text" name="id" value={id} hidden readOnly />
         <span className="text-center font-medium">
-          All data will be lost. Are you sure you want to delete this {table}?
+          All data will be lost.
+          <br />
+          Are you sure you want to delete this {table}?
         </span>
-        <button className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center">
-          Delete
+
+        <button
+          type="submit"
+          className="bg-red-700 text-white py-2 px-4 rounded-md border-none w-max self-center disabled:opacity-50"
+          disabled={isPending}
+        >
+          {isPending ? "Deleting..." : "Delete"}
         </button>
       </form>
     ) : type === "create" || type === "update" ? (
@@ -88,11 +92,12 @@ const FormModal = ({
       >
         <Image src={`/${type}.png`} alt="" width={16} height={16} />
       </button>
+
       {open && (
         <div className="w-screen h-screen absolute left-0 top-0 bg-black bg-opacity-60 z-50 flex items-center justify-center">
           <div
             className={`${
-              type == "delete"
+              type === "delete"
                 ? "bg-white p-4 rounded-md relative w-[90%] md:w-[70%] lg:w-[60%] xl:w-[50%] 2xl:w-[40%]"
                 : ""
             }`}
@@ -110,5 +115,4 @@ const FormModal = ({
     </>
   );
 };
-
 export default FormModal;

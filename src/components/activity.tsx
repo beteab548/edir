@@ -52,7 +52,10 @@ export default function Activity({ type }: { type: string }) {
           type === "secretary"
             ? "/api/dashboard/members/recent"
             : "/api/dashboard/members/payment";
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          cache: "no-store",
+          next: { revalidate: 0 },
+        });
         if (!res.ok) throw new Error(`Error: ${res.status}`);
         const json = await res.json();
         setData(json);
@@ -72,7 +75,7 @@ export default function Activity({ type }: { type: string }) {
       <div className="max-w-md mx-auto p-6  bg-white rounded-xl shadow border border-gray-200 animate-pulse">
         <div className="h-8 bg-gray-300 rounded w-3/4 mb-6"></div>
         <div className="space-y-5">
-          {[1, 2, 3,4].map((i) => (
+          {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
               className="h-10 bg-gray-300 rounded w-3/3"

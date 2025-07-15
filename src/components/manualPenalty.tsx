@@ -156,8 +156,11 @@ export default function ManualPenaltyManagement() {
     form.setValue("member_id", member.id);
   };
 
-  const onSubmit: SubmitHandler<z.infer<typeof penaltyFormSchema>> = (data) => {
-    formAction({
+  const onSubmit: SubmitHandler<z.infer<typeof penaltyFormSchema>> = async (
+    data
+  ) => {
+    setIsloading(true);
+    await formAction({
       ...data,
       missed_month: new Date(data.missed_month),
     });
@@ -165,6 +168,7 @@ export default function ManualPenaltyManagement() {
 
   useEffect(() => {
     if (state.success) {
+      setIsloading(false);
       toast.success(`penalty has been created`);
       setSelectedMember(null);
       setSearchTerm("");
@@ -636,10 +640,11 @@ export default function ManualPenaltyManagement() {
                     Close
                   </button>
                   <button
+                    disabled={isloading}
                     type="submit"
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
                   >
-                    Save Penalty
+                    {isloading ? "Processing..." : "Create Penalty"}
                   </button>
                 </div>
               </form>
