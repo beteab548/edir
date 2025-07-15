@@ -50,6 +50,10 @@ const MemberListPage = async ({
   // Table columns configuration
   const columns = [
     {
+      header: "ID",
+      accessor: "id",
+    },
+    {
       header: (
         <SortableHeader
           label="Member"
@@ -72,12 +76,12 @@ const MemberListPage = async ({
       accessor: "profession",
     },
     {
-      header: "Age",
-      accessor: "age",
-    },
-    {
       header: "Contact",
       accessor: "phone",
+    },
+    {
+      header: "Age",
+      accessor: "age",
     },
     {
       header: (
@@ -144,6 +148,9 @@ const MemberListPage = async ({
   // Row rendering function
   const renderRow = (item: Member) => (
     <>
+      <td className="px-6 py-4 text-gray-700 font-medium whitespace-nowrap">
+        {item.custom_id || item.id}
+      </td>
       <td className="py-4 pl-6 pr-3">
         <div className="flex items-center gap-4">
           <Image
@@ -167,11 +174,11 @@ const MemberListPage = async ({
       <td className="hidden md:table-cell px-4 py-4 text-gray-600">
         {item.profession || "-"}
       </td>
-      <td className="hidden md:table-cell px-4 py-4 text-gray-600">
-        {calculateAge(item.birth_date)}
-      </td>
       <td className="hidden lg:table-cell px-4 py-4 text-gray-600">
         {item.phone_number || "-"}
+      </td>
+      <td className="hidden md:table-cell px-4 py-4 text-gray-600">
+        {calculateAge(item.birth_date)}
       </td>
       <td className="hidden md:table-cell px-4 py-4">
         <span
