@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest) {
@@ -6,7 +8,7 @@ export async function GET(request: NextRequest) {
   const types = await prisma.contributionType.findUnique({
     where: { name: memberType ?? undefined },
   });
-  console.log("contribution types are ",types);
+  console.log("contribution types are ", types);
   if (memberType) {
     const members = await prisma.member.findMany({
       where: {
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
         Contribution: true,
       },
     });
-    console.log(`members with type ${types} `,members);
+    console.log(`members with type ${types} `, members);
     return NextResponse.json({
       members: members,
       contributionTypes: types,
