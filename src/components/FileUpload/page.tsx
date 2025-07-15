@@ -25,15 +25,19 @@ export default function UploadFile({
 
     try {
       if (isImage) {
-        const compressedFile = await imageCompression(file, {
-          maxSizeMB: 1,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-          initialQuality: 0.7,
-        });
-        setSelectedFile(compressedFile);
+        if (text === "profile") {
+          setSelectedFile(file);
+        } else {
+          const compressedFile = await imageCompression(file, {
+            maxSizeMB: 1.5,
+            maxWidthOrHeight: 800,
+            initialQuality: 0.85,
+            useWebWorker: true,
+          });
+          setSelectedFile(compressedFile);
+        }
       } else {
-        setSelectedFile(file); // PDF or other supported types
+        setSelectedFile(file);
       }
     } catch (err) {
       console.error("Compression failed", err);
@@ -54,7 +58,7 @@ export default function UploadFile({
         headers: {
           "Content-Type": "application/json",
         },
-        
+
         body: JSON.stringify({
           file: base64,
           fileName: selectedFile.name,
