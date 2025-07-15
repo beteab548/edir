@@ -31,6 +31,7 @@ export default async function PenaltyReportPage({
     waived: searchParams.waived,
     penalty_type: searchParams.penalty_type,
   });
+  console.log("peanlties", penalties);
   const processed = penalties.map((p) => ({
     ID: p.member.custom_id,
     "Full Name": `${p.member.first_name} ${p.member.second_name} ${p.member.last_name}`,

@@ -34,7 +34,6 @@ function matchesSearch(m: MemberForSearch, search: string) {
     normalizedPhone?.includes(n)
   );
 }
-// Utility to convert Decimal to number recursively if needed
 function convertDecimalToNumber(obj: any): any {
   if (obj === null || obj === undefined) return obj;
 
@@ -43,9 +42,16 @@ function convertDecimalToNumber(obj: any): any {
       // Prisma Decimal detected
       return obj.toNumber();
     }
+
+    if (obj instanceof Date) {
+      // Preserve Date objects without converting
+      return obj;
+    }
+
     if (Array.isArray(obj)) {
       return obj.map(convertDecimalToNumber);
     }
+
     // For regular objects, recurse keys
     const newObj: any = {};
     for (const key in obj) {
