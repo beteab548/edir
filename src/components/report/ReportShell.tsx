@@ -10,6 +10,10 @@ interface ReportShellProps {
   filename: string;
   children?: React.ReactNode;
   summaryRow?: Record<string, any>;
+  searchparams: {
+    from?: string;
+    to?: string;
+  };
 }
 
 export default function ReportShell({
@@ -19,6 +23,7 @@ export default function ReportShell({
   filename,
   children,
   summaryRow,
+  searchparams,
 }: ReportShellProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -76,8 +81,6 @@ export default function ReportShell({
 
   return (
     <div className="space-y-4" id="report-content">
-      {children}
-
       <div className="flex gap-2 flex-wrap print:hidden m-2 p-2 justify-end">
         <button
           onClick={exportToExcel}
@@ -92,7 +95,8 @@ export default function ReportShell({
           Print
         </button>
       </div>
-      <ReportLayout title={title}>
+      <ReportLayout title={title} searchParams={searchparams}>
+        {children}
         <div
           ref={scrollRef}
           className="overflow-auto border rounded print:overflow-visible print:max-h-none print:h-auto print-table-scale"

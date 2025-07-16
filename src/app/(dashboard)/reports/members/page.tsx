@@ -66,6 +66,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
 
   return (
     <ReportShell
+    searchparams={searchParams}
       title="Member Report"
       filename="member_report"
       data={processedData}

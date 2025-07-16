@@ -31,7 +31,6 @@ export default async function PenaltyReportPage({
     waived: searchParams.waived,
     penalty_type: searchParams.penalty_type,
   });
-  console.log("peanlties", penalties);
   const processed = penalties.map((p) => ({
     ID: p.member.custom_id,
     "Full Name": `${p.member.first_name} ${p.member.second_name} ${p.member.last_name}`,
@@ -61,6 +60,7 @@ export default async function PenaltyReportPage({
   const totalRemaining = totalExpected - totalPaid;
   return (
     <ReportShell
+    searchparams={searchParams}
       title="Penalty Report"
       filename="penalty_report"
       data={processed}

@@ -62,12 +62,13 @@ export default async function ContributionReportPage({
   );
   const totalPaid = processed.reduce((sum, row) => sum + row["Paid Amount"], 0);
   const totalRemaining = totalExpected - totalPaid;
-
+  console.log("searchparams in contribution page", searchParams);
   return (
     <ReportShell
-    title="Contribution Report"
-    filename="contribution_report"
-    data={processed}
+      searchparams={searchParams}
+      title="Contribution Report"
+      filename="contribution_report"
+      data={processed}
       columns={[
         { label: "ID", accessor: "ID" },
         { label: "Full Name", accessor: "Full Name" },
@@ -83,7 +84,7 @@ export default async function ContributionReportPage({
         "Paid Amount": totalPaid,
         "Remaining Amount": totalRemaining,
       }}
-      >
+    >
       <FilterBar type="contributions" />
     </ReportShell>
   );
