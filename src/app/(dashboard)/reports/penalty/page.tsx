@@ -60,23 +60,83 @@ export default async function PenaltyReportPage({
   const totalRemaining = totalExpected - totalPaid;
   return (
     <ReportShell
-    searchparams={searchParams}
+      searchparams={searchParams}
       title="Penalty Report"
       filename="penalty_report"
       data={processed}
       columns={[
-        { label: "ID", accessor: "ID" },
-        { label: "Full Name", accessor: "Full Name" },
-        { label: "Phone", accessor: "Phone" },
-        { label: "Expected Amount", accessor: "Expected_amount" },
-        { label: "Paid Amount", accessor: "Paid_amount" },
-        { label: "Remaining Amount", accessor: "Remaining_Amount" },
-        { label: "Penalty status", accessor: "status" },
-        { label: "Missed Month", accessor: "missed_month" },
-        { label: "Penalty Type", accessor: "Penalty Type" },
-        { label: "Waived", accessor: "waived" },
-        { label: "Reason", accessor: "Reason" },
-        { label: "Date Issued", accessor: "Date Issued" },
+        {
+          label: "ID",
+          accessor: "ID",
+          width: "w-[95px]",
+          printWidth: "print:w-[300px]",
+        },
+        {
+          label: "Full Name",
+          accessor: "Full Name",
+          width: "w-auto",
+          printWidth: "print:w-[200px]",
+        },
+        {
+          label: "Phone",
+          accessor: "Phone",
+          width: "w-auto",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Expected Amount",
+          accessor: "Expected_amount",
+          width: "w-auto",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Paid Amount",
+          accessor: "Paid_amount",
+          width: "w-auto",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Remaining Amount",
+          accessor: "Remaining_Amount",
+          width: "w-auto",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Penalty status",
+          accessor: "status",
+          width: "w-[70px]",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Missed Month",
+          accessor: "missed_month",
+          width: "w-auto",
+          printWidth: "print:w-[90px]",
+        },
+        {
+          label: "Penalty Type",
+          accessor: "Penalty Type",
+          width: "w-auto",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Waived",
+          accessor: "waived",
+          width: "w-[70px]",
+          printWidth: "print:w-[90px]",
+        },
+        {
+          label: "Reason",
+          accessor: "Reason",
+          width: "w-auto",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Date Issued",
+          accessor: "Date Issued",
+          width: "w-auto",
+          printWidth: "print:w-[95px]",
+        },
       ]}
       summaryRow={{
         Expected_amount: totalExpected,

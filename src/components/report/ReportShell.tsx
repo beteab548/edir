@@ -6,7 +6,12 @@ import { useRef } from "react";
 interface ReportShellProps {
   title: string;
   data: Record<string, any>[];
-  columns: { label: string; accessor: string; width?: string }[];
+  columns: {
+    label: string;
+    accessor: string;
+    width?: string;
+    printWidth?: string;
+  }[];
   filename: string;
   children?: React.ReactNode;
   summaryRow?: Record<string, any>;
@@ -99,24 +104,17 @@ export default function ReportShell({
         {children}
         <div
           ref={scrollRef}
-          className="overflow-auto border rounded print:overflow-visible print:max-h-none print:h-auto print-table-scale"
+          className="overflow-auto rounded print:overflow-visible print:max-h-none print:h-auto print:w-full"
         >
-          {columns.length > 10 && (
-            <div className="text-sm text-yellow-700 bg-yellow-100 border border-yellow-300 rounded p-2 print:hidden">
-              This table has many columns. For best results, consider using the{" "}
-              <strong>Export to Excel</strong> option.
-            </div>
-          )}
-
-          <table className="text-sm border-collapse table-fixed min-w-max print:w-full">
-            <thead className="bg-gray-100 sticky top-0 z-10">
+          <table className="text-sm border-collapse w-full print:table-auto print:w-full">
+            <thead className="bg-gray-100">
               <tr>
                 {columns.map((col) => (
                   <th
                     key={col.label}
-                    className={`border p-2 bg-gray-100 text-left truncate ${
-                      col.width || "w-[150px]"
-                    }`}
+                    className={`border p-2 bg-gray-100 text-left whitespace-normal break-words ${
+                      col.width ?? ""
+                    } ${col.printWidth ?? ""}`}
                   >
                     {col.label}
                   </th>
@@ -140,16 +138,15 @@ export default function ReportShell({
                       {columns.map((col) => (
                         <td
                           key={col.label}
-                          className={`border p-2 truncate ${
-                            col.width || "w-[150px]"
-                          }`}
+                          className={`border p-2 bg-white text-left whitespace-normal break-words ${
+                            col.width ?? ""
+                          } ${col.printWidth ?? ""}`}
                         >
                           {row[col.accessor]}
                         </td>
                       ))}
                     </tr>
                   ))}
-
                   {summaryRow && (
                     <tr className="bg-gray-200 font-semibold">
                       {columns.map((col, i) => (

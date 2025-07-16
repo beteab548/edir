@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { getFilteredMembers } from "@/lib/report";
-import { Member, MemberType, Status } from "@prisma/client";
+import { MemberType, Status } from "@prisma/client";
 import ReportShell from "@/components/report/ReportShell";
 import FilterBar from "@/components/report/FilterBar";
 
@@ -66,51 +66,154 @@ export default async function ReportPage({ searchParams }: SearchParams) {
 
   return (
     <ReportShell
-    searchparams={searchParams}
+      searchparams={searchParams}
       title="Member Report"
       filename="member_report"
       data={processedData}
       columns={[
-        { label: "ID", accessor: "ID", width: "100px" },
-        { label: "Full Name", accessor: "Full Name", width: "w-[100px]" },
-        { label: "Title", accessor: "title", width: "w-[100px]" },
-        { label: "job_business", accessor: "job_business", width: "w-[100px]" },
-        { label: "profession", accessor: "profession", width: "w-[100px]" },
-        { label: "Phone number 1", accessor: "Phone", width: "w-[100px]" },
+        {
+          label: "ID",
+          accessor: "ID",
+          width: "w-[300px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Full Name",
+          accessor: "Full Name",
+          width: "w-auto",
+          printWidth: "print:w-[200px]",
+        },
+        {
+          label: "Title",
+          accessor: "title",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "job_business",
+          accessor: "job_business",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "profession",
+          accessor: "profession",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Phone number 1",
+          accessor: "Phone",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
         {
           label: "phone number 2",
           accessor: "phone_number_2",
           width: "w-[100px]",
+          printWidth: "print:w-[100px]",
         },
-        { label: "Join Date", accessor: "Join Date", width: "w-[100px]" },
-        { label: "Status", accessor: "status", width: "w-[100px]" },
-        { label: "sex", accessor: "sex", width: "w-[100px]" },
-        { label: "id_number", accessor: "id_number", width: "w-[100px]" },
-        { label: "Member Type", accessor: "member_type", width: "w-[100px]" },
-        { label: "Birth Date", accessor: "birth_date", width: "w-[100px]" },
+        {
+          label: "Join Date",
+          accessor: "Join Date",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Status",
+          accessor: "status",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "sex",
+          accessor: "sex",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "id_number",
+          accessor: "id_number",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Member Type",
+          accessor: "member_type",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Birth Date",
+          accessor: "birth_date",
+          width: "w-[100px]",
+          printWidth: "print:w-[100px]",
+        },
         {
           label: "zone or district",
           accessor: "zone_or_district",
           width: "w-[150px]",
         },
-        { label: "woreda", accessor: "wereda", width: "w-[150px]" },
-        { label: "kebele", accessor: "kebele", width: "w-[150px]" },
-        { label: "citizen", accessor: "citizen", width: "w-[150px]" },
-        { label: "email", accessor: "email", width: "w-[150px]" },
-        { label: "email 2", accessor: "email_2", width: "w-[150px]" },
-        { label: "House Number", accessor: "house_number", width: "w-[150px]" },
+        {
+          label: "woreda",
+          accessor: "wereda",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "kebele",
+          accessor: "kebele",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "citizen",
+          accessor: "citizen",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "email",
+          accessor: "email",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "email 2",
+          accessor: "email_2",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "House Number",
+          accessor: "house_number",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
         {
           label: "bank Account Name",
           accessor: "bank_account_name",
           width: "w-[150px]",
+          printWidth: "print:w-[100px]",
         },
         {
           label: "bank Account number",
           accessor: "bank_account_number",
           width: "w-[150px]",
+          printWidth: "print:w-[100px]",
         },
-        { label: "bank Name", accessor: "bank_name", width: "w-[150px]" },
-        { label: "Remark", accessor: "remark", width: "w-[150px]" },
+        {
+          label: "bank Name",
+          accessor: "bank_name",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Remark",
+          accessor: "remark",
+          width: "w-[150px]",
+          printWidth: "print:w-[100px]",
+        },
       ]}
     >
       <FilterBar type="members" />

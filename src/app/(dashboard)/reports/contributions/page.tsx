@@ -70,14 +70,55 @@ export default async function ContributionReportPage({
       filename="contribution_report"
       data={processed}
       columns={[
-        { label: "ID", accessor: "ID" },
-        { label: "Full Name", accessor: "Full Name" },
-        { label: "Phone", accessor: "Phone" },
-        { label: "Contribution Type", accessor: "Contribution Type" },
-        { label: "Expected Amount", accessor: "Expected Amount" },
-        { label: "Paid Amount", accessor: "Paid Amount" },
-        { label: "Remaining Amount / balance", accessor: "Remaining Amount" },
-        { label: "Status", accessor: "Status" },
+        {
+          label: "ID",
+          accessor: "ID",
+          width: "w-[95px]",
+          printWidth: "print:w-[95px]",
+        },
+        {
+          label: "Full Name",
+          accessor: "Full Name",
+          width: "w-auto",
+          printWidth: "print:w-[170px]",
+        },
+        {
+          label: "Phone",
+          accessor: "Phone",
+
+          width: "w-auto",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Contribution Type",
+          accessor: "Contribution Type",
+          width: "w-auto",
+          printWidth: "print:w-[180px]",
+        },
+        {
+          label: "Expected Amount",
+          accessor: "Expected Amount",
+          width: "w-[60px]",
+          printWidth: "print:w-[60px]",
+        },
+        {
+          label: "Paid Amount",
+          accessor: "Paid Amount",
+          width: "w-[60px]",
+          printWidth: "print:w-[60px]",
+        },
+        {
+          label: "Remaining Amount / balance",
+          accessor: "Remaining Amount",
+          width: "w-auto",
+          printWidth: "print:w-[70px]",
+        },
+        {
+          label: "Status",
+          accessor: "Status",
+          width: "w-auto",
+          printWidth: "print:w-[50px]",
+        },
       ]}
       summaryRow={{
         "Expected Amount": totalExpected,
