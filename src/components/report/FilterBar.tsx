@@ -36,10 +36,22 @@ export default function FilterBar({
     contribution_type: searchParams.get("contribution_type") || "",
     type: searchParams.get("type") || "",
   });
-
   useEffect(() => {
     if (!hasMounted.current) {
       hasMounted.current = true;
+
+      // Check if URL has any search params; if not, push defaults
+      const currentParams = new URLSearchParams(window.location.search);
+      const hasParams = Array.from(currentParams.keys()).length > 0;
+
+      if (!hasParams) {
+        const params = new URLSearchParams();
+        Object.entries(filters).forEach(([key, value]) => {
+          if (value) params.set(key, value);
+        });
+        router.replace(`/reports/${type}?${params.toString()}`);
+      }
+
       return;
     }
 
@@ -54,14 +66,12 @@ export default function FilterBar({
   const handleChange = (key: keyof typeof filters, value: string) => {
     setFilters((prev) => {
       if (key === "to") {
-        // If new "to" is earlier than "from", reset to "from"
         if (value < prev.from) {
           return { ...prev, to: prev.from };
         }
       }
 
       if (key === "from") {
-        // If new "from" is after current "to", update "to" to match "from"
         if (value > prev.to) {
           return { ...prev, from: value, to: value };
         }
