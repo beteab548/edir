@@ -2,6 +2,7 @@
 import { useState } from "react";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
+import { toast } from "react-toastify";
 
 export default function UploadFile({
   text,
@@ -15,14 +16,20 @@ export default function UploadFile({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
 
     const file = e.target.files[0];
-    const isImage = file.type.startsWith("image/");
 
+    // Size check with toast
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("File size must be less than 3MB");
+      e.target.value = "";
+      return;
+    }
+
+    const isImage = file.type.startsWith("image/");
     try {
       if (isImage) {
         if (text === "profile") {
@@ -41,14 +48,13 @@ export default function UploadFile({
       }
     } catch (err) {
       console.error("Compression failed", err);
-      setError("Image optimization failed.");
+      toast.error("Image optimization failed.");
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) return;
     setLoading(true);
-    setError(null);
     setImageReady(false);
 
     try {
@@ -80,7 +86,7 @@ export default function UploadFile({
       setImageReady(true);
     } catch (err: any) {
       console.error(err);
-      setError(err.message);
+      toast.error(err.message || "Upload failed");
       setImageReady(false);
     } finally {
       setLoading(false);
@@ -101,16 +107,7 @@ export default function UploadFile({
       <input
         type="file"
         accept="image/*,application/pdf"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file && file.size > 2 * 1024 * 1024) {
-            alert("File size must be less than 2MB");
-            e.target.value = "";
-          } else {
-            console.log("File is valid:", file);
-          } 
-          handleFileChange(e);
-        }}
+        onChange={handleFileChange}
         className="block w-full text-sm hover:cursor-pointer text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
       />
 
@@ -133,8 +130,6 @@ export default function UploadFile({
       >
         {loading ? "Uploading..." : "Upload"}
       </button>
-
-      {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
 
       {uploadedUrl && selectedFile?.type.startsWith("image/") && (
         <div className="mt-4">
