@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
-import { WaivePenaltyButton } from "../../../../../../components/WaivePenaltyButton";
+import { WaivePenaltyButton } from "../../../../../../../components/WaivePenaltyButton";
 import { currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ContributionMode } from "@prisma/client";
 
 interface MemberPenaltiesPageProps {
@@ -23,10 +23,23 @@ export default async function MemberPenaltiesPage({
   }
 
   const role = user.publicMetadata?.role;
-  if (role !== "chairman") {
-    return redirect("/dashboard");
-  }
+  if (role !== "chairman") return redirect("/dashboard");
+
   const memberId = parseInt(params.id);
+  const decodedName = decodeURIComponent(params.name);
+console.log("decode uri",decodedName);
+  const contributionType = await prisma.contributionType.findFirst({
+    where: {
+      name: {
+        equals: decodedName,
+        mode: "insensitive",
+      },
+    },
+  });
+
+  if (!contributionType) {
+    return notFound();
+  }
   const member = await prisma.member.findUnique({
     where: { id: memberId },
     select: {
@@ -40,7 +53,7 @@ export default async function MemberPenaltiesPage({
     where: {
       member_id: memberId,
       generated: "automatically",
-      penalty_type: params.name,
+      penalty_type: contributionType.name,
     },
     include: {
       member: true,

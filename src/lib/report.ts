@@ -240,77 +240,80 @@ export const getFilteredContributions = async ({
   contribution_type?: string;
 }) => {
   const fromDate = from ? new Date(from) : undefined;
-  const toDate = to ? new Date(to) : undefined;
+const toDate = to ? new Date(to) : undefined;
 
-  const whereClause: any = {
-    ContributionSchedule: {
-      some: {
-        ...(fromDate && { month: { gte: fromDate } }),
-        ...(toDate && {
-          month: {
-            ...(fromDate ? { gte: fromDate } : {}),
-            lte: toDate,
-          },
-        }),
-      },
+const whereClause: any = {};
+
+// Add contributionType filter if needed
+if (type || contribution_type) {
+  whereClause.contributionType = {
+    is: {
+      ...(validModes.includes(type as ContributionMode) && {
+        mode: type as ContributionMode,
+      }),
+      ...(contribution_type && {
+        name: { contains: contribution_type, mode: "insensitive" },
+      }),
     },
   };
+}
 
-  // Add contributionType filter if needed
-  if (type || contribution_type) {
-    whereClause.contributionType = {
-      is: {
-        ...(validModes.includes(type as ContributionMode) && {
-          mode: type as ContributionMode,
-        }),
-        ...(contribution_type && {
-          name: { contains: contribution_type, mode: "insensitive" },
-        }),
-      },
-    };
-  }
+const contributionsRaw: (Contribution & {
+  member: Member;
+  contributionType: ContributionType;
+  ContributionSchedule: ContributionSchedule[];
+})[] = await prisma.contribution.findMany({
+  where: whereClause,
+  include: {
+    member: true,
+    contributionType: true,
+    ContributionSchedule: true, 
+  },
+});
 
-  // Raw query returns Decimal fields
-  const contributionsRaw: (Contribution & {
-    member: Member;
-    contributionType: ContributionType;
-    ContributionSchedule: ContributionSchedule[];
-  })[] = await prisma.contribution.findMany({
-    where: whereClause,
-    include: {
-      member: true,
-      contributionType: true,
-      ContributionSchedule: true,
-    },
+// Filter schedules within the date range
+const filteredSchedulesContributions = contributionsRaw.map((contribution) => {
+  const filteredSchedules = contribution.ContributionSchedule.filter((schedule) => {
+    const month = new Date(schedule.month);
+    const isAfterFrom = fromDate ? month >= fromDate : true;
+    const isBeforeTo = toDate ? month <= toDate : true;
+    return isAfterFrom && isBeforeTo;
   });
 
-  // Convert Decimal fields to number recursively
-  const contributions = contributionsRaw.map(convertDecimalToNumber);
+  return {
+    ...contribution,
+    ContributionSchedule: filteredSchedules,
+  };
+});
 
-  // Filter by name if given
-  const filteredByName = name
-    ? contributions.filter((c) => matchesSearch(c.member, name))
-    : contributions;
+// Convert decimals
+const contributions = filteredSchedulesContributions.map(convertDecimalToNumber);
 
-  // Filter by status if given
-  const filteredByStatus = status
-    ? filteredByName.filter((contribution) => {
-        const expected = contribution.ContributionSchedule.reduce(
-          (sum: any, s: { expected_amount: any }) => sum + s.expected_amount,
-          0
-        );
-        const paid = contribution.ContributionSchedule.reduce(
-          (sum: any, s: { paid_amount: any }) => sum + s.paid_amount,
-          0
-        );
+// Filter by name if provided
+const filteredByName = name
+  ? contributions.filter((c) => matchesSearch(c.member, name))
+  : contributions;
 
-        if (status === "Paid") return paid === expected && expected > 0;
-        if (status === "Partially Paid") return paid > 0 && paid < expected;
-        if (status === "Unpaid") return paid === 0;
+// Filter by status
+const filteredByStatus = status
+  ? filteredByName.filter((contribution) => {
+      const expected = contribution.ContributionSchedule.reduce(
+        (sum: any, s: { expected_amount: any }) => sum + s.expected_amount,
+        0
+      );
+      const paid = contribution.ContributionSchedule.reduce(
+        (sum: any, s: { paid_amount: any }) => sum + s.paid_amount,
+        0
+      );
 
-        return true;
-      })
-    : filteredByName;
+      if (status === "Paid") return paid === expected && expected > 0;
+      if (status === "Partially Paid") return paid > 0 && paid < expected;
+      if (status === "Unpaid") return paid === 0;
 
-  return filteredByStatus;
+      return true;
+    })
+  : filteredByName;
+
+return filteredByStatus;
+
 };

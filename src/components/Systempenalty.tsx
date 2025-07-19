@@ -203,7 +203,9 @@ export default function PenaltiesOverviewPage({ members }: Props) {
                             key={mode}
                             href={`/list/members/${
                               member.id
-                            }${encodeURIComponent(summary.typeName)}/penalties`}
+                            }/${encodeURIComponent(
+                              summary.typeName
+                            )}/penalties`}
                             className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 px-3 py-1 rounded-md transition-colors block mt-1"
                           >
                             Manage {summary.typeName} →
