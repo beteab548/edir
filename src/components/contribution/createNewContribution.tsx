@@ -158,9 +158,9 @@ export default function CreateNewContribution({
                     {...register("mode")}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                   >
-                    <option value="Recurring">Recurring</option>
+                    <option value="Recurring">Recurring (Has End Date)</option>
                     <option value="OpenEndedRecurring">
-                      Open Ended Recurring
+                      Open Ended Recurring (No End)
                     </option>
                     <option value="OneTimeWindow">
                       One-Time (Fixed Months)
