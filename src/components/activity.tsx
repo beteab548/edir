@@ -96,7 +96,7 @@ export default function Activity({ type }: { type: string }) {
   }
 
   return (
-    <section className="max-w-md mx-auto p-6 bg-white rounded-xl shadow border border-gray-200">
+    <section className="max-w-md mx-auto p-2 bg-white rounded-xl shadow border border-gray-200">
       <h3 className="text-md font-semibold text-gray-900 mb-5 border-b pb-2">
         {isSecretary ? "🧾 Recent Members" : "💵 Recent Payments"}
       </h3>

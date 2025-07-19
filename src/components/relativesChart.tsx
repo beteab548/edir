@@ -97,11 +97,11 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [apiUrl, memberId, activeOnly]); // ✅ include dependencies
+  }, [apiUrl, memberId, activeOnly]); 
 
   useEffect(() => {
     fetchRelatives();
-  }, [fetchRelatives]); // ✅ use the memoized version
+  }, [fetchRelatives]); 
 
   const relationCounts = relatives.reduce((acc, relative) => {
     const relation = relative.relation_type;
@@ -143,7 +143,6 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
         </div>
       </div>
 
-      {/* Chart */}
       {loading ? (
         <div className="flex items-center justify-center h-full">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-400" />
@@ -161,7 +160,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
               <Pie
                 data={chartData}
                 cx="50%"
-                cy="50%"
+                cy="40%"
                 innerRadius={30}
                 outerRadius={60}
                 paddingAngle={2}

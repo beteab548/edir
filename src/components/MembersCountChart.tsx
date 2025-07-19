@@ -1,10 +1,6 @@
 "use client";
 import Image from "next/image";
-import {
-  RadialBarChart,
-  RadialBar,
-  ResponsiveContainer,
-} from "recharts";
+import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
 import { useEffect, useState } from "react";
 
 interface GenderData {
@@ -25,14 +21,18 @@ const CountChart = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("/api/dashboard/members/count",{
+        const res = await fetch("/api/dashboard/members/count", {
           cache: "no-store",
           next: { revalidate: 0 },
         });
         const counts: GenderData = await res.json();
         const total = counts.males + counts.females;
-        const malesPercent = total ? Math.round((counts.males / total) * 100) : 0;
-        const femalesPercent = total ? Math.round((counts.females / total) * 100) : 0;
+        const malesPercent = total
+          ? Math.round((counts.males / total) * 100)
+          : 0;
+        const femalesPercent = total
+          ? Math.round((counts.females / total) * 100)
+          : 0;
 
         setData([
           { name: "Total", count: total, fill: "#F3F4F6" },
@@ -53,8 +53,7 @@ const CountChart = () => {
 
   return (
     <div className=" rounded-2xl w-full h-full p-6 flex flex-col justify-between">
-     
-      <div className="relative w-full h-64 mb-6">
+      <div className="relative w-full h-64 mb-6 mt-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-400" />
@@ -65,19 +64,19 @@ const CountChart = () => {
               <RadialBarChart
                 cx="50%"
                 cy="50%"
-                innerRadius="40%"
-                outerRadius="100%"
-                barSize={30}
+                innerRadius="30%" 
+                outerRadius="100%" 
+                barSize={40} 
                 data={data}
               >
-                <RadialBar background dataKey="count" cornerRadius={10} />
+                <RadialBar background dataKey="count" cornerRadius={40} />
               </RadialBarChart>
             </ResponsiveContainer>
             <Image
               src="/maleFemale.png"
               alt="Gender Icon"
-              width={48}
-              height={48}
+              width={28}
+              height={28}
               className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
             />
           </>
@@ -94,7 +93,9 @@ const CountChart = () => {
         <div className="flex flex-col items-center gap-1">
           <div className="w-4 h-4 rounded-full bg-yellow-400" />
           <h1 className="text-lg font-bold text-gray-700">{data[1].count}</h1>
-          <p className="text-sm text-gray-500">Females ({percentages.females}%)</p>
+          <p className="text-sm text-gray-500">
+            Females ({percentages.females}%)
+          </p>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 import { currentUser } from "@clerk/nextjs/server";
 import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import PenaltyChart from "@/components/penaltyBarChart";
-import MemberDistribution from "@/components/CountChart";
+import MemberDistribution from "@/components/MembersCountChart";
 import FinanceChart from "@/components/ContributionChart";
 import UserCard from "@/components/UserCard";
 import prisma from "@/lib/prisma";
