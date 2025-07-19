@@ -56,7 +56,7 @@ export default async function ContributionPage({
 
       return (
         <div className="contribution-page">
-          <Penalty initialMembers={members} />
+          <Penalty members={members} />
         </div>
       );
     }
