@@ -5,14 +5,13 @@ import { useState } from "react";
 import { waivePenalty } from "@/lib/actions";
 import { format } from "date-fns";
 import { UserIcon } from "@heroicons/react/24/outline";
-import Decimal from "decimal.js";
 
 interface WaivePenaltyButtonProps {
   penaltyId: number;
   memberId: number;
   memberName: string;
   memberCustomId: string;
-  amount: Decimal;
+  amount: Number;
   missedMonth: string | Date;
 }
 

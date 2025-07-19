@@ -99,7 +99,7 @@ export default function TabSwitcher() {
         </nav>
       </div>
 
-      <div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300 overflow-x-visible w-full max-w-full">
+      <div className="mt-2  rounded-lg min-h-[200px] transition-all duration-300 overflow-x-visible w-full max-w-full ">
         {/* Loading State */}
         {isLoading ? (
           <div className="container mx-auto px-4 py-8 animate-pulse">
@@ -162,7 +162,7 @@ export default function TabSwitcher() {
             </div>
           </div>
         ) : activeTab === "System Generated" ? (
-          <SystemPenaltyManagement initialMembers={memberWithPenalty} />
+          <SystemPenaltyManagement members={memberWithPenalty} />
         ) : (
           <ManualPenaltyManagement />
         )}

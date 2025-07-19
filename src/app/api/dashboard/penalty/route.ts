@@ -18,7 +18,6 @@ export async function GET(req: NextRequest) {
   try {
     const allPenalties = await prisma.penalty.findMany({
       where: {
-        waived: false,
         missed_month: {
           gte: new Date(`${year}-01-01`),
           lte: new Date(`${year}-12-31`),

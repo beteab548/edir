@@ -58,7 +58,8 @@ export default function UploadFile({
         headers: {
           "Content-Type": "application/json",
         },
-
+        cache: "no-store",
+        next: { revalidate: 0 },
         body: JSON.stringify({
           file: base64,
           fileName: selectedFile.name,
@@ -100,7 +101,16 @@ export default function UploadFile({
       <input
         type="file"
         accept="image/*,application/pdf"
-        onChange={handleFileChange}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file && file.size > 2 * 1024 * 1024) {
+            alert("File size must be less than 2MB");
+            e.target.value = "";
+          } else {
+            console.log("File is valid:", file);
+          } 
+          handleFileChange(e);
+        }}
         className="block w-full text-sm hover:cursor-pointer text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
       />
 

@@ -190,7 +190,7 @@ export async function getFilteredPenalties({
   }
   if (status === "Paid") {
     filters.is_paid = true;
-  } else if (status === "Partially") {
+  } else if (status === "Partially Paid") {
     filters.is_paid = false;
     filters.paid_amount = { gt: 0 };
   } else if (status === "Unpaid") {

@@ -6,6 +6,9 @@ import prisma from "@/lib/prisma";
 export async function GET() {
   try {
     const contributionTypes = await prisma.contributionType.findMany();
+    const penaltyTypes = await prisma.penalty.groupBy({
+      by: ["penalty_type"],
+    });
     const members = await prisma.member.findMany({
       where: { status: "Active" },
     });
@@ -13,6 +16,7 @@ export async function GET() {
     return NextResponse.json({
       contributionTypes,
       members,
+      penaltyTypes,
     });
   } catch (error) {
     return NextResponse.json(

@@ -246,7 +246,6 @@ export default function ManualPenaltyManagement() {
         <div className="h-8 bg-gray-200 rounded w-1/3 " />
         <div className="h-4 bg-gray-100 rounded w-1/4 " />
 
-        {/* Skeleton for stat cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <div
@@ -259,7 +258,6 @@ export default function ManualPenaltyManagement() {
           ))}
         </div>
 
-        {/* Skeleton for table */}
         <div className="bg-white rounded-lg border border-gray-200 mt-6">
           <div className="h-10 bg-gray-100 rounded-t px-4 py-2" />
           <div className="divide-y divide-gray-200">
@@ -305,7 +303,6 @@ export default function ManualPenaltyManagement() {
         </button>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <StatCard
           title="Total Penalties"
@@ -339,7 +336,6 @@ export default function ManualPenaltyManagement() {
         />
       </div>
 
-      {/* Penalty Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="font-semibold text-gray-800">Recent Penalties</h2>

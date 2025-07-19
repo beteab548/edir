@@ -46,7 +46,7 @@ export default async function PenaltyReportPage({
     status: p.is_paid
       ? "Paid"
       : Number(p.paid_amount) > 0
-      ? "partially"
+      ? "Partially Paid"
       : "Unpaid",
   }));
   const totalExpected = processed.reduce(
@@ -68,19 +68,19 @@ export default async function PenaltyReportPage({
         {
           label: "ID",
           accessor: "ID",
-          width: "w-[95px]",
+          width: "w-auto",
           printWidth: "print:w-[300px]",
         },
         {
           label: "Full Name",
           accessor: "Full Name",
           width: "w-auto",
-          printWidth: "print:w-[200px]",
+          printWidth: "print:w-[450px]",
         },
         {
           label: "Phone",
           accessor: "Phone",
-          width: "w-auto",
+          width: "w-[60px]",
           printWidth: "print:w-[95px]",
         },
         {
@@ -98,7 +98,7 @@ export default async function PenaltyReportPage({
         {
           label: "Remaining Amount",
           accessor: "Remaining_Amount",
-          width: "w-auto",
+          width: "w-[60px]",
           printWidth: "print:w-[95px]",
         },
         {
@@ -110,7 +110,7 @@ export default async function PenaltyReportPage({
         {
           label: "Missed Month",
           accessor: "missed_month",
-          width: "w-auto",
+          width: "w-[auto]",
           printWidth: "print:w-[90px]",
         },
         {
@@ -122,7 +122,7 @@ export default async function PenaltyReportPage({
         {
           label: "Waived",
           accessor: "waived",
-          width: "w-[70px]",
+          width: "w-[40px]",
           printWidth: "print:w-[90px]",
         },
         {
@@ -134,7 +134,7 @@ export default async function PenaltyReportPage({
         {
           label: "Date Issued",
           accessor: "Date Issued",
-          width: "w-auto",
+          width: "w-[60px]",
           printWidth: "print:w-[95px]",
         },
       ]}

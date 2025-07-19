@@ -3,26 +3,30 @@ import prisma from "@/lib/prisma";
 import { WaivePenaltyButton } from "../../../../../../components/WaivePenaltyButton";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { ContributionMode } from "@prisma/client";
 
 interface MemberPenaltiesPageProps {
-  params: { id: string };
+  params: {
+    id: string;
+    name: string;
+  };
 }
 
 export default async function MemberPenaltiesPage({
   params,
 }: MemberPenaltiesPageProps) {
-    const user = await currentUser();
-  
-    if (!user) {
-   return   redirect("/sign-in");
-    }
-  
-    const role = user.publicMetadata?.role;
-    if (role !== "chairman") {
-    return  redirect("/dashboard");
-    }
+  console.log("params are:", params);
+  const user = await currentUser();
+
+  if (!user) {
+    return redirect("/sign-in");
+  }
+
+  const role = user.publicMetadata?.role;
+  if (role !== "chairman") {
+    return redirect("/dashboard");
+  }
   const memberId = parseInt(params.id);
-  // Fetch member details
   const member = await prisma.member.findUnique({
     where: { id: memberId },
     select: {
@@ -32,9 +36,12 @@ export default async function MemberPenaltiesPage({
       phone_number: true,
     },
   });
-  // Fetch all penalties for this member
   const penalties = await prisma.penalty.findMany({
-    where: { member_id: memberId, generated: "automatically" },
+    where: {
+      member_id: memberId,
+      generated: "automatically",
+      penalty_type: params.name,
+    },
     include: {
       member: true,
       contribution: {
@@ -129,10 +136,16 @@ export default async function MemberPenaltiesPage({
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         penalty.is_paid
                           ? "bg-green-100 text-green-800"
-                          : "bg-yellow-100 text-yellow-800"
+                          : Number(penalty.paid_amount) > 0
+                          ? "bg-yellow-100 text-yellow-800"
+                          : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {penalty.is_paid ? "Paid" : "Pending"}
+                      {penalty.is_paid
+                        ? "Paid"
+                        : Number(penalty.paid_amount) > 0
+                        ? "Partially Paid"
+                        : "Unpaid"}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -146,7 +159,7 @@ export default async function MemberPenaltiesPage({
                         memberCustomId={penalty.member.custom_id}
                         memberName={penalty.member.first_name}
                         missedMonth={penalty.missed_month}
-                        amount={penalty.expected_amount}
+                        amount={Number(penalty.expected_amount)}
                       />
                     )}
                   </td>

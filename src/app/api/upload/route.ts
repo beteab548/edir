@@ -1,12 +1,12 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { NextRequest } from "next/server";
 import ImageKit from "imagekit";
-
 const imagekit = new ImageKit({
   publicKey: process.env.IMAGEKIT_PUBLIC_KEY!,
   privateKey: process.env.IMAGEKIT_PRIVATE_KEY!,
   urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT!,
 });
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -21,8 +21,6 @@ export async function POST(req: NextRequest) {
         }
       );
     }
-
-    // Sanitize and define the folder path
     const allowedTypes = ["profile", "receipt", "document"];
     const folder = allowedTypes.includes(type) ? `/${type}` : "/others";
 
@@ -31,7 +29,6 @@ export async function POST(req: NextRequest) {
       fileName,
       folder,
     });
-
     return new Response(
       JSON.stringify({ Url: result.url, fileId: result.fileId }),
       {

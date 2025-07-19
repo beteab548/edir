@@ -62,7 +62,6 @@ export default async function ContributionReportPage({
   );
   const totalPaid = processed.reduce((sum, row) => sum + row["Paid Amount"], 0);
   const totalRemaining = totalExpected - totalPaid;
-  console.log("searchparams in contribution page", searchParams);
   return (
     <ReportShell
       searchparams={searchParams}
@@ -73,19 +72,18 @@ export default async function ContributionReportPage({
         {
           label: "ID",
           accessor: "ID",
-          width: "w-[95px]",
+          width: "w-auto",
           printWidth: "print:w-[95px]",
         },
         {
           label: "Full Name",
           accessor: "Full Name",
           width: "w-auto",
-          printWidth: "print:w-[170px]",
+          printWidth: "print:w-[400px]",
         },
         {
           label: "Phone",
           accessor: "Phone",
-
           width: "w-auto",
           printWidth: "print:w-[100px]",
         },
@@ -110,13 +108,13 @@ export default async function ContributionReportPage({
         {
           label: "Remaining Amount / balance",
           accessor: "Remaining Amount",
-          width: "w-auto",
+          width: "w-[100px]",
           printWidth: "print:w-[70px]",
         },
         {
           label: "Status",
           accessor: "Status",
-          width: "w-auto",
+          width: "w-[70px]",
           printWidth: "print:w-[50px]",
         },
       ]}

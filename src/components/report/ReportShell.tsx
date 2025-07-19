@@ -112,7 +112,7 @@ export default function ReportShell({
                 {columns.map((col) => (
                   <th
                     key={col.label}
-                    className={`border p-2 bg-gray-100 text-left whitespace-normal break-words ${
+                    className={`border p-2 bg-gray-100 text-left text-sm whitespace-normal break-words ${
                       col.width ?? ""
                     } ${col.printWidth ?? ""}`}
                   >
@@ -138,7 +138,7 @@ export default function ReportShell({
                       {columns.map((col) => (
                         <td
                           key={col.label}
-                          className={`border p-2 bg-white text-left whitespace-normal break-words ${
+                          className={`border p-2 bg-white text-left text-sm whitespace-nowrap ${
                             col.width ?? ""
                           } ${col.printWidth ?? ""}`}
                         >
