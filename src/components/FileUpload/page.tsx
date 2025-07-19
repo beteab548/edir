@@ -22,7 +22,6 @@ export default function UploadFile({
 
     const file = e.target.files[0];
 
-    // Size check with toast
     if (file.size > 3 * 1024 * 1024) {
       toast.error("File size must be less than 3MB");
       e.target.value = "";
