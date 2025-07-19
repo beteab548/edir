@@ -31,7 +31,11 @@ export default function SelectableMembersList({
 
   const columns = [
     { header: "Full Name", accessor: "full_name" },
-    { header: "Profession", accessor: "profession", className: "hidden md:table-cell" },
+    {
+      header: "Profession",
+      accessor: "profession",
+      className: "hidden md:table-cell",
+    },
     { header: "Age", accessor: "age", className: "hidden md:table-cell" },
     { header: "Phone", accessor: "phone", className: "hidden md:table-cell" },
     { header: "Status", accessor: "status", className: "hidden md:table-cell" },
@@ -39,7 +43,7 @@ export default function SelectableMembersList({
 
   // Filter members based on search query
   const filteredMembers = useMemo(() => {
-    return members.filter(member =>
+    return members.filter((member) =>
       `${member.first_name} ${member.last_name} ${member.profession} ${member.phone_number}`
         .toLowerCase()
         .includes(searchQuery.toLowerCase())
@@ -72,19 +76,21 @@ export default function SelectableMembersList({
   );
 
   const handleSelect = (id: number, checked: boolean) => {
-    setSelectedMembers(prev =>
-      checked ? [...prev, id] : prev.filter(memberId => memberId !== id)
+    setSelectedMembers((prev) =>
+      checked ? [...prev, id] : prev.filter((memberId) => memberId !== id)
     );
   };
 
   const handleSelectAll = (checked: boolean) => {
-    const currentPageIds = paginatedMembers.map(member => member.id);
+    const currentPageIds = paginatedMembers.map((member) => member.id);
     if (checked) {
-      setSelectedMembers(prev => [
-        ...Array.from(new Set([...prev, ...currentPageIds]))
+      setSelectedMembers((prev) => [
+        ...Array.from(new Set([...prev, ...currentPageIds])),
       ]);
     } else {
-      setSelectedMembers(prev => prev.filter(id => !currentPageIds.includes(id)));
+      setSelectedMembers((prev) =>
+        prev.filter((id) => !currentPageIds.includes(id))
+      );
     }
   };
 
@@ -94,10 +100,12 @@ export default function SelectableMembersList({
   };
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
+    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0 shadow-sm">
       <div className="flex items-center justify-between">
-        <h1 className="hidden md:block text-lg font-semibold">Select Members</h1>
-        <TableSearch 
+        <h1 className="hidden md:block text-lg font-semibold">
+          Select Members
+        </h1>
+        <TableSearch
           onSearch={handleSearch}
           placeholder="Search members..."
           className="w-full md:w-auto"
@@ -106,7 +114,7 @@ export default function SelectableMembersList({
 
       {isLoadingExisting ? (
         <div className="flex justify-center items-center h-40">
-          <p>Loading existing members...</p>
+          <p className="text-gray-500">Loading existing members...</p>
         </div>
       ) : (
         <>
@@ -128,11 +136,14 @@ export default function SelectableMembersList({
           />
 
           <div className="flex justify-end mt-4 gap-2">
-            <button className="btn btn-ghost" onClick={onCancel}>
+            <button
+              className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={onCancel}
+            >
               Cancel
             </button>
             <button
-              className="btn btn-primary"
+              className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               onClick={() => onSaveSelection(selectedMembers)}
             >
               Confirm Selection ({selectedMembers.length})

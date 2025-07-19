@@ -11,7 +11,7 @@ interface TableProps {
   onSelectAll?: (checked: boolean) => void;
   headerClassName?: string;
   rowClassName?: string;
-  emptyState?: React.ReactNode; // Added for custom empty states
+  emptyState?: React.ReactNode; 
 }
 
 const Table = ({
@@ -24,7 +24,7 @@ const Table = ({
   onSelectAll = () => {},
   headerClassName = "",
   rowClassName = "",
-  emptyState = null, // Default empty state
+  emptyState = null, 
 }: TableProps) => {
   return (
     <div className="rounded-lg">
