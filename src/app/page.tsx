@@ -2,7 +2,6 @@
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Announcements } from "@prisma/client";
 import { translations } from "./translation";
 const Spinner = () => (
   <svg
@@ -42,11 +41,8 @@ const smoothScroll = (
 };
 
 export default function PublicPage() {
-  const [announcements, setAnnouncements] = useState<Announcements[]>([]);
-  const [activeTab, setActiveTab] = useState("announcements");
-  const [expandedAnnouncements, setExpandedAnnouncements] = useState<
-    Set<string>
-  >(new Set());
+  const [activeTab, setActiveTab] = useState("bylaws");
+
   const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
   const [metrics, setMetrics] = useState<{
     members: number;
@@ -60,38 +56,19 @@ export default function PublicPage() {
 
   const t = translations[language];
 
-  const toggleExpand = (id: string) => {
-    setExpandedAnnouncements((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
   useEffect(() => {
     async function fetchData() {
       setIsLoadingAnnouncements(true);
 
       try {
-        const [announcementsRes, MetricsRes] = await Promise.all([
-          fetch("/api/announcements", {
-            cache: "no-store",
-            next: { revalidate: 0 },
-          }),
+        const [MetricsRes] = await Promise.all([
           fetch("/api/landingpage", {
             cache: "no-store",
             next: { revalidate: 0 },
           }),
         ]);
-        const announcementsData = await announcementsRes.json();
         const MetricsData = await MetricsRes.json();
         console.log("MetricsRes", MetricsData);
-        console.log("Announcements:", announcementsData);
-        setAnnouncements(announcementsData);
         setMetrics(MetricsData);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -175,13 +152,6 @@ export default function PublicPage() {
                 className="text-blue-100 hover:text-white font-medium"
               >
                 {t.nav.about}
-              </a>
-              <a
-                href="#announcements"
-                onClick={(e) => smoothScroll(e, "announcements")}
-                className="text-blue-100 hover:text-white font-medium"
-              >
-                {t.nav.announcements}
               </a>
 
               <button
@@ -312,18 +282,8 @@ export default function PublicPage() {
         </section>
 
         {/* Tabs Section */}
-        <div className="mb-20">
+        <div className="mb-20" id="bylaws">
           <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setActiveTab("announcements")}
-              className={`py-4 px-6 font-medium text-lg ${
-                activeTab === "announcements"
-                  ? "text-blue-600 border-b-2 border-blue-600"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {t.announcements}
-            </button>
             <button
               onClick={() => setActiveTab("bylaws")}
               className={`py-4 px-6 font-medium text-lg ${
@@ -337,111 +297,8 @@ export default function PublicPage() {
           </div>
 
           <div className="bg-white p-6 rounded-b-xl rounded-tr-xl shadow-lg">
-            {activeTab === "announcements" && (
-              <div id="announcements">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {isLoadingAnnouncements ? (
-                    Array.from({ length: 3 }).map((_, idx) => (
-                      <div
-                        key={idx}
-                        className="border border-gray-200 rounded-xl overflow-hidden animate-pulse"
-                      >
-                        <div className="bg-blue-100 h-12" />
-                        <div className="p-5 space-y-3">
-                          <div className="h-4 bg-gray-300 rounded w-3/4" />
-                          <div className="h-3 bg-gray-200 rounded w-full" />
-                          <div className="h-3 bg-gray-200 rounded w-5/6" />
-                          <div className="h-3 bg-gray-200 rounded w-2/3" />
-                        </div>
-                      </div>
-                    ))
-                  ) : announcements.length === 0 ? (
-                    <div className="col-span-3 text-center text-gray-500 py-12 text-lg font-medium">
-                      {language == "en"
-                        ? " No announcements to view yet."
-                        : "ሊያዩአቸዉ የሚችሏቸዉ ማስታወቂያዎች የሉም ።"}
-                    </div>
-                  ) : (
-                    announcements.map((a) => (
-                      <div
-                        key={a.id}
-                        className="border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow"
-                      >
-                        <div className="bg-blue-600 px-4 py-3">
-                          <h3 className="font-semibold text-white text-lg">
-                            {a.title}
-                          </h3>
-                        </div>
-                        <div className="p-5">
-                          <div className="flex items-center text-sm text-gray-500 mb-3">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4 mr-1"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                              />
-                            </svg>
-                            {new Date(a.calendar).toLocaleDateString(
-                              language === "am" ? "en-US" : "en-US",
-                              {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              }
-                            )}
-                          </div>
-                          <p className="text-gray-700">
-                            {expandedAnnouncements.has(a.id.toString())
-                              ? a.Description
-                              : `${a.Description.substring(0, 100)}${
-                                  a.Description.length > 100 ? "..." : ""
-                                }`}
-                          </p>
-                          {a.Description.length > 100 && (
-                            <button
-                              onClick={() => toggleExpand(a.id.toString())}
-                              className="mt-4 text-blue-600 hover:text-blue-800 font-medium flex items-center"
-                            >
-                              {expandedAnnouncements.has(a.id.toString())
-                                ? t.readLess
-                                : t.readMore}
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                className="h-4 w-4 ml-1"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d={
-                                    expandedAnnouncements.has(a.id.toString())
-                                      ? "M19 12H5"
-                                      : "M9 5l7 7-7 7"
-                                  }
-                                />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
             {activeTab === "bylaws" && (
-              <div id="bylaws" className="p-4">
+              <div className="p-4">
                 <div className="flex flex-col md:flex-row gap-8">
                   <div className="md:w-2/3">
                     <h3 className="text-xl font-semibold mb-4">
@@ -568,16 +425,8 @@ export default function PublicPage() {
               </h4>
               <ul className="space-y-2">
                 <li>
-                  <a href="#about" className="text-gray-400 hover:text-white">
+                  <a href="#about"   onClick={(e) => smoothScroll(e, "about")} className="text-gray-400 hover:text-white">
                     {t.nav.about}
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#announcements"
-                    className="text-gray-400 hover:text-white"
-                  >
-                    {t.nav.announcements}
                   </a>
                 </li>
               </ul>
@@ -590,21 +439,13 @@ export default function PublicPage() {
                 <li>
                   <a
                     href="#about"
-                    onClick={(e) => smoothScroll(e, "about")}
+                    onClick={(e) => smoothScroll(e, "bylaws")}
                     className="text-gray-400 hover:text-white"
                   >
-                    {t.nav.about}
+                    Bylaws
                   </a>
                 </li>
-                <li>
-                  <a
-                    href="#announcements"
-                    onClick={(e) => smoothScroll(e, "announcements")}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    {t.nav.announcements}
-                  </a>
-                </li>
+
                 <li></li>
               </ul>
             </div>

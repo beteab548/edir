@@ -2,8 +2,6 @@ export const translations = {
   en: {
     nav: {
       about: "About",
-      announcements: "Announcements",
-      contact: "Contact",
       login: "Login",
       redirect: "redirecting...",
     },
@@ -27,7 +25,6 @@ export const translations = {
       communityDesc:
         "We foster strong social bonds through regular meetings and shared traditions.",
     },
-    announcements: "Announcements",
     bylaws: "Bylaws",
     stats: {
       title: "Our Community by the Numbers",
@@ -64,8 +61,6 @@ export const translations = {
   am: {
     nav: {
       about: "ስለ እኛ",
-      announcements: "ማስታወቂያዎች",
-      contact: "እውቂያ",
       login: "ግባ",
       redirect: "በዝውውር ላይ...",
     },
@@ -89,7 +84,6 @@ export const translations = {
       communityDesc:
         "ቋሚ ስብሰባዎች በማድረግ እና በጋራ ባህሎች በመሳተፍ ጠንካራ ማህበራዊ ግንኙነትን እናዳብራለን።",
     },
-    announcements: "ማስታወቂያዎች",
     bylaws: "ደንቦች",
     stats: {
       title: "ማህበረሰባችን በቁጥር",
