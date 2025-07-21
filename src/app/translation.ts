@@ -3,7 +3,7 @@ export const translations = {
     nav: {
       about: "About",
       login: "Login",
-      redirect: "Loging...",
+      redirect: "Logging...",
     },
     logoText: "Jemo Edir Community",
     hero: {
