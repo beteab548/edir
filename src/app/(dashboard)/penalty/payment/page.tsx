@@ -30,7 +30,6 @@ export default async function PenaltyPage({ searchParams }: SearchParams) {
       ]
     : [];
 
-  // Member filter
   const memberFilter: any = {
     status: "Active",
     ...(query && { OR: filterConditions }),
@@ -40,22 +39,18 @@ export default async function PenaltyPage({ searchParams }: SearchParams) {
     where: memberFilter,
   });
 
-  // Date filtering for payments
   let dateStart: Date | undefined;
   let dateEnd: Date | undefined;
 
   if (year && month) {
-    // Month-specific range
     dateStart = new Date(`${year}-${month}-01`);
     dateEnd = new Date(dateStart);
     dateEnd.setMonth(dateEnd.getMonth() + 1);
   } else if (year) {
-    // Whole year
     dateStart = new Date(`${year}-01-01`);
     dateEnd = new Date(`${Number(year) + 1}-01-01`);
   }
 
-  // Payment filter
   const paymentFilter: any = {
     penalty_type_payed_for: "manually",
   };

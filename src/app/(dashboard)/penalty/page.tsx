@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,7 +17,6 @@ export default function TabSwitcher() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
 
-  // Track when component mounts (client-side)
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -62,12 +60,10 @@ export default function TabSwitcher() {
     }
   }, [isLoaded, isSignedIn, user]);
 
-  // Don't render anything until we're on the client side
   if (!isClient) {
     return null;
   }
 
-  // Auth checks - now only happens client-side
   if (!isLoaded || !isSignedIn || user?.publicMetadata?.role !== "chairman") {
     return null;
   }
@@ -80,7 +76,6 @@ export default function TabSwitcher() {
         </h2>
       </div>
 
-      {/* Tab Buttons */}
       <div className="border-b">
         <nav className="-mb-px flex space-x-8 justify-center">
           {(["System Generated", "Admin Generated"] as Tab[]).map((tab) => (
@@ -100,7 +95,6 @@ export default function TabSwitcher() {
       </div>
 
       <div className="mt-2  rounded-lg min-h-[200px] transition-all duration-300 overflow-x-visible w-full max-w-full ">
-        {/* Loading State */}
         {isLoading ? (
           <div className="container mx-auto px-4 py-8 animate-pulse">
             <h1 className="text-2xl font-bold text-gray-300 mb-6 bg-gray-200 w-64 h-6 rounded"></h1>

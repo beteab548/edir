@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -7,6 +6,7 @@ import { FiUsers, FiFileText, FiAlertCircle } from "react-icons/fi";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import nProgress from "nprogress";
 
 const reports = [
   {
@@ -113,7 +113,7 @@ export default function ReportsPage() {
       <p className="m-4">Choose Reports to View or To Export</p>
       <div className="grid md:grid-cols-3 gap-6">
         {reports.map((report, idx) => (
-          <Link href={report.href} key={idx}>
+          <Link href={report.href} key={idx} onClick={() => nProgress.start()}>
             <motion.div
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
