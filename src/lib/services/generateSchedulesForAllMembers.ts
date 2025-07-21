@@ -28,9 +28,9 @@ async function inactivateMember(memberId: number) {
     },
   });
 }
-const test = false;
+const test = true;
 const realCurrentDate = new Date();
-const simulatedMonthsToAdd = 3;
+const simulatedMonthsToAdd = 2;
 const currentMonthStart = normalizeToMonthStart(
   test ? addMonths(realCurrentDate, simulatedMonthsToAdd) : realCurrentDate
 );
