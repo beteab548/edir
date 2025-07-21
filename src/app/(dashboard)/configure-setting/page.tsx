@@ -145,7 +145,6 @@ export default function ContributionTabs() {
       component: <AddNewPenaltyType />,
     },
   ];
-
   return (
     <div className="mt-1 bg-gray-50 rounded-xl p-8">
       <div className="flex flex-col items-center justify-center">

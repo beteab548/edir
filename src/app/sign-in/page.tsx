@@ -35,7 +35,13 @@ const LoginPage = () => {
   }, [user, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-cover bg-center flex items-center justify-center p-4"
+      style={{
+        backgroundImage:
+          'url("/particle-lines-futuristic-network-background.jpg")',
+      }}
+    >
       {connectionError && (
         <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm w-full">
           <div className="flex items-center justify-center px-6 py-4 text-red-600 text-sm">
@@ -43,7 +49,11 @@ const LoginPage = () => {
           </div>
         </header>
       )}
-      <Suspense fallback={<div className="text-white text-center py-10">Loading sign-in...</div>}>
+      <Suspense
+        fallback={
+          <div className="text-white text-center py-10">Loading sign-in...</div>
+        }
+      >
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -52,7 +62,7 @@ const LoginPage = () => {
         >
           <SignIn.Root>
             <SignIn.Step name="start">
-              <div className="bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/10">
+              <div className="bg-white/30 backdrop-blur-sm rounded-3xl shadow-md overflow-hidden border border-white/10">
                 <div className="p-8">
                   <motion.div
                     initial={{ scale: 0.9 }}
@@ -73,22 +83,22 @@ const LoginPage = () => {
                       <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-0" />
                     </motion.div>
                     <h1 className="text-4xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-white to-white/70">
-                      Edir
+                      Jemo Edir
                     </h1>
                     <p className="text-white/80 mt-2 text-sm">Welcome back</p>
                   </motion.div>
                   <div className="space-y-6">
                     <Clerk.GlobalError className="block px-4 py-3 bg-red-500/20 text-red-100 rounded-lg text-sm border border-red-500/30" />
-                    <Clerk.Field name="identifier" className="space-y-2">
+                    <Clerk.Field name="identifier" className="space-y-2 ">
                       <Clerk.Label className="block text-sm font-medium text-white/80">
                         Email or Username
                       </Clerk.Label>
-                      <div className="relative">
+                      <div className="relative ">
                         <Clerk.Input
                           type="text"
                           required
                           disabled={isAuthenticating}
-                          className="block w-full px-4 py-3 bg-white/10 text-white placeholder-white/30 rounded-xl focus:ring-2 focus:ring-white/50 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="block w-full px-4 py-3 bg-white/10 text-gray placeholder-white/50 rounded-xl focus:ring-2 focus:ring-white/50 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           placeholder="Enter your email or username"
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -108,7 +118,7 @@ const LoginPage = () => {
                           </svg>
                         </div>
                       </div>
-                      <Clerk.FieldError className="block text-sm text-red-300 mt-1" />
+                      <Clerk.FieldError className="block text-sm text-red-700 mt-1" />
                     </Clerk.Field>
 
                     <Clerk.Field name="password" className="space-y-2">
@@ -122,7 +132,7 @@ const LoginPage = () => {
                           type="password"
                           required
                           disabled={isAuthenticating}
-                          className="block w-full px-4 py-3 bg-white/10 text-white placeholder-white/30 rounded-xl focus:ring-2 focus:ring-white/50 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="block w-full px-4 py-3 bg-white/10 text-gray placeholder-white/50 rounded-xl focus:ring-2 focus:ring-white/50 focus:outline-none transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                           placeholder="Enter your password"
                         />
                         <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
@@ -142,9 +152,8 @@ const LoginPage = () => {
                           </svg>
                         </div>
                       </div>
-                      <Clerk.FieldError className="block text-sm text-red-300 mt-1" />
+                      <Clerk.FieldError className="block text-sm text-red-700 mt-1" />
                     </Clerk.Field>
-
                     <SignIn.Action
                       submit
                       disabled={isAuthenticating}
