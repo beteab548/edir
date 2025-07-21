@@ -53,14 +53,12 @@ export async function GET() {
           : penalty.paid_amount,
       penalty_type: penalty.penalty_type ?? "",
     }));
-    console.log("all members", allMembers);
     return NextResponse.json({
       MembersWithPenalities: processedMembers,
       penalties: processedPenalties,
       allMembers,
     });
   } catch (error) {
-    console.error("Error in /api/contribution-data", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

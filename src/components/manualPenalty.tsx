@@ -62,6 +62,7 @@ type Penalty = {
 
 export default function ManualPenaltyManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showMembersList, setShowMembersList] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
@@ -173,11 +174,28 @@ export default function ManualPenaltyManagement() {
       setSelectedMember(null);
       setSearchTerm("");
       setIsModalOpen(false);
+      setShowMembersList(false);
       form.reset();
       mutate();
     }
-    if (state.error) toast.error("Something went wrong");
+    if (state.error) {
+      setIsloading(false);
+      toast.error("Something went wrong");
+    }
   }, [state, router, form, mutate]);
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".member-search-container")) {
+        setShowMembersList(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   const sortedPenalties = useMemo(() => {
     let sortableItems = [...penaltiesWithNumberAmount];
     if (sortConfig.key) {
@@ -295,7 +313,10 @@ export default function ManualPenaltyManagement() {
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setIsModalOpen(true);
+            setShowMembersList(false);
+          }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-md transition-all duration-200 flex items-center gap-2"
         >
           <PlusIcon className="w-5 h-5" />
@@ -468,6 +489,8 @@ export default function ManualPenaltyManagement() {
                     setIsModalOpen(false);
                     form.reset();
                     setSelectedMember(null);
+                    setSearchTerm("");
+                    setShowMembersList(false);
                   }}
                   className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
                 >
@@ -479,97 +502,108 @@ export default function ManualPenaltyManagement() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-10"
               >
-                {/* First Row: Search + Missed Month */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Search Member Input */}
-                  {/* Search Member Input */}
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Search Member <span className="text-red-600">*</span>
-                    </label>
-                    <div className="relative">
+                  <div className="member-search-container">
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Search Member <span className="text-red-600">*</span>
+                      </label>
                       <div className="relative">
-                        <input
-                          type="text"
-                          placeholder="name or phone number..."
-                          value={
-                            selectedMember
-                              ? `${selectedMember.first_name} ${selectedMember.second_name} ${selectedMember.last_name}`
-                              : searchTerm
-                          }
-                          onChange={(e) => {
-                            setSelectedMember(null);
-                            handleSearch(e.target.value);
-                          }}
-                          className="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          disabled={!!selectedMember}
-                        />
-                        <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        {selectedMember && (
-                          <button
-                            type="button"
-                            onClick={() => {
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="name or phone number..."
+                            value={
+                              selectedMember
+                                ? `${selectedMember.first_name} ${selectedMember.second_name} ${selectedMember.last_name}`
+                                : searchTerm
+                            }
+                            onChange={(e) => {
                               setSelectedMember(null);
-                              setSearchTerm("");
-                              form.setValue("member_id", 0);
+                              handleSearch(e.target.value);
+                              setShowMembersList(true);
                             }}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-400 hover:text-red-500"
-                          >
-                            <XIcon className="h-5 w-5" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {searchTerm && !selectedMember && (
-                      <div className="absolute z-10 mt-1 w-[300px] border border-gray-200 rounded-lg shadow-lg bg-white max-h-48 overflow-y-auto">
-                        {filteredMembers.length > 0 ? (
-                          filteredMembers.map((member) => (
-                            <div
-                              key={member.id}
-                              className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
-                              onClick={() => handleMemberSelect(member)}
+                            onClick={() => {
+                              if (!searchTerm && !selectedMember) {
+                                setFilteredMembers(allMembers);
+                                setShowMembersList(true);
+                              }
+                            }}
+                            className="w-full p-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            disabled={!!selectedMember}
+                          />
+                          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                          {selectedMember && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedMember(null);
+                                setSearchTerm("");
+                                form.setValue("member_id", 0);
+                                setShowMembersList(false);
+                              }}
+                              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-red-400 hover:text-red-500"
                             >
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <div className="font-medium">
-                                    {member.first_name} {member.second_name}{" "}
-                                    {member.last_name}
+                              <XIcon className="h-5 w-5" />
+                            </button>
+                          )}
+                        </div>
+
+                        {showMembersList &&
+                          (searchTerm || (!searchTerm && !selectedMember)) && (
+                            <div className="absolute z-10 mt-1 w-full border border-gray-200 rounded-lg shadow-lg bg-white max-h-48 overflow-y-auto">
+                              {filteredMembers.length > 0 ? (
+                                filteredMembers.map((member) => (
+                                  <div
+                                    key={member.id}
+                                    className="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                                    onClick={() => {
+                                      handleMemberSelect(member);
+                                      setShowMembersList(false);
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <div className="font-medium">
+                                          {member.first_name}{" "}
+                                          {member.second_name}{" "}
+                                          {member.last_name}
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                          {member.id_number} •{" "}
+                                          {member.phone_number}
+                                        </div>
+                                      </div>
+                                      <svg
+                                        className="h-5 w-5 text-blue-500 shrink-0 ml-4"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-gray-500">
-                                    {member.id_number} • {member.phone_number}
-                                  </div>
+                                ))
+                              ) : (
+                                <div className="p-3 text-gray-500 text-center">
+                                  No members found
                                 </div>
-                                <svg
-                                  className="h-5 w-5 text-blue-500 shrink-0 ml-4"
-                                  viewBox="0 0 20 20"
-                                  fill="currentColor"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                              </div>
+                              )}
                             </div>
-                          ))
-                        ) : (
-                          <div className="p-3 text-gray-500 text-center">
-                            No members found
-                          </div>
-                        )}
+                          )}
                       </div>
-                    )}
 
-                    {form.formState.errors.member_id && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {form.formState.errors.member_id.message}
-                      </p>
-                    )}
+                      {form.formState.errors.member_id && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {form.formState.errors.member_id.message}
+                        </p>
+                      )}
+                    </div>
                   </div>
-
-                  {/* Missed Month */}
                   <InputField
                     label="Penalty Date"
                     name="missed_month"
