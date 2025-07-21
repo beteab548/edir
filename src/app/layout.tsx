@@ -5,6 +5,7 @@ import { ToastContainer } from "react-toastify";
 import "@fontsource/inter/400.css";
 import "@fontsource/inter/700.css";
 import "react-toastify/dist/ReactToastify.css";
+import NProgressProvider from "@/components/ui/NProgressProvider";
 
 export const metadata: Metadata = {
   title: "Edir System DashBoard",
@@ -19,7 +20,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en">
         <body>
-
+          <NProgressProvider />
           {children}
           <ToastContainer position="bottom-right" theme="dark" />
         </body>

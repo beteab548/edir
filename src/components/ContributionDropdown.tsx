@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
 import { GiPayMoney } from "react-icons/gi";
+import nProgress from "nprogress";
 
 type ContributionDropdownProps = {
   label: string;
@@ -111,6 +112,7 @@ export default function ContributionDropdown({
                   <Link
                     key={type.id}
                     href={`/contribution/${encodedName}`}
+                    onClick={() => nProgress.start()}
                     className={`text-sm px-1 py-2 rounded-md flex items-center gap-2 transition-colors
                       ${
                         isActiveLink

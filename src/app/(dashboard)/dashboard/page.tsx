@@ -17,6 +17,7 @@ import {
 import Link from "next/link";
 import Activity from "@/components/activity";
 import { redirect } from "next/navigation";
+import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
 
 const AdminPage = async () => {
   await generateContributionSchedulesForAllActiveMembers();
@@ -141,7 +142,7 @@ const AdminPage = async () => {
                 Quick Actions
               </h3>
               <div className="space-y-2">
-                <Link
+                <LinkButtonWithProgress
                   href={isSecretary ? "/list/addNewMember" : "/contribution"}
                 >
                   <button className="w-full flex items-center justify-between p-3 mb-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 text-sm font-medium">
@@ -150,19 +151,21 @@ const AdminPage = async () => {
                     </span>
                     <FiUserCheck className="w-4 h-4" />
                   </button>
-                </Link>
-                <Link href={isSecretary ? "/list/members" : "/penalty"}>
+                </LinkButtonWithProgress>
+                <LinkButtonWithProgress
+                  href={isSecretary ? "/list/members" : "/penalty"}
+                >
                   <button className="w-full flex items-center justify-between p-3 mb-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm font-medium">
                     <span>{isSecretary ? "Members" : "Check Penalty"}</span>
                     <FiUsers className="w-4 h-4" />
                   </button>
-                </Link>
-                <Link href="/reports">
+                </LinkButtonWithProgress>
+                <LinkButtonWithProgress href="/reports">
                   <button className="w-full flex items-center justify-between p-3 mb-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 text-sm font-medium">
                     <span>Check Reports</span>
                     <FiFileText className="w-4 h-4" />
                   </button>
-                </Link>
+                </LinkButtonWithProgress>
               </div>
             </div>
 

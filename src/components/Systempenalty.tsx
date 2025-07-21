@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Penalty, Member } from "@prisma/client";
+import nProgress from "nprogress";
 
 interface Props {
   members: (Member & {
@@ -206,6 +207,7 @@ export default function PenaltiesOverviewPage({ members }: Props) {
                             }/${encodeURIComponent(
                               summary.typeName
                             )}/penalties`}
+                            onClick={() => nProgress.start()}
                             className="text-indigo-600 hover:text-indigo-900 hover:bg-indigo-50 px-3 py-1 rounded-md transition-colors block mt-1"
                           >
                             Manage {summary.typeName} →

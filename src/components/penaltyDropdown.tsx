@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDownIcon } from "@heroicons/react/24/outline";
 import { usePathname } from "next/navigation";
 import { FiSettings } from "react-icons/fi";
+import nProgress from "nprogress";
 type PenaltyDropdownProps = {
   icon: React.ReactNode;
   label: string;
@@ -97,6 +98,7 @@ export default function PenaltyDropdown({
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => nProgress.start()}
                   className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
                     ${
                       pathname === item.href
@@ -133,6 +135,7 @@ export default function PenaltyDropdown({
               <Link
                 key={"penalty managment"}
                 href={"/penalty"}
+                onClick={() => nProgress.start()}
                 className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
                     ${
                       pathname === "/penalty"

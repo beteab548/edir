@@ -1,4 +1,6 @@
 "use client";
+import NProgress from "nprogress";
+import "nprogress/nprogress.css";
 
 import React, { useEffect, useState } from "react";
 import { useUser, useClerk } from "@clerk/nextjs";
@@ -293,6 +295,9 @@ const Menu = () => {
                       ) : (
                         <Link
                           href={item.href}
+                          onClick={() => {
+                            NProgress.start();
+                          }}
                           className={`relative flex items-center gap-4 rounded-lg px-3 py-3 transition-all duration-300
                             ${
                               isItemActive

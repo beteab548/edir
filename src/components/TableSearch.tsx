@@ -1,8 +1,6 @@
 "use client";
-
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-
 const TableSearch = () => {
   const router = useRouter();
 
@@ -15,7 +13,6 @@ const TableSearch = () => {
     params.set("search", value);
     router.push(`${window.location.pathname}?${params}`);
   };
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -30,6 +27,5 @@ const TableSearch = () => {
     </form>
   );
 };
-
 export default TableSearch;
  

@@ -8,6 +8,7 @@ import { usePathname } from "next/navigation";
 import { FiAlertCircle } from "react-icons/fi";
 import { LuBanknote } from "react-icons/lu";
 import { MdGroups } from "react-icons/md";
+import nProgress from "nprogress";
 
 type reportDropDownType = {
   icon: React.ReactNode;
@@ -123,6 +124,7 @@ export default function ReportDropdown({
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={() => nProgress.start()}
                   className={`text-sm px-3 py-2 rounded-md flex items-center gap-2 transition-colors
       ${
         pathname === item.href
