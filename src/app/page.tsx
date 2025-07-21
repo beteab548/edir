@@ -42,8 +42,6 @@ const smoothScroll = (
 
 export default function PublicPage() {
   const [activeTab, setActiveTab] = useState("bylaws");
-
-  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
   const [metrics, setMetrics] = useState<{
     members: number;
     activeSince: Date;
@@ -53,13 +51,9 @@ export default function PublicPage() {
   const toggleLanguage = () => {
     setLanguage((prev) => (prev === "en" ? "am" : "en"));
   };
-
   const t = translations[language];
-
   useEffect(() => {
     async function fetchData() {
-      setIsLoadingAnnouncements(true);
-
       try {
         const [MetricsRes] = await Promise.all([
           fetch("/api/landingpage", {
@@ -72,15 +66,11 @@ export default function PublicPage() {
         setMetrics(MetricsData);
       } catch (error) {
         console.error("Error fetching data:", error);
-      } finally {
-        setIsLoadingAnnouncements(false);
       }
     }
-
     fetchData();
   }, []);
-
-  const { isLoaded, isSignedIn, user } = useUser();
+  const { user } = useUser();
   const router = useRouter();
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
@@ -425,7 +415,11 @@ export default function PublicPage() {
               </h4>
               <ul className="space-y-2">
                 <li>
-                  <a href="#about"   onClick={(e) => smoothScroll(e, "about")} className="text-gray-400 hover:text-white">
+                  <a
+                    href="#about"
+                    onClick={(e) => smoothScroll(e, "about")}
+                    className="text-gray-400 hover:text-white"
+                  >
                     {t.nav.about}
                   </a>
                 </li>

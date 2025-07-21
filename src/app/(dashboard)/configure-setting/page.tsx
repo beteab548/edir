@@ -10,7 +10,6 @@ import {
   ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import AddNewPenaltyType from "@/components/AddNewPenaltyType";
-import { AnnouncementManager } from "@/components/AnnouncementManager ";
 import { useRouter } from "next/navigation";
 
 type Tab =
@@ -91,9 +90,7 @@ export default function ContributionTabs() {
         <Alert variant="destructive">
           <ExclamationTriangleIcon className="h-5 w-5" />
           <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Unable to load user information.
-          </AlertDescription>
+          <AlertDescription>Unable to load user information.</AlertDescription>
         </Alert>
       </div>
     );
@@ -146,11 +143,6 @@ export default function ContributionTabs() {
       id: "configurePenalty",
       label: "Configure Penalty",
       component: <AddNewPenaltyType />,
-    },
-    {
-      id: "Announcements Manager",
-      label: "Configure Announcements",
-      component: <AnnouncementManager />,
     },
   ];
 
