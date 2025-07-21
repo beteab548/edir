@@ -81,7 +81,7 @@ const LoginPage = () => {
           >
             <SignIn.Root>
               <SignIn.Step name="start">
-                <div className="bg-black/20 backdrop-blur-md rounded-3xl shadow-md overflow-hidden border border-white/10">
+                <div className="bg-black/20 backdrop-blur-sm rounded-3xl shadow-md overflow-hidden border border-white/10">
                   <div className="p-8">
                     <motion.div
                       initial={{ scale: 0.9 }}
@@ -139,7 +139,7 @@ const LoginPage = () => {
                             </svg>
                           </div>
                         </div>
-                        <Clerk.FieldError className="block text-sm text-red-700 mt-1" />
+                        <Clerk.FieldError className="block text-sm text-red-400 mt-1" />
                       </Clerk.Field>
 
                       <Clerk.Field name="password" className="space-y-2">
@@ -171,7 +171,7 @@ const LoginPage = () => {
                             </svg>
                           </div>
                         </div>
-                        <Clerk.FieldError className="block text-sm text-red-700 mt-1" />
+                        <Clerk.FieldError className="block text-sm text-red-400 mt-1" />
                       </Clerk.Field>
 
                       <SignIn.Action
