@@ -13,11 +13,11 @@ interface SearchParams {
 export default async function PenaltyPage({ searchParams }: SearchParams) {
   const user = await currentUser();
   if (!user) {
-   return redirect("/sign-in");
+    return redirect("/sign-in");
   }
   const role = user.publicMetadata?.role;
   if (role !== "chairman") {
-  return  redirect("/dashboard");
+    return redirect("/dashboard");
   }
   const { year, month, query } = searchParams;
   const filterConditions = query
@@ -73,7 +73,7 @@ export default async function PenaltyPage({ searchParams }: SearchParams) {
     };
   }
 
-  const payments = await prisma.paymentRecord.findMany({
+  const paymentsRaw = await prisma.paymentRecord.findMany({
     where: paymentFilter,
     include: {
       member: true,
@@ -82,7 +82,11 @@ export default async function PenaltyPage({ searchParams }: SearchParams) {
       created_at: "desc",
     },
   });
-
+  const payments = paymentsRaw.map((payment) => ({
+    ...payment,
+    total_paid_amount: Number(payment.total_paid_amount),
+    remaining_balance: Number(payment.remaining_balance),
+  }));
   return (
     <>
       <PaymentComponent members={members} payments={payments} type="manually" />
