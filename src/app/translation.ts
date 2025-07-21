@@ -3,7 +3,7 @@ export const translations = {
     nav: {
       about: "About",
       login: "Login",
-      redirect: "redirecting...",
+      redirect: "Loging...",
     },
     logoText: "Jemo Edir Community",
     hero: {
@@ -62,7 +62,7 @@ export const translations = {
     nav: {
       about: "ስለ እኛ",
       login: "ግባ",
-      redirect: "በዝውውር ላይ...",
+      redirect: "በመግባት ላይ...",
     },
     logoText: " የጀሞ እድር ማህበረሰብ",
     hero: {

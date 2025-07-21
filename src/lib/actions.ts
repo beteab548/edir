@@ -1217,7 +1217,7 @@ export async function deletePayment(
   data: {
     paymentId: number;
     memberName: string;
-    amount: Decimal;
+    amount: number;
     paymentDate: string | Date;
     memberId: number;
     contributionTypeID: number;

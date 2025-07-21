@@ -12,7 +12,7 @@ interface DeletePaymentButtonProps {
   type: PenaltyType;
   paymentId: number;
   memberName: string;
-  amount: Decimal;
+  amount: number;
   paymentDate: string | Date;
   memberId: number;
   contributionTypeID: number;

@@ -1,8 +1,8 @@
 "use client";
-import { Member, Payment } from "@prisma/client";
+import { Member } from "@prisma/client";
 import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import React, { ReactEventHandler, useEffect, useState } from "react";
+import React, { ReactEventHandler, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCallback } from "react";
@@ -42,7 +42,16 @@ type ContributionType = {
   is_for_all: boolean;
   is_active: Boolean;
 };
-
+type Payment = {
+  id: number;
+  member_id: number;
+  contribution_id: number;
+  payment_record_id: number;
+  contribution_schedule_id: number | null;
+  payment_type: string;
+  payment_month: string;
+  paid_amount: number;
+};
 type PaymentRecord = {
   id: number;
   custom_id: string;
@@ -51,10 +60,10 @@ type PaymentRecord = {
   payment_method: string;
   payment_date: Date;
   document_reference: string;
-  total_paid_amount: Prisma.Decimal;
+  total_paid_amount: number;
   member: Member;
   contributionType?: ContributionType | null;
-  remaining_balance?: Prisma.Decimal | null;
+  remaining_balance?: number | null;
   payments?: Payment[];
 };
 
@@ -94,6 +103,7 @@ export default function ContributionTemplate({
     { success: false, error: false }
   );
   const [isAmountLocked, setIsAmountLocked] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const {
     register,
     handleSubmit,
@@ -121,6 +131,26 @@ export default function ContributionTemplate({
       console.error("Failed to handle receipt:", err);
     }
   };
+
+  // Handle clicks outside the dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setSearchResults([]);
+      }
+    };
+
+    // Add event listener when component mounts
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // Clean up event listener when component unmounts
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   useEffect(() => {
     const fetchPenaltyMonths = async () => {
       if (type === "manually" && selectedMember) {
@@ -164,21 +194,28 @@ export default function ContributionTemplate({
     }
   }, [selectedContributionTypeFormat, setValue]);
   useEffect(() => {
-    if (searchTerm.length > 0 && !selectedMember) {
-      const results = members.filter((member: Member) => {
-        return (
-          member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          member.second_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          member.phone_number.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-      });
-      setSearchResults(results);
+    if (!selectedMember) {
+      if (searchTerm.length > 0) {
+        const results = members.filter((member: Member) => {
+          return (
+            member.first_name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            member.second_name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            member.phone_number.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        });
+        setSearchResults(results);
+      } else {
+        setSearchResults(members);
+      }
     } else {
       setSearchResults([]);
     }
   }, [searchTerm, selectedMember, members]);
-
   const resetValues = useCallback(() => {
     setShowAddModal(false);
     setSearchResults([]);
@@ -214,6 +251,7 @@ export default function ContributionTemplate({
   const clearSelectedMember = () => {
     setSelectedMember(null);
     setSearchTerm("");
+    setSearchResults(members);
     setValue("member_id", 1, { shouldValidate: true });
   };
   const fetchMemberBalance = async (
@@ -237,7 +275,7 @@ export default function ContributionTemplate({
     try {
       setLoading(true);
       if (!selectedMember) {
-        setLoading(false)
+        setLoading(false);
         toast.error("Please select a member first");
         return;
       }
@@ -295,9 +333,9 @@ export default function ContributionTemplate({
   };
   useEffect(() => {
     if (state.success) {
+      resetValues();
       setLoading(false);
       toast.success(` Payment created successfully!`);
-      resetValues();
       type === "automatically"
         ? router.push(`/contribution/${ContributionType?.name}`)
         : router.push("/penalty/payment");
@@ -308,6 +346,11 @@ export default function ContributionTemplate({
       toast.error("Something went wrong");
     }
   }, [state, router, type, ContributionType?.name, resetValues]);
+  useEffect(() => {
+    return () => {
+      resetValues();
+    };
+  }, [resetValues]);
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -328,7 +371,10 @@ export default function ContributionTemplate({
           {/* Add Payment Button */}
           <div className="relative group">
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                resetValues();
+                setShowAddModal(true);
+              }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                 members.length <= 0 ||
                 (ContributionType && !ContributionType.is_active)
@@ -592,11 +638,7 @@ export default function ContributionTemplate({
                 <button
                   type="button"
                   className="text-gray-400 hover:text-gray-500"
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setSelectedMember(null);
-                    setSearchTerm("");
-                  }}
+                  onClick={resetValues}
                 >
                   <svg
                     className="h-6 w-6"
@@ -625,7 +667,7 @@ export default function ContributionTemplate({
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Select Member
                     </label>
-                    <div className="relative">
+                    <div className="relative" ref={dropdownRef}>
                       {selectedMember ? (
                         <div className="flex items-center justify-between p-2 border border-gray-300 rounded-md bg-gray-50">
                           <span>
@@ -660,6 +702,15 @@ export default function ContributionTemplate({
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                             value={searchTerm}
                             onChange={handleSearchChange}
+                            onClick={() => {
+                              if (
+                                !selectedMember &&
+                                searchTerm === "" &&
+                                searchResults.length === 0
+                              ) {
+                                setSearchResults(members);
+                              }
+                            }}
                           />
                           {searchResults.length > 0 && (
                             <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto border border-gray-200">

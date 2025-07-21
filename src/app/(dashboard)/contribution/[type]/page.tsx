@@ -44,13 +44,18 @@ export default async function ContributionPage({
     const { year, month, query } = searchParams;
 
     if (isPenaltiesPage) {
-      const members = (await getMembersWithPenalties()).map((member) => ({
+      const membersRaw = await getMembersWithPenalties();
+      const members = membersRaw.map((member) => ({
         ...member,
         Penalty: member.Penalty.filter(
           (penalty) => penalty.contribution !== null
         ).map((penalty) => ({
           ...penalty,
-          contribution: penalty.contribution!,
+          amount: Number(penalty.expected_amount),
+          contribution: {
+            ...penalty.contribution!,
+            amount: Number(penalty.contribution!.amount),
+          },
         })),
       }));
 
@@ -116,13 +121,27 @@ export default async function ContributionPage({
       paymentFilter.member = { AND: filterConditions };
     }
 
-    const members = await prisma.member.findMany({
+    const membersRaw = await prisma.member.findMany({
       where: memberFilter,
       include: {
         Contribution: true,
         Balance: true,
       },
     });
+
+    const members = membersRaw.map((member) => ({
+      ...member,
+      Contribution: member.Contribution.map((c) => ({
+        ...c,
+        amount: Number(c.amount),
+      })),
+      Balance: member.Balance
+        ? {
+            ...member.Balance,
+            balance: Number(member.Balance),
+          }
+        : null,
+    }));
 
     const paymentsRaw = await prisma.paymentRecord.findMany({
       where: paymentFilter,
@@ -138,6 +157,8 @@ export default async function ContributionPage({
 
     const payments = paymentsRaw.map((payment) => ({
       ...payment,
+      total_paid_amount: Number(payment.total_paid_amount),
+      remaining_balance: Number(payment.remaining_balance),
       contributionType: payment.contributionType
         ? {
             ...payment.contributionType,
@@ -148,11 +169,19 @@ export default async function ContributionPage({
                 : null,
           }
         : null,
+      payments: payment.payments.map((p) => ({
+        ...p,
+        paid_amount: Number(p.paid_amount),
+      })),
     }));
 
     const updatedContributionType = {
       ...contributionType!,
       amount: Number(contributionType!.amount),
+      penalty_amount:
+        contributionType!.penalty_amount !== null
+          ? Number(contributionType!.penalty_amount)
+          : null,
     };
 
     return (
