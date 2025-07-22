@@ -6,6 +6,8 @@ import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import nProgress from "nprogress";
+import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
+import ClientLink from "@/components/ui/clientnprogressWrapper";
 
 export default async function ContributionPage() {
   try {
@@ -56,10 +58,9 @@ export default async function ContributionPage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {contributionOptions.map((option) => (
-                <Link
+                <ClientLink
                   key={option.id}
                   href={`/contribution/${option.name}`}
-                  onClick={() => nProgress.start()}
                   className="bg-white rounded-2xl shadow-md overflow-hidden transition-transform duration-200 hover:shadow-lg hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <div className="p-6 flex flex-col items-center text-center">
@@ -80,7 +81,7 @@ export default async function ContributionPage() {
                       Contribute &rarr;
                     </span>
                   </div>
-                </Link>
+                </ClientLink>
               ))}
             </div>
           )}
