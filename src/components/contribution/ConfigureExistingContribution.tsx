@@ -68,7 +68,6 @@ export default function ConfigureExistingContribution({
   } = useForm<z.input<typeof ContributionTypeSchema>>({
     resolver: zodResolver(ContributionTypeSchema),
   });
-  console.log("apidata:", apiData);
   const watchIsForAll = watch("is_for_all");
   const watchMode = watch("mode");
   const contributionTypes = apiData?.contributionTypes || [];

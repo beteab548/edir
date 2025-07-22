@@ -18,7 +18,7 @@ export const memberSchema = z.object({
   wereda: z.string().optional(),
   zone_or_district: z.string().optional(),
   kebele: z.string().optional(),
-  house_number:z.string().optional(),
+  house_number: z.string().optional(),
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),
   phone_number: z
     .string()
@@ -268,22 +268,6 @@ export const ContributionTypeSchema = z
     member_ids: z.array(z.number()).optional(),
   })
   .superRefine((data, ctx) => {
-    const today = startOfDay(new Date());
-
-    if (
-      (data.mode === "Recurring" || data.mode === "OpenEndedRecurring") &&
-      data.start_date
-    ) {
-      const startDate = parseISO(data.start_date);
-      if (isBefore(startDate, today)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Start date cannot be before today",
-          path: ["start_date"],
-        });
-      }
-    }
-
     if (data.mode === "Recurring") {
       if (!data.start_date) {
         ctx.addIssue({
@@ -337,7 +321,6 @@ export const ContributionTypeSchema = z
         });
       }
 
-      // Remove: months_before_inactivation check
       data.penalty_amount = undefined;
     } else if (data.mode === "OpenEndedRecurring") {
       if (!data.start_date) {
@@ -346,15 +329,6 @@ export const ContributionTypeSchema = z
           message: "Start date is required for OpenEndedRecurring mode",
           path: ["start_date"],
         });
-      } else {
-        const startDate = parseISO(data.start_date);
-        if (isBefore(startDate, today)) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: "Start date cannot be before today",
-            path: ["start_date"],
-          });
-        }
       }
 
       if (data.penalty_amount === undefined) {
