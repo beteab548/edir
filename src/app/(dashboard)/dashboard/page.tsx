@@ -14,10 +14,10 @@ import {
   FiActivity,
   FiFileText,
 } from "react-icons/fi";
-import Link from "next/link";
 import Activity from "@/components/activity";
 import { redirect } from "next/navigation";
 import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
+import DateTimeDisplay from "@/components/ui/datetimeshower";
 
 const AdminPage = async () => {
   await generateContributionSchedulesForAllActiveMembers();
@@ -48,23 +48,10 @@ const AdminPage = async () => {
               <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
                 Welcome back, {user?.firstName}!
               </h1>
-              <p className="text-gray-500 mt-1 text-sm md:text-base">
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
+              <DateTimeDisplay />
             </div>
             <div className="bg-white rounded-lg shadow-xs p-3 border border-gray-200 w-full md:w-auto">
-              <div className="flex items-center justify-between gap-4">
-                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <div className="text-xs text-gray-500 flex items-center gap-1">
-                  <FiClock className="w-6 h-3" />
-                  Last Updated At: {new Date().toLocaleTimeString()}
-                </div>
-              </div>
+              <DateTimeDisplay text="showall"/>
             </div>
           </div>
         </header>
