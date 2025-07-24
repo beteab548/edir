@@ -86,6 +86,21 @@ export async function GET(req: NextRequest) {
         ]);
         currentCount =  memberCount;
         break;
+      case "deceased relative":
+        const [ relativecount] = await Promise.all([
+          
+          prisma.member.count({
+            where: {
+              status: "Deceased",
+              status_updated_at: {
+                gte: startOfMonth,
+                lte: endOfMonth,
+              },
+            },
+          }),
+        ]);
+        currentCount =  relativecount;
+        break;
 
       case "penalized members":
         const penalized = await prisma.penalty.findMany({
