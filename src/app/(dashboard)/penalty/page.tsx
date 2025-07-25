@@ -78,7 +78,7 @@ export default function TabSwitcher() {
 
       <div className="border-b">
         <nav className="-mb-px flex space-x-8 justify-center">
-          {(["System Generated", "Admin Generated"] as Tab[]).map((tab) => (
+          {(["System Generated", "Admin Generated"] as Tab[]).map((tab:any) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}

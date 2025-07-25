@@ -31,7 +31,7 @@ export default async function PenaltyReportPage({
     waived: searchParams.waived,
     penalty_type: searchParams.penalty_type,
   });
-  const processed = penalties.map((p) => ({
+  const processed = penalties.map((p:any) => ({
     ID: p.member.custom_id,
     "Full Name": `${p.member.first_name} ${p.member.second_name} ${p.member.last_name}`,
     Phone: p.member.phone_number.replace(/^251/, "0"),

@@ -5,8 +5,6 @@ import Image from "next/image";
 import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import nProgress from "nprogress";
-import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
 import ClientLink from "@/components/ui/clientnprogressWrapper";
 
 export default async function ContributionPage() {
@@ -57,7 +55,7 @@ export default async function ContributionPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {contributionOptions.map((option) => (
+              {contributionOptions.map((option:any) => (
                 <ClientLink
                   key={option.id}
                   href={`/contribution/${option.name}`}

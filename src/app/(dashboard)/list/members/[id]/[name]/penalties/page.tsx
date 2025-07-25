@@ -3,7 +3,6 @@ import prisma from "@/lib/prisma";
 import { WaivePenaltyButton } from "../../../../../../../components/WaivePenaltyButton";
 import { currentUser } from "@clerk/nextjs/server";
 import { notFound, redirect } from "next/navigation";
-import { ContributionMode } from "@prisma/client";
 
 interface MemberPenaltiesPageProps {
   params: {
@@ -27,7 +26,6 @@ export default async function MemberPenaltiesPage({
 
   const memberId = parseInt(params.id);
   const decodedName = decodeURIComponent(params.name);
-console.log("decode uri",decodedName);
   const contributionType = await prisma.contributionType.findFirst({
     where: {
       name: {
@@ -124,7 +122,7 @@ console.log("decode uri",decodedName);
                 </td>
               </tr>
             ) : (
-              penalties.map((penalty) => (
+              penalties.map((penalty:any) => (
                 <tr key={penalty.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {penalty.contribution?.type_name}

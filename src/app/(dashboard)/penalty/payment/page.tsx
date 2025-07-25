@@ -77,7 +77,7 @@ export default async function PenaltyPage({ searchParams }: SearchParams) {
       created_at: "desc",
     },
   });
-  const payments = paymentsRaw.map((payment) => ({
+  const payments = paymentsRaw.map((payment:any) => ({
     ...payment,
     total_paid_amount: Number(payment.total_paid_amount),
     remaining_balance: Number(payment.remaining_balance),

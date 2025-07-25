@@ -31,7 +31,7 @@ export default async function ContributionReportPage({
     contribution_type: searchParams.contribution_type,
   });
 
-  const processed = contributions.map((c) => {
+  const processed = contributions.map((c:any) => {
     const expected = c.ContributionSchedule.reduce(
       (sum: number, s: { expected_amount: any }) =>
         sum + Number(s.expected_amount),

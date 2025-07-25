@@ -327,7 +327,7 @@ const MemberListPage = async ({
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Members per page:</span>
             <div className="flex items-center gap-1">
-              {ITEMS_PER_PAGE_OPTIONS.map((option) => {
+              {ITEMS_PER_PAGE_OPTIONS.map((option:any) => {
                 const params = new URLSearchParams(
                   searchParams as Record<string, string>
                 );

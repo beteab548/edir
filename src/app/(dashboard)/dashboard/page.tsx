@@ -38,12 +38,12 @@ const AdminPage = async () => {
     ]);
 
     const penaltyTypes = Array.from(
-      new Set(penalties.map((p) => p.penalty_type))
+      new Set(penalties.map((p:any) => p.penalty_type))
     )
       .filter(
         (name): name is string => typeof name === "string" && name !== null
       )
-      .map((name) => ({ name }));
+      .map((name:any) => ({ name }));
 
     return (
       <div className="min-h-screen bg-gray-50 p-6">

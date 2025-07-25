@@ -34,7 +34,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
     house_number: searchParams.house_number,
     title: searchParams.title,
   });
-  const processedData = members.map((m) => ({
+  const processedData = members.map((m:any) => ({
     ID: m.custom_id,
     "Full Name": `${m.first_name} ${m.second_name} ${m.last_name}`,
     Phone: m.phone_number.replace(/^251/, "0"),
