@@ -45,18 +45,23 @@ export default async function ContributionPage({
 
     if (isPenaltiesPage) {
       const membersRaw = await getMembersWithPenalties();
-      const members = membersRaw.map((member) => ({
+
+      if (!Array.isArray(membersRaw)) {
+        throw new Error("Expected membersRaw to be an array");
+      }
+
+      const members = membersRaw.map((member:any) => ({
         ...member,
-        Penalty: member.Penalty.filter(
-          (penalty) => penalty.contribution !== null
-        ).map((penalty) => ({
-          ...penalty,
-          amount: Number(penalty.expected_amount),
-          contribution: {
-            ...penalty.contribution!,
-            amount: Number(penalty.contribution!.amount),
-          },
-        })),
+        Penalty: (member.Penalty ?? [])
+          .filter((penalty:any) => penalty.contribution !== null)
+          .map((penalty:any) => ({
+            ...penalty,
+            amount: Number(penalty.expected_amount),
+            contribution: {
+              ...penalty.contribution!,
+              amount: Number(penalty.contribution!.amount),
+            },
+          })),
       }));
 
       return (
