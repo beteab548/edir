@@ -11,7 +11,7 @@ import { Member, Prisma } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FiPlus, FiFilter, FiArrowUp, FiArrowDown } from "react-icons/fi";
+import { FiPlus, FiArrowUp, FiArrowDown } from "react-icons/fi";
 
 const ITEMS_PER_PAGE_OPTIONS = [10, 30, 50];
 const DEFAULT_ITEMS_PER_PAGE = 10;

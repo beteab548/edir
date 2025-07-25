@@ -6,7 +6,7 @@ import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
 import { ContributionMode, PenaltyType } from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
-import { addMonths, startOfMonth } from "date-fns";
+import { startOfMonth } from "date-fns";
 type Payment = {
   amount?: number;
   paid_amount?: Number;
@@ -66,6 +66,9 @@ export const createMember = async (
             wereda: data.member.wereda,
             kebele: data.member.kebele,
             zone_or_district: data.member.zone_or_district,
+            green_area: data.member.green_area,
+            block: data.member.block,
+            marital_status: data.member.marital_status,
             house_number: data.member.house_number,
             member_type: data.member.member_type,
             ...(data.member.document ? { document: data.member.document } : {}),
@@ -93,6 +96,7 @@ export const createMember = async (
               ? { image_file_id: data.member.image_file_id }
               : {}),
             sex: data.member.sex,
+            founding_member: data.member.founding_member,
             status: data.member.status,
             remark: data.member.remark ?? "",
             relative: {
@@ -280,6 +284,10 @@ export const updateMember = async (
             wereda: data.member.wereda,
             kebele: data.member.kebele,
             zone_or_district: data.member.zone_or_district,
+            green_area: data.member.green_area,
+            block: data.member.block,
+            marital_status: data.member.marital_status,
+            founding_member: data.member.founding_member,
             house_number: data.member.house_number,
             sex: data.member.sex,
             status: data.member.status,
@@ -1361,4 +1369,3 @@ export async function deletePayment(
     { timeout: 20000 }
   );
 }
-

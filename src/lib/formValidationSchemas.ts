@@ -17,6 +17,12 @@ export const memberSchema = z.object({
   end_date: z.union([z.coerce.date(), z.literal("")]).optional(),
   wereda: z.string().optional(),
   zone_or_district: z.string().optional(),
+  founding_member: z.boolean().optional(),
+  green_area: z.string(),
+  block: z.string(),
+  marital_status: z.enum(["married", "single", "divorced", "widowed"], {
+    message: "Marital Status is required!",
+  }),
   kebele: z.string().optional(),
   house_number: z.string().optional(),
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),

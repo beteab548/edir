@@ -17,6 +17,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 const tabs = ["Principal Info", "Principal detail", "Principal Relatives"];
 import "./phone-input.css";
+import SmallCheckbox from "../ui/checkbox";
 const MemberForm = ({
   type,
   data,
@@ -138,10 +139,34 @@ const MemberForm = ({
       await formAction(submissionData);
     },
     (errors) => {
+      const phoneError = errors?.member?.phone_number;
+      const phone_2Error = errors?.member?.phone_number_2;
+      const firstnameError = errors?.member?.first_name;
+      const secondNameError = errors?.member?.second_name;
+      const lastdNameError = errors?.member?.last_name;
+      const maritalStatusError = errors?.member?.marital_status;
+      const birth_dateError = errors?.member?.birth_date;
+
+      if (phoneError) {
+        toast.error(phoneError.message);
+      } else if (firstnameError) {
+        toast.error(firstnameError.message);
+      } else if (maritalStatusError) {
+        toast.error(maritalStatusError.message);
+      } else if (phone_2Error) {
+        toast.error(phone_2Error.message);
+      } else if (secondNameError) {
+        toast.error(secondNameError.message);
+      } else if (lastdNameError) {
+        toast.error(lastdNameError.message);
+      } else if (birth_dateError) {
+        toast.error(birth_dateError.message);
+      } else {
+        toast.error("Please correct the highlighted errors.");
+      }
       console.error("Validation errors:", errors);
     }
   );
-
   const router = useRouter();
   useEffect(() => {
     if (state.success) {
@@ -161,7 +186,6 @@ const MemberForm = ({
     }
   }, [state, router, type, setOpen]);
 
-  // Relative management functions
   const openRelativesDialog = (index?: number) => {
     if (typeof index === "number") {
       setEditIndex(index);
@@ -263,7 +287,7 @@ const MemberForm = ({
 
       <form className="flex flex-col p-6 w-full" onSubmit={onSubmit}>
         {tabIndex === 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[400px] overflow-y-auto custom-scrollbar pr-4">
             <InputField
               label="First Name"
               name="member.first_name"
@@ -308,7 +332,20 @@ const MemberForm = ({
                 <option value="Female">Female</option>
               </select>
             </div>
-
+            <SelectField
+              label="Marital Status"
+              name="member.marital_status"
+              register={register}
+              error={errors.member?.marital_status}
+              defaultValue={data?.marital_status}
+              options={[
+                { value: "", label: "Select Marital Status" },
+                { value: "married", label: "Married" },
+                { value: "divorced", label: "Divorced" },
+                { value: "single", label: "Single" },
+                { value: "widowed", label: "Widowed" },
+              ]}
+            />
             <InputField
               label="Title"
               name="member.title"
@@ -389,7 +426,15 @@ const MemberForm = ({
                 </p>
               )}
             </div>
-
+            <div className="h-8 flex items-end justify-start mt-6">
+              <SmallCheckbox
+                name="member.founding_member"
+                label="Founding Member"
+                register={register}
+                error={errors?.member?.founding_member}
+                defaultChecked={data?.founding_member}
+              />
+            </div>
             {data && (
               <InputField
                 label=""
@@ -488,6 +533,35 @@ const MemberForm = ({
                 error={errors.member?.kebele}
                 defaultValue={data?.kebele}
               />
+              <SelectField
+                label="Green Area"
+                name="member.green_area"
+                register={register}
+                error={errors.member?.green_area}
+                defaultValue={data?.green_area}
+                options={[
+                  { value: "", label: "Select Green Area Number" },
+                  { value: "1", label: "1" },
+                  { value: "2", label: "2" },
+                  { value: "3", label: "3" },
+                  { value: "4", label: "4" },
+                  { value: "5", label: "5" },
+                  { value: "6", label: "6" },
+                  { value: "7", label: "7" },
+                  { value: "8", label: "8" },
+                  { value: "9", label: "9" },
+                  { value: "10", label: "10" },
+                  { value: "11", label: "11" },
+                  { value: "12", label: "12" },
+                ]}
+              />
+              <InputField
+                label="Block"
+                name="member.block"
+                register={register}
+                error={errors.member?.block}
+                defaultValue={data?.block}
+              />
               <InputField
                 label="House Number"
                 name="member.house_number"
@@ -571,7 +645,6 @@ const MemberForm = ({
                 defaultValue={data?.bank_account_name}
               />
 
-              {/* Image upload section */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Profile Image
@@ -796,7 +869,6 @@ const MemberForm = ({
                 </table>
               )}
             </div>
-            {/* Add/Edit Relative Dialog */}
             <dialog
               ref={relativesDialogRef}
               className="modal backdrop:bg-black/30 rounded-lg shadow-xl "
@@ -828,7 +900,6 @@ const MemberForm = ({
                 </div>
 
                 <div className="space-y-4">
-                  {/* Horizontal row for name fields */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="flex flex-col gap-1">
                       <label className="text-sm font-medium text-gray-700">
@@ -1033,19 +1104,17 @@ const PhoneInputField = ({ value, onChange, error }: PhoneInputFieldProps) => {
   return (
     <div className="flex flex-col gap-1 w-full">
       {" "}
-      {/* Add w-full here */}
       <label className="text-sm font-medium text-gray-700">Phone Number</label>
       <div className="w-full">
         {" "}
-        {/* Add a wrapper div with w-full */}
         <PhoneInput
           country={"et"}
           value={value}
           onChange={onChange}
-          containerClass="w-full" // Add this to control container width
+          containerClass="w-full"
           inputClass="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-          buttonClass="border border-gray-300 rounded-l-md" // Style the country dropdown button
-          dropdownClass="z-20" // Ensure dropdown appears above other elements
+          buttonClass="border border-gray-300 rounded-l-md"
+          dropdownClass="z-20"
         />
       </div>
       {error && <span className="text-red-500 text-xs">{error}</span>}

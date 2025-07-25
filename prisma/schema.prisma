@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/@prisma/client"
+  // output   = "./node_modules/@prisma/client"
 }
 datasource db {
   provider = "postgresql"
@@ -23,9 +23,12 @@ model Member {
   wereda        String?        
   zone_or_district String?     
   kebele        String? 
-  house_number String?
-  sex          Sex
    green_area  String?
+   block String?
+  house_number String?
+  founding_member Boolean @default(false)
+  sex          Sex
+  marital_status  MaritalStatus
   phone_number String  
   phone_number_2 String  
   member_type MemberType 
@@ -230,4 +233,10 @@ enum ContributionMode {
 enum PenaltyType {
   automatically
   manually
+}
+enum MaritalStatus {
+  single
+  married
+  divorced
+  widowed
 }

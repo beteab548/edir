@@ -1,8 +1,8 @@
-"use client";
 import { useState } from "react";
 import imageCompression from "browser-image-compression";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import { FiLoader } from "react-icons/fi";
 
 export default function UploadFile({
   text,
@@ -16,6 +16,7 @@ export default function UploadFile({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
@@ -30,6 +31,7 @@ export default function UploadFile({
 
     const isImage = file.type.startsWith("image/");
     try {
+      setIsCompressing(true);
       if (isImage) {
         if (text === "profile") {
           setSelectedFile(file);
@@ -39,6 +41,7 @@ export default function UploadFile({
             maxWidthOrHeight: 800,
             initialQuality: 0.85,
             useWebWorker: true,
+            fileType: "image/webp",
           });
           setSelectedFile(compressedFile);
         }
@@ -48,6 +51,8 @@ export default function UploadFile({
     } catch (err) {
       console.error("Compression failed", err);
       toast.error("Image optimization failed.");
+    } finally {
+      setIsCompressing(false);
     }
   };
 
@@ -121,13 +126,16 @@ export default function UploadFile({
       <button
         onClick={handleUpload}
         disabled={loading || !selectedFile}
-        className={`w-40 py-2 mt-2 text-white rounded-lg transition ${
+        className={`w-44 py-2 mt-2 flex items-center justify-center gap-2 text-white rounded-lg transition ${
           loading || !selectedFile
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-blue-600 hover:bg-blue-700"
         }`}
       >
-        {loading ? "Uploading..." : "Upload"}
+        {(isCompressing || loading) && (
+          <FiLoader className="animate-spin w-5 h-5" />
+        )}
+        {isCompressing ? "Compressing..." : loading ? "Uploading..." : "Upload"}
       </button>
 
       {uploadedUrl && selectedFile?.type.startsWith("image/") && (
