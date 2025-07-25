@@ -1362,33 +1362,3 @@ export async function deletePayment(
   );
 }
 
-export async function createAnnouncement(data: {
-  title: string;
-  Description: string;
-  calendar: Date;
-  created_at: Date;
-}) {
-  await prisma.announcements.create({
-    data,
-  });
-}
-
-export async function updateAnnouncement(
-  id: number,
-  data: {
-    title: string;
-    Description: string;
-    calendar: Date;
-  }
-) {
-  await prisma.announcements.update({
-    where: { id },
-    data,
-  });
-}
-
-export async function deleteAnnouncement(id: number) {
-  await prisma.announcements.delete({
-    where: { id },
-  });
-}
