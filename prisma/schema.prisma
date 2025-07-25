@@ -1,10 +1,7 @@
-
-
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/@prisma/client"
+  // output   = "./node_modules/@prisma/client"
 }
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
@@ -28,6 +25,7 @@ model Member {
   kebele        String? 
   house_number String?
   sex          Sex
+   green_area  String?
   phone_number String  
   phone_number_2 String  
   member_type MemberType 
@@ -188,13 +186,7 @@ model ContributionSchedule {
   contribution    Contribution  @relation(fields: [contribution_id], references: [id],onDelete: Cascade)
   Payment Payment[]
 }
-model Announcements {
-id Int @id @default(autoincrement())
-title String
-Description String
-created_at DateTime
-calendar DateTime
-}
+
 enum Sex {
   Male   
   Female 

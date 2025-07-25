@@ -4,6 +4,7 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
 import prisma from "@/lib/prisma";
 import { currentUser } from "@clerk/nextjs/server";
 import { Member, Prisma } from "@prisma/client";
@@ -297,12 +298,12 @@ const MemberListPage = async ({
             </div>
 
             <div className="flex items-center gap-2">
-              <Link href="/list/addNewMember">
+              <LinkButtonWithProgress href="/list/addNewMember">
                 <button className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors shadow-sm">
                   <FiPlus className="w-5 h-5" />
                   <span className="hidden sm:inline">Add Member</span>
                 </button>
-              </Link>
+              </LinkButtonWithProgress>
             </div>
           </div>
         </div>
