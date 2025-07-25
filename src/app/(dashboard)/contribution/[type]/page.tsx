@@ -134,9 +134,9 @@ export default async function ContributionPage({
       },
     });
 
-    const members = membersRaw.map((member) => ({
+    const members = membersRaw.map((member:any) => ({
       ...member,
-      Contribution: member.Contribution.map((c) => ({
+      Contribution: member.Contribution.map((c:any) => ({
         ...c,
         amount: Number(c.amount),
       })),
@@ -160,7 +160,7 @@ export default async function ContributionPage({
       },
     });
 
-    const payments = paymentsRaw.map((payment) => ({
+    const payments = paymentsRaw.map((payment:any) => ({
       ...payment,
       total_paid_amount: Number(payment.total_paid_amount),
       remaining_balance: Number(payment.remaining_balance),
@@ -174,7 +174,7 @@ export default async function ContributionPage({
                 : null,
           }
         : null,
-      payments: payment.payments.map((p) => ({
+      payments: payment.payments.map((p:any) => ({
         ...p,
         paid_amount: Number(p.paid_amount),
       })),
