@@ -3,6 +3,7 @@ export const revalidate = 0;
 import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { deletePenalty } from "@/lib/actions";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -56,7 +57,7 @@ export async function PATCH(request: Request) {
         { status: 400 }
       );
     }
-    
+
     const updatedPenalty = await prisma.penalty.update({
       where: { id: Number(penaltyId) },
       data: {
@@ -78,6 +79,34 @@ export async function PATCH(request: Request) {
     console.error("Error waiving penalty:", error);
     return NextResponse.json(
       { error: "Failed to waive penalty" },
+      { status: 500 }
+    );
+  }
+}
+export async function DELETE(request: Request) {
+  try {
+    const { penaltyId } = await request.json();
+
+    if (!penaltyId) {
+      return NextResponse.json(
+        { error: "Penalty ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const result = await deletePenalty(penaltyId);
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
+    }
+
+    return NextResponse.json(
+      { success: true, data: result.data },
+      { status: 200 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

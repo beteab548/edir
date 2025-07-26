@@ -1369,3 +1369,19 @@ export async function deletePayment(
     { timeout: 20000 }
   );
 }
+export async function deletePenalty(penaltyId: number) {
+  try {
+    // Your database delete logic here
+    // Example for Prisma:
+    const deletedPenalty = await prisma.penalty.delete({
+      where: { id: penaltyId },
+    });
+    
+    return { success: true, data: deletedPenalty };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}

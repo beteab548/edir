@@ -82,6 +82,7 @@ export default function ManualPenaltyManagement() {
       generated: "manually",
     },
   });
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [penaltyTypes, setPenaltyTypes] = useState<string[]>([]);
   const [isloading, setIsloading] = useState<boolean>(false);
 
@@ -110,6 +111,30 @@ export default function ManualPenaltyManagement() {
       setPenaltyTypes(types.map((t) => t.name))
     );
   }, []);
+  const handleDeletePenalty = async (penaltyId: number) => {
+    setIsloading(true);
+    try {
+      const response = await fetch(`/api/penalty`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ penaltyId }),
+      });
+      setIsloading(false);
+      if (!response.ok) {
+        throw new Error("Failed to delete penalty");
+      }
+
+      const data = await response.json();
+      return { success: true, data };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+    }
+  };
   const handleWaivePenalty = async (penaltyId: number) => {
     setIsloading(true);
     try {
@@ -152,11 +177,32 @@ export default function ManualPenaltyManagement() {
     setFilteredMembers(filtered);
   };
 
+  // const handleMemberSelect = (member: Member) => {
+  //   setSelectedMember(member);
+  //   form.setValue("member_id", member.id);
+  // };
+
+  // Add this function to calculate the penalty amount
+  const calculatePenaltyAmount = (unpaidCount: number): number => {
+    if (unpaidCount === 0) return 500;
+    if (unpaidCount >= 5) return 500 * 5; // Cap at 5 levels (2500 birr)
+    return 500 * (unpaidCount + 1);
+  };
+
+  // Modify your handleMemberSelect function to include the penalty calculation
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);
     form.setValue("member_id", member.id);
-  };
 
+    // Check for unpaid penalties for this member
+    const unpaidPenalties = penaltiesWithNumberAmount.filter(
+      (p: Penalty) => p.member.id === member.id && !p.is_paid && !p.waived
+    );
+
+    // Calculate the new penalty amount
+    const newAmount = calculatePenaltyAmount(unpaidPenalties.length);
+    form.setValue("amount", newAmount);
+  };
   const onSubmit: SubmitHandler<z.infer<typeof penaltyFormSchema>> = async (
     data
   ) => {
@@ -444,16 +490,27 @@ export default function ManualPenaltyManagement() {
                     />
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => {
-                        setSelectedPenalty(penalty);
-                        setIsWaiveModalOpen(true);
-                      }}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3 disabled:opacity-50"
-                      disabled={penalty.is_paid || !!penalty.waived}
-                    >
-                      Waive
-                    </button>
+                    <div className="flex items-center space-x-3">
+                      <button
+                        onClick={() => {
+                          setSelectedPenalty(penalty);
+                          setIsWaiveModalOpen(true);
+                        }}
+                        className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                        disabled={penalty.is_paid || !!penalty.waived}
+                      >
+                        Waive
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedPenalty(penalty);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className="text-red-600 hover:text-red-900"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -682,7 +739,101 @@ export default function ManualPenaltyManagement() {
           </div>
         </div>
       )}
+      {/* Delete Penalty Modal */}
+      {isDeleteModalOpen && selectedPenalty && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Delete Penalty
+                </h2>
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+                >
+                  <XIcon className="h-5 w-5" />
+                </button>
+              </div>
 
+              <div className="mb-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <UserIcon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">
+                      {selectedPenalty.member.first_name}{" "}
+                      {selectedPenalty.member.last_name}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      ID: {selectedPenalty.member.custom_id}
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-500">Amount</p>
+                    <p className="font-medium">
+                      {selectedPenalty.amount.toFixed(2)} birr
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Month</p>
+                    <p className="font-medium">
+                      {format(
+                        new Date(selectedPenalty.missed_month),
+                        "MMM yyyy"
+                      )}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-red-50 rounded-lg">
+                  <p className="text-red-600 font-medium">
+                    Are you sure you want to delete this penalty? This action
+                    cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-2">
+                <button
+                  onClick={() => setIsDeleteModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={isloading}
+                  onClick={async () => {
+                    if (!selectedPenalty) return;
+                    try {
+                      const result = await handleDeletePenalty(
+                        selectedPenalty.id
+                      );
+                      if (result.success) {
+                        toast.success(
+                          `Penalty deleted for ${selectedPenalty.member.first_name}`
+                        );
+                        mutate();
+                      } else {
+                        toast.error(result.error || "Failed to delete penalty");
+                      }
+                    } catch (error) {
+                      toast.error("Failed to delete penalty");
+                    } finally {
+                      setIsDeleteModalOpen(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                >
+                  {isloading ? "Processing..." : "Confirm Delete"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Waive Penalty Modal */}
       {isWaiveModalOpen && selectedPenalty && (
         <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
