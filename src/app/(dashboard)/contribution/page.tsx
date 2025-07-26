@@ -36,19 +36,19 @@ export default async function ContributionPage() {
           {/* Hero Section */}
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-4 bg-blue-100 text-blue-800 rounded-full px-4 py-1.5">
-              <span className="text-sm font-medium">Edir Community</span>
+              <span className="text-sm font-medium">
+               Contributions Selection
+              </span>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Community Contributions
-            </h1>
+            {/* <h1 className="text-xl md:text-2xl font-bold text-blue-900 mb-4"></h1> */}
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
               contributions strengthen our community bonds and support our
-              collective goals. Select a contribution type below.
+              collective goals. Select a contribution type below to Proceed.
             </p>
           </div>
 
           {contributionOptions.length === 0 ? (
-            <div className="bg-white rounded-xl shadow-sm p-8 max-w-2xl mx-auto text-center">
+            <div className=" p-8 max-w-2xl mx-auto text-center">
               <div className="w-14 h-14 mx-auto mb-6 text-gray-300">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -102,20 +102,15 @@ export default async function ContributionPage() {
                   <div className="p-6 flex flex-col h-full">
                     <div className="flex-shrink-0 mb-6">
                       <div className="w-16 h-16 mx-auto bg-blue-50 rounded-lg flex items-center justify-center text-blue-600">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-8 w-8"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
+                        <Image
+                          src={"/contributionIcon.png"}
+                          alt="contribution icon"
+                          width={68}
+                          height={68}
+                          className="rounded-sm"
+                          priority={false}
+                          unoptimized
+                        />
                       </div>
                     </div>
                     <div className="flex-grow">
