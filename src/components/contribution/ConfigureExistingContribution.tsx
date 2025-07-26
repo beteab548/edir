@@ -27,6 +27,7 @@ type ContributionType = {
   penalty_amount: Decimal | null;
   period_months: number | null;
 };
+
 type ApiResponse = {
   contributionTypes: ContributionType[];
   members: Member[];
@@ -58,6 +59,7 @@ export default function ConfigureExistingContribution({
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toDelete, setToDelete] = useState<ContributionType | null>(null);
   const router = useRouter();
+
   const {
     register,
     handleSubmit,
@@ -68,6 +70,7 @@ export default function ConfigureExistingContribution({
   } = useForm<z.input<typeof ContributionTypeSchema>>({
     resolver: zodResolver(ContributionTypeSchema),
   });
+
   const watchIsForAll = watch("is_for_all");
   const watchMode = watch("mode");
   const contributionTypes = apiData?.contributionTypes || [];
@@ -99,6 +102,7 @@ export default function ConfigureExistingContribution({
       period_months: Number(contribution.period_months) ?? undefined,
     });
   };
+
   function formatDateForInput(date: Date | string | null): string {
     if (!date) return "";
     const d = typeof date === "string" ? new Date(date) : date;
@@ -141,9 +145,11 @@ export default function ConfigureExistingContribution({
       setLoading(false);
     }
   };
+
   useEffect(() => {
     mutateData();
   }, [revalidate, mutateData]);
+
   const handleDelete = async () => {
     if (!toDelete) return;
     try {
@@ -196,6 +202,7 @@ export default function ConfigureExistingContribution({
 
     fetchExistingMembers();
   }, [editingId]);
+
   return (
     <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-100">
       {isLoading ? (
@@ -226,385 +233,419 @@ export default function ConfigureExistingContribution({
           <h2 className="text-2xl font-bold text-gray-800 mb-6 pb-2 border-b border-gray-200">
             Configure Existing Contributions
           </h2>
-          {showDeleteModal && toDelete && (
-            <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
-              <div className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
-                <div className="text-center">
-                  <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                    <svg
-                      className="h-6 w-6 text-red-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Delete &quot;{toDelete.name}&quot;?
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    This will permanently remove the
-                    <span className="font-bold"> Contribution type </span>
-                    and <span className="font-bold">
-                      {" "}
-                      Paymnet records{" "}
-                    </span>{" "}
-                    associated with it, And cannot be undone.
-                  </p>
-                </div>
-                <div className="flex justify-center gap-3">
-                  <button
-                    className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                    onClick={() => {
-                      setShowDeleteModal(false);
-                      setToDelete(null);
-                    }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
-                    onClick={handleDelete}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
+
+          {contributionTypes.length === 0 ? (
+            <div className="text-center py-8">
+              <svg
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="2"
+                  d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              <h3 className="mt-2 text-lg font-medium text-gray-900">
+                No contributions found
+              </h3>
+              <p className="mt-1 text-gray-500">
+                There are no contribution types to configure.
+              </p>
             </div>
-          )}
-          {showMemberSelection ? (
-            <SelectableMembersList
-              members={members}
-              initialSelected={selectedMemberIds}
-              isLoadingExisting={isLoading}
-              onSaveSelection={(ids) => {
-                setSelectedMemberIds(ids);
-                setShowMemberSelection(false);
-              }}
-              onCancel={() => setShowMemberSelection(false)}
-            />
           ) : (
-            <div className="space-y-4">
-              {contributionTypes.map((contribution) => (
-                <div
-                  key={contribution.id}
-                  className={`border border-gray-200 p-5 rounded-lg transition-all ${
-                    editingId === contribution.id ? "bg-gray-50" : "bg-white"
-                  }`}
-                >
-                  {editingId === contribution.id ? (
-                    <form
-                      onSubmit={handleSubmit(onSubmit, onError)}
-                      className="space-y-4"
+            <>
+              {showDeleteModal && toDelete && (
+                <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-40">
+                  <div className="bg-white rounded-xl p-6 shadow-xl max-w-md w-full">
+                    <div className="text-center">
+                      <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                        <svg
+                          className="h-6 w-6 text-red-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                          />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        Delete &quot;{toDelete.name}&quot;?
+                      </h3>
+                      <p className="text-gray-600 mb-6">
+                        This will permanently remove the
+                        <span className="font-bold"> Contribution type </span>
+                        and <span className="font-bold">
+                          {" "}
+                          Payment records{" "}
+                        </span>{" "}
+                        associated with it, and cannot be undone.
+                      </p>
+                    </div>
+                    <div className="flex justify-center gap-3">
+                      <button
+                        className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        onClick={() => {
+                          setShowDeleteModal(false);
+                          setToDelete(null);
+                        }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                        onClick={handleDelete}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {showMemberSelection ? (
+                <SelectableMembersList
+                  members={members}
+                  initialSelected={selectedMemberIds}
+                  isLoadingExisting={isLoading}
+                  onSaveSelection={(ids) => {
+                    setSelectedMemberIds(ids);
+                    setShowMemberSelection(false);
+                  }}
+                  onCancel={() => setShowMemberSelection(false)}
+                />
+              ) : (
+                <div className="space-y-4">
+                  {contributionTypes.map((contribution) => (
+                    <div
+                      key={contribution.id}
+                      className={`border border-gray-200 p-5 rounded-lg transition-all ${
+                        editingId === contribution.id
+                          ? "bg-gray-50"
+                          : "bg-white"
+                      }`}
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <InputField
-                          label="Contribution Name"
-                          name="type_name"
-                          register={register}
-                          error={errors.type_name}
-                          containerClass="bg-gray-50 p-4 rounded-lg"
-                        />
-                        <InputField
-                          label="Amount"
-                          name="amount"
-                          type="number"
-                          register={register}
-                          error={errors.amount}
-                          containerClass="bg-gray-50 p-4 rounded-lg"
-                          inputProps={{
-                            step: "0.01",
-                            ...register("amount", {
-                              setValueAs: (v) =>
-                                v === "" ? undefined : Number(v),
-                            }),
-                          }}
-                        />
-
-                        {watchMode !== "OneTimeWindow" && (
-                          <InputField
-                            label="Penalty Amount"
-                            name="penalty_amount"
-                            type="number"
-                            register={register}
-                            error={errors.penalty_amount}
-                            containerClass="bg-gray-50 p-4 rounded-lg"
-                            inputProps={{
-                              step: "0.01",
-                              ...register("penalty_amount", {
-                                setValueAs: (v) =>
-                                  v === "" ? undefined : Number(v),
-                              }),
-                            }}
-                          />
-                        )}
-
-                        {watchMode === "OneTimeWindow" && (
-                          <InputField
-                            label="Period Months"
-                            name="period_months"
-                            type="number"
-                            register={register}
-                            error={errors.period_months}
-                            containerClass="bg-gray-50 p-4 rounded-lg"
-                            inputProps={{
-                              min: 1,
-                              step: "1",
-                              ...register("period_months", {
-                                setValueAs: (v) =>
-                                  v === "" ? undefined : Number(v),
-                              }),
-                              onChange: (
-                                e: React.ChangeEvent<HTMLInputElement>
-                              ) => {
-                                setValue(
-                                  "period_months",
-                                  parseInt(e.target.value)
-                                );
-                              },
-                            }}
-                          />
-                        )}
-
-                        {(watchMode === "Recurring" ||
-                          watchMode === "OpenEndedRecurring") && (
-                          <>
+                      {editingId === contribution.id ? (
+                        <form
+                          onSubmit={handleSubmit(onSubmit, onError)}
+                          className="space-y-4"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <InputField
-                              label="Start Date"
-                              name="start_date"
-                              type="date"
+                              label="Contribution Name"
+                              name="type_name"
                               register={register}
-                              error={errors.start_date}
+                              error={errors.type_name}
                               containerClass="bg-gray-50 p-4 rounded-lg"
                             />
-                            {watchMode === "Recurring" && (
-                              <InputField
-                                label="End Date"
-                                name="end_date"
-                                type="date"
-                                register={register}
-                                error={errors.end_date}
-                                containerClass="bg-gray-50 p-4 rounded-lg"
-                              />
-                            )}
-                          </>
-                        )}
-
-                        <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
-                          <label className="text-sm font-medium text-gray-700">
-                            Active
-                          </label>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="sr-only peer"
-                              {...register("is_active")}
-                              defaultChecked={contribution.is_active}
-                            />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                          </label>
-                        </div>
-
-                        <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
-                          <label className="text-sm font-medium text-gray-700">
-                            For All Members
-                          </label>
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="sr-only peer"
-                              checked={isForAllLocal}
-                              onChange={(e) => {
-                                setIsForAllLocal(e.target.checked);
-                                setValue("is_for_all", e.target.checked);
-                                if (e.target.checked) {
-                                  setSelectedMemberIds([]);
-                                }
+                            <InputField
+                              label="Amount"
+                              name="amount"
+                              type="number"
+                              register={register}
+                              error={errors.amount}
+                              containerClass="bg-gray-50 p-4 rounded-lg"
+                              inputProps={{
+                                step: "0.01",
+                                ...register("amount", {
+                                  setValueAs: (v) =>
+                                    v === "" ? undefined : Number(v),
+                                }),
                               }}
                             />
-                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                          </label>
-                        </div>
 
-                        {!isForAllLocal && (
-                          <div className="bg-gray-50 p-4 rounded-lg">
+                            {watchMode !== "OneTimeWindow" && (
+                              <InputField
+                                label="Penalty Amount"
+                                name="penalty_amount"
+                                type="number"
+                                register={register}
+                                error={errors.penalty_amount}
+                                containerClass="bg-gray-50 p-4 rounded-lg"
+                                inputProps={{
+                                  step: "0.01",
+                                  ...register("penalty_amount", {
+                                    setValueAs: (v) =>
+                                      v === "" ? undefined : Number(v),
+                                  }),
+                                }}
+                              />
+                            )}
+
+                            {watchMode === "OneTimeWindow" && (
+                              <InputField
+                                label="Period Months"
+                                name="period_months"
+                                type="number"
+                                register={register}
+                                error={errors.period_months}
+                                containerClass="bg-gray-50 p-4 rounded-lg"
+                                inputProps={{
+                                  min: 1,
+                                  step: "1",
+                                  ...register("period_months", {
+                                    setValueAs: (v) =>
+                                      v === "" ? undefined : Number(v),
+                                  }),
+                                  onChange: (
+                                    e: React.ChangeEvent<HTMLInputElement>
+                                  ) => {
+                                    setValue(
+                                      "period_months",
+                                      parseInt(e.target.value)
+                                    );
+                                  },
+                                }}
+                              />
+                            )}
+
+                            {(watchMode === "Recurring" ||
+                              watchMode === "OpenEndedRecurring") && (
+                              <>
+                                <InputField
+                                  label="Start Date"
+                                  name="start_date"
+                                  type="date"
+                                  register={register}
+                                  error={errors.start_date}
+                                  containerClass="bg-gray-50 p-4 rounded-lg"
+                                />
+                                {watchMode === "Recurring" && (
+                                  <InputField
+                                    label="End Date"
+                                    name="end_date"
+                                    type="date"
+                                    register={register}
+                                    error={errors.end_date}
+                                    containerClass="bg-gray-50 p-4 rounded-lg"
+                                  />
+                                )}
+                              </>
+                            )}
+
+                            <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">
+                                Active
+                              </label>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  {...register("is_active")}
+                                  defaultChecked={contribution.is_active}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                              </label>
+                            </div>
+
+                            <div className="bg-gray-50 p-4 rounded-lg flex items-center justify-between">
+                              <label className="text-sm font-medium text-gray-700">
+                                For All Members
+                              </label>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  className="sr-only peer"
+                                  checked={isForAllLocal}
+                                  onChange={(e) => {
+                                    setIsForAllLocal(e.target.checked);
+                                    setValue("is_for_all", e.target.checked);
+                                    if (e.target.checked) {
+                                      setSelectedMemberIds([]);
+                                    }
+                                  }}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                              </label>
+                            </div>
+
+                            {!isForAllLocal && (
+                              <div className="bg-gray-50 p-4 rounded-lg">
+                                <button
+                                  type="button"
+                                  className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  onClick={() => setShowMemberSelection(true)}
+                                >
+                                  {selectedMemberIds.length > 0
+                                    ? `${selectedMemberIds.length} members selected`
+                                    : "Select Members"}
+                                </button>
+                                {selectedMemberIds.length > 0 && (
+                                  <div className="mt-3 bg-white p-3 rounded-md border border-gray-200">
+                                    <h4 className="text-sm font-medium text-gray-700 mb-2">
+                                      Selected Members
+                                    </h4>
+                                    <ul className="text-sm text-gray-600 space-y-1 max-h-40 overflow-y-auto">
+                                      {members
+                                        .filter((m) =>
+                                          selectedMemberIds.includes(m.id)
+                                        )
+                                        .map((m) => (
+                                          <li
+                                            key={m.id}
+                                            className="flex items-center"
+                                          >
+                                            <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                            {m.first_name} {m.last_name}
+                                          </li>
+                                        ))}
+                                    </ul>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
                             <button
                               type="button"
-                              className="w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              onClick={() => setShowMemberSelection(true)}
+                              onClick={() => setEditingId(null)}
+                              className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
                             >
-                              {selectedMemberIds.length > 0
-                                ? `${selectedMemberIds.length} members selected`
-                                : "Select Members"}
+                              Cancel
                             </button>
-                            {selectedMemberIds.length > 0 && (
-                              <div className="mt-3 bg-white p-3 rounded-md border border-gray-200">
-                                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                                  Selected Members
-                                </h4>
-                                <ul className="text-sm text-gray-600 space-y-1 max-h-40 overflow-y-auto">
-                                  {members
-                                    .filter((m) =>
-                                      selectedMemberIds.includes(m.id)
-                                    )
-                                    .map((m) => (
-                                      <li
-                                        key={m.id}
-                                        className="flex items-center"
-                                      >
-                                        <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                                        {m.first_name} {m.last_name}
-                                      </li>
-                                    ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-                        <button
-                          type="button"
-                          onClick={() => setEditingId(null)}
-                          className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                          disabled={loading}
-                        >
-                          {loading ? (
-                            <>
-                              <svg
-                                className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                              >
-                                <circle
-                                  className="opacity-25"
-                                  cx="12"
-                                  cy="12"
-                                  r="10"
-                                  stroke="currentColor"
-                                  strokeWidth="4"
-                                ></circle>
-                                <path
-                                  className="opacity-75"
-                                  fill="currentColor"
-                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
-                              </svg>
-                              Saving...
-                            </>
-                          ) : (
-                            "Save Changes"
-                          )}
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="space-y-2">
-                        <h3 className="font-semibold text-gray-800">
-                          {contribution.name}
-                        </h3>
-                        <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
-                          <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                            Amount: {Number(contribution.amount)}
-                          </div>
-                          <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                            Status:{" "}
-                            <span
-                              className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
-                                contribution.is_active
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
+                            <button
+                              type="submit"
+                              className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                              disabled={loading}
                             >
-                              {contribution.is_active ? "Active" : "Inactive"}
-                            </span>
+                              {loading ? (
+                                <>
+                                  <svg
+                                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <circle
+                                      className="opacity-25"
+                                      cx="12"
+                                      cy="12"
+                                      r="10"
+                                      stroke="currentColor"
+                                      strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                      className="opacity-75"
+                                      fill="currentColor"
+                                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                  </svg>
+                                  Saving...
+                                </>
+                              ) : (
+                                "Save Changes"
+                              )}
+                            </button>
                           </div>
-                          <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                            Scope:{" "}
-                            {contribution.is_for_all
-                              ? "All Members"
-                              : "Selected Members"}
-                          </div>
-                          <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                            Mode: {contribution.mode}
-                          </div>
-                          {contribution.mode !== "OneTimeWindow" &&
-                            contribution.mode !== "Recurring" && (
+                        </form>
+                      ) : (
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <div className="space-y-2">
+                            <h3 className="font-semibold text-gray-800">
+                              {contribution.name}
+                            </h3>
+                            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-gray-600">
                               <div className="flex items-center">
                                 <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                                Penalty: {Number(contribution.penalty_amount)}
+                                Amount: {Number(contribution.amount)}
                               </div>
-                            )}
-                          {contribution.mode !== "OneTimeWindow" && (
-                            <div className="flex items-center">
-                              <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                              Start:{" "}
-                              {contribution.start_date
-                                ? typeof contribution.start_date === "string"
-                                  ? contribution.start_date
-                                  : contribution.start_date.toLocaleDateString()
-                                : "N/A"}
-                            </div>
-                          )}
-                          {contribution.mode !== "OneTimeWindow" &&
-                            contribution.mode !== "OpenEndedRecurring" && (
                               <div className="flex items-center">
                                 <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                                End:{" "}
-                                {contribution.end_date?.toLocaleString() ||
-                                  "N/A"}
+                                Status:{" "}
+                                <span
+                                  className={`ml-1 px-2 py-0.5 rounded-full text-xs ${
+                                    contribution.is_active
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {contribution.is_active
+                                    ? "Active"
+                                    : "Inactive"}
+                                </span>
                               </div>
-                            )}
-                          {contribution.mode === "OneTimeWindow" && (
-                            <div className="flex items-center">
-                              <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                              Duration: {contribution.period_months ?? "N/A"}{" "}
-                              months
+                              <div className="flex items-center">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                Scope:{" "}
+                                {contribution.is_for_all
+                                  ? "All Members"
+                                  : "Selected Members"}
+                              </div>
+                              <div className="flex items-center">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                Mode: {contribution.mode}
+                              </div>
+                              {contribution.mode !== "OneTimeWindow" &&
+                                contribution.mode !== "Recurring" && (
+                                  <div className="flex items-center">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                    Penalty:{" "}
+                                    {Number(contribution.penalty_amount)}
+                                  </div>
+                                )}
+                              {contribution.mode !== "OneTimeWindow" && (
+                                <div className="flex items-center">
+                                  <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                  Start:{" "}
+                                  {contribution.start_date
+                                    ? typeof contribution.start_date ===
+                                      "string"
+                                      ? contribution.start_date
+                                      : contribution.start_date.toLocaleDateString()
+                                    : "N/A"}
+                                </div>
+                              )}
+                              {contribution.mode !== "OneTimeWindow" &&
+                                contribution.mode !== "OpenEndedRecurring" && (
+                                  <div className="flex items-center">
+                                    <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                    End:{" "}
+                                    {contribution.end_date?.toLocaleString() ||
+                                      "N/A"}
+                                  </div>
+                                )}
+                              {contribution.mode === "OneTimeWindow" && (
+                                <div className="flex items-center">
+                                  <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                                  Duration:{" "}
+                                  {contribution.period_months ?? "N/A"} months
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEdit(contribution)}
+                              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowDeleteModal(true);
+                                setToDelete(contribution);
+                              }}
+                              className="px-3 py-1.5 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEdit(contribution)}
-                          className="px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => {
-                            setShowDeleteModal(true);
-                            setToDelete(contribution);
-                          }}
-                          className="px-3 py-1.5 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
+                      )}
                     </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </>
       )}
