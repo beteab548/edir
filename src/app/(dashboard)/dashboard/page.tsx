@@ -178,7 +178,7 @@ const AdminPage = async () => {
             Something went wrong
           </h1>
           <p className="text-gray-600">
-            Failed to load the admin dashboard. Please try again later.
+            Failed to load the dashboard. Please try refreshing the page.
           </p>
         </div>
       </div>
