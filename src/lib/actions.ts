@@ -1371,17 +1371,69 @@ export async function deletePayment(
 }
 export async function deletePenalty(penaltyId: number) {
   try {
-    // Your database delete logic here
-    // Example for Prisma:
-    const deletedPenalty = await prisma.penalty.delete({
-      where: { id: penaltyId },
+    return await prisma.$transaction(async (prisma) => {
+      // 1. First find the penalty and its associated payment record
+      const penalty = await prisma.penalty.findUnique({
+        where: { id: penaltyId },
+        include: {
+          contribution: {
+            select: {
+              member_id: true,
+              contribution_type_id: true
+            }
+          }
+        }
+      });
+
+      if (!penalty) {
+        throw new Error("Penalty not found");
+      }
+
+      // 2. Find and delete the associated payment record (if exists)
+      let deletedPaymentRecord = null;
+      const paymentRecord = await prisma.paymentRecord.findFirst({
+        where: {
+          Penalty_id: penaltyId,
+          member_id: penalty.member_id
+        }
+      });
+
+      if (paymentRecord) {
+        // First delete all payments associated with this payment record
+        await prisma.payment.deleteMany({
+          where: {
+            payment_record_id: paymentRecord.id
+          }
+        });
+
+        // Then delete the payment record itself
+        deletedPaymentRecord = await prisma.paymentRecord.delete({
+          where: { id: paymentRecord.id }
+        });
+      }
+
+      // 3. Delete the penalty
+      const deletedPenalty = await prisma.penalty.delete({
+        where: { id: penaltyId }
+      });
+
+      return {
+        success: true,
+        data: {
+          penalty: deletedPenalty,
+          paymentRecord: deletedPaymentRecord
+        },
+        message: paymentRecord 
+          ? "Penalty and associated payment record deleted successfully" 
+          : "Penalty deleted successfully"
+      };
     });
-    
-    return { success: true, data: deletedPenalty };
   } catch (error) {
+    console.error("Error deleting penalty:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: "Failed to delete penalty",
+      details: error instanceof Error ? error.message : "Unknown error"
     };
   }
 }

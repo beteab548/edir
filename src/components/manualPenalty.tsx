@@ -63,6 +63,7 @@ type Penalty = {
 export default function ManualPenaltyManagement() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showMembersList, setShowMembersList] = useState(false);
+  const [memberSearchTerm, setMemberSearchTerm] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
@@ -119,9 +120,13 @@ export default function ManualPenaltyManagement() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ penaltyId }),
+        body: JSON.stringify({
+          penaltyId,
+          deletePaymentRecord: true,
+        }),
       });
       setIsloading(false);
+
       if (!response.ok) {
         throw new Error("Failed to delete penalty");
       }
@@ -161,26 +166,34 @@ export default function ManualPenaltyManagement() {
   };
 
   const handleSearch = (term: string) => {
-    setSearchTerm(term);
     if (term === "") {
       setFilteredMembers(allMembers);
       return;
     }
-    const filtered = allMembers.filter(
-      (member: Member) =>
-        `${member.first_name} ${member.second_name} ${member.last_name}`
-          .toLowerCase()
-          .includes(term.toLowerCase()) ||
-        member.id_number?.toLowerCase().includes(term.toLowerCase()) ||
-        member.phone_number.toLowerCase().includes(term.toLowerCase())
-    );
+    const searchTermLower = term.toLowerCase();
+
+    const filtered = allMembers.filter((member: Member) => {
+      const fullName =
+        `${member.first_name} ${member.second_name} ${member.last_name}`.toLowerCase();
+      const firstNameLastName =
+        `${member.first_name} ${member.last_name}`.toLowerCase();
+      const firstNameSecondName =
+        `${member.first_name} ${member.second_name}`.toLowerCase();
+      const secondNameLastName =
+        `${member.second_name} ${member.last_name}`.toLowerCase();
+
+      return (
+        fullName.includes(searchTermLower) ||
+        firstNameLastName.includes(searchTermLower) ||
+        firstNameSecondName.includes(searchTermLower) ||
+        secondNameLastName.includes(searchTermLower) ||
+        member.id_number?.toLowerCase().includes(searchTermLower) ||
+        member.phone_number.toLowerCase().includes(searchTermLower)
+      );
+    });
+
     setFilteredMembers(filtered);
   };
-
-  // const handleMemberSelect = (member: Member) => {
-  //   setSelectedMember(member);
-  //   form.setValue("member_id", member.id);
-  // };
 
   // Add this function to calculate the penalty amount
   const calculatePenaltyAmount = (unpaidCount: number): number => {
@@ -218,7 +231,7 @@ export default function ManualPenaltyManagement() {
       setIsloading(false);
       toast.success(`penalty has been created`);
       setSelectedMember(null);
-      setSearchTerm("");
+      setMemberSearchTerm("");
       setIsModalOpen(false);
       setShowMembersList(false);
       form.reset();
@@ -244,6 +257,32 @@ export default function ManualPenaltyManagement() {
   }, []);
   const sortedPenalties = useMemo(() => {
     let sortableItems = [...penaltiesWithNumberAmount];
+
+    // Apply search filter if search term exists
+    if (searchTerm) {
+      const searchTermLower = searchTerm.toLowerCase();
+
+      sortableItems = sortableItems.filter((penalty) => {
+        const fullName =
+          `${penalty.member.first_name} ${penalty.member.second_name} ${penalty.member.last_name}`.toLowerCase();
+        const firstNameLastName =
+          `${penalty.member.first_name} ${penalty.member.last_name}`.toLowerCase();
+        const firstNameSecondName =
+          `${penalty.member.first_name} ${penalty.member.second_name}`.toLowerCase();
+        const secondNameLastName =
+          `${penalty.member.second_name} ${penalty.member.last_name}`.toLowerCase();
+
+        return (
+          fullName.includes(searchTermLower) ||
+          firstNameLastName.includes(searchTermLower) ||
+          firstNameSecondName.includes(searchTermLower) ||
+          secondNameLastName.includes(searchTermLower) ||
+          penalty.member.custom_id.toLowerCase().includes(searchTermLower)
+        );
+      });
+    }
+
+    // Apply sorting
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         let aValue, bValue;
@@ -271,8 +310,9 @@ export default function ManualPenaltyManagement() {
         return 0;
       });
     }
+
     return sortableItems;
-  }, [penaltiesWithNumberAmount, sortConfig]);
+  }, [penaltiesWithNumberAmount, sortConfig, searchTerm]);
 
   // Helper function for status sorting
   function getStatusValue(penalty: Penalty) {
@@ -404,8 +444,20 @@ export default function ManualPenaltyManagement() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <h2 className="font-semibold text-gray-800">Recent Penalties</h2>
+          <div className="relative w-full md:w-64">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <FiSearch className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Search by name or ID..."
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -431,89 +483,135 @@ export default function ManualPenaltyManagement() {
               </tr>
             </thead>
             <tbody className=" bg-white divide-y divide-gray-200">
-              {sortedPenalties.map((penalty: Penalty) => (
-                <tr
-                  key={penalty.id}
-                  className="hover:bg-gray-50 transition-colors"
-                >
-                  <td className=" px-2 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {penalty.member.custom_id}
-                  </td>
-                  <td className=" py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        {penalty?.member?.image_url ? (
-                          <>
-                            <Image
-                              src={penalty?.member?.image_url}
-                              alt={`${penalty?.member?.first_name} ${penalty.member.second_name} `}
-                              width={32}
-                              height={32}
-                              className="rounded-full object-cover border border-gray-300"
-                              unoptimized
-                            />
-                          </>
-                        ) : (
-                          <UserIcon className="h-5 w-5 text-blue-600" />
-                        )}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
-                          {penalty.member.first_name}{" "}
-                          {penalty.member.second_name}{" "}
-                          {penalty.member.last_name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {penalty.member.custom_id}
-                        </div>
-                      </div>
+              {penaltiesWithNumberAmount.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <FolderOpenIcon className="h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">
+                        No penalties found
+                      </h3>
+                      <p className="text-gray-500 max-w-md">
+                        {searchTerm
+                          ? "No penalties match your search criteria"
+                          : "Get started by adding a new penalty."}
+                      </p>
+                      {searchTerm && (
+                        <button
+                          onClick={() => setMemberSearchTerm("")}
+                          className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                        >
+                          Clear search
+                        </button>
+                      )}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                      {penalty.penalty_type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                    {penalty.amount.toFixed(2)} birr
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {penalty.paid_amount.toFixed(2)} birr
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {format(new Date(penalty.missed_month), "MMM dd yyyy")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <StatusBadge
-                      isPaid={penalty.is_paid}
-                      isWaived={penalty.waived}
-                    />
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center space-x-3">
+                </tr>
+              ) : sortedPenalties.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <FolderOpenIcon className="h-12 w-12 text-gray-400 mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-1">
+                        No penalties match your search
+                      </h3>
+                      <p className="text-gray-500 max-w-md">
+                        Try adjusting your search criteria
+                      </p>
                       <button
-                        onClick={() => {
-                          setSelectedPenalty(penalty);
-                          setIsWaiveModalOpen(true);
-                        }}
-                        className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
-                        disabled={penalty.is_paid || !!penalty.waived}
+                        onClick={() => setSearchTerm("")}
+                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
                       >
-                        Waive
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedPenalty(penalty);
-                          setIsDeleteModalOpen(true);
-                        }}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Delete
+                        Clear search
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                sortedPenalties.map((penalty: Penalty) => (
+                  <tr
+                    key={penalty.id}
+                    className="hover:bg-gray-50 transition-colors"
+                  >
+                    <td className=" px-2 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {penalty.member.custom_id}
+                    </td>
+                    <td className=" py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                          {penalty?.member?.image_url ? (
+                            <>
+                              <Image
+                                src={penalty?.member?.image_url}
+                                alt={`${penalty?.member?.first_name} ${penalty.member.second_name} `}
+                                width={32}
+                                height={32}
+                                className="rounded-full object-cover border border-gray-300"
+                                unoptimized
+                              />
+                            </>
+                          ) : (
+                            <UserIcon className="h-5 w-5 text-blue-600" />
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">
+                            {penalty.member.first_name}{" "}
+                            {penalty.member.second_name}{" "}
+                            {penalty.member.last_name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {penalty.member.custom_id}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                        {penalty.penalty_type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
+                      {penalty.amount.toFixed(2)} birr
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {penalty.paid_amount.toFixed(2)} birr
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {format(new Date(penalty.missed_month), "MMM dd yyyy")}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge
+                        isPaid={penalty.is_paid}
+                        isWaived={penalty.waived}
+                      />
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center space-x-3">
+                        <button
+                          onClick={() => {
+                            setSelectedPenalty(penalty);
+                            setIsWaiveModalOpen(true);
+                          }}
+                          className="text-indigo-600 hover:text-indigo-900 disabled:opacity-50"
+                          disabled={penalty.is_paid || !!penalty.waived}
+                        >
+                          Waive
+                        </button>
+                        <button
+                          onClick={() => {
+                            setSelectedPenalty(penalty);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -546,7 +644,7 @@ export default function ManualPenaltyManagement() {
                     setIsModalOpen(false);
                     form.reset();
                     setSelectedMember(null);
-                    setSearchTerm("");
+                    setMemberSearchTerm("");
                     setShowMembersList(false);
                   }}
                   className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
@@ -573,15 +671,16 @@ export default function ManualPenaltyManagement() {
                             value={
                               selectedMember
                                 ? `${selectedMember.first_name} ${selectedMember.second_name} ${selectedMember.last_name}`
-                                : searchTerm
+                                : memberSearchTerm
                             }
                             onChange={(e) => {
                               setSelectedMember(null);
+                              setMemberSearchTerm(e.target.value);
                               handleSearch(e.target.value);
                               setShowMembersList(true);
                             }}
                             onClick={() => {
-                              if (!searchTerm && !selectedMember) {
+                              if (!memberSearchTerm && !selectedMember) {
                                 setFilteredMembers(allMembers);
                                 setShowMembersList(true);
                               }
@@ -595,7 +694,7 @@ export default function ManualPenaltyManagement() {
                               type="button"
                               onClick={() => {
                                 setSelectedMember(null);
-                                setSearchTerm("");
+                                setMemberSearchTerm("");
                                 form.setValue("member_id", 0);
                                 setShowMembersList(false);
                               }}
@@ -720,7 +819,7 @@ export default function ManualPenaltyManagement() {
                       setIsModalOpen(false);
                       form.reset();
                       setSelectedMember(null);
-                      setSearchTerm("");
+                      setMemberSearchTerm("");
                     }}
                     className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                   >

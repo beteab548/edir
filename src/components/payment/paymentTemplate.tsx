@@ -132,6 +132,42 @@ export default function ContributionTemplate({
     }
   };
 
+  useEffect(() => {
+    const fetchPenaltyMonths = async () => {
+      if (type === "manually" && selectedMember) {
+        setLoadingPenaltyMonths(true);
+        try {
+          const res = await fetch(`/api/penalty?memberId=${selectedMember.id}`);
+          if (!res.ok) throw new Error("Failed to fetch penalty months");
+
+          const { monthsWithAmount } = await res.json();
+
+          // Filter out waived penalties and only show unpaid ones
+          const filteredMonths = (monthsWithAmount || []).filter(
+            (penalty: { waived: boolean | null }) => !penalty.waived
+          );
+
+          // Sort the remaining months in ascending order
+          const sortedMonths = filteredMonths.sort(
+            (a: { month: Date }, b: { month: Date }) => {
+              return new Date(a.month).getTime() - new Date(b.month).getTime();
+            }
+          );
+
+          setPenaltyMonths(sortedMonths);
+        } catch (error) {
+          console.error("Error fetching penalty months:", error);
+          toast.error("Failed to load penalty months");
+          setPenaltyMonths([]);
+        } finally {
+          setLoadingPenaltyMonths(false);
+        }
+      } else {
+        setPenaltyMonths([]);
+      }
+    };
+    fetchPenaltyMonths();
+  }, [type, selectedMember]);
   // Handle clicks outside the dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -762,46 +798,55 @@ export default function ContributionTemplate({
                       />
                     ) : (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Penalty Month
-                        </label>
-                        <select
-                          {...register("penalty_month", { required: true })}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                          disabled={
-                            loadingPenaltyMonths || penaltyMonths.length === 0
-                          }
-                        >
-                          <option value="">Select a month</option>
-                          {penaltyMonths.map((month) => {
-                            const monthStr =
-                              typeof month.month === "string"
-                                ? month.month
-                                : `${month.month.getFullYear()}-${String(
-                                    month.month.getMonth() + 1
-                                  ).padStart(2, "0")}`;
-                            return (
-                              <option key={monthStr} value={monthStr}>
-                                {monthStr.slice(0, 10)} - {month.amount} birr
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <span className=" text-xs text-red-700">
-                          {penaltyMonths.length > 1
-                            ? "only allows payment from oldes to latest"
-                            : ""}
-                        </span>{" "}
-                        {errors.penalty_month && (
-                          <span className="text-red-500 text-xs">
-                            Penalty month is required
-                          </span>
+                        {type === "manually" && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Penalty Month
+                            </label>
+                            <select
+                              {...register("penalty_month", { required: true })}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                              disabled={
+                                loadingPenaltyMonths ||
+                                penaltyMonths.length === 0
+                              }
+                            >
+                              <option value="">Select a month</option>
+                              {penaltyMonths.map((month, index) => {
+                                const monthStr =
+                                  typeof month.month === "string"
+                                    ? month.month
+                                    : `${month.month.getFullYear()}-${String(
+                                        month.month.getMonth() + 1
+                                      ).padStart(2, "0")}`;
+
+                                const isSelectable = index === 0;
+                                return (
+                                  <option
+                                    key={monthStr}
+                                    value={monthStr}
+                                    disabled={!isSelectable}
+                                  >
+                                    {monthStr.slice(0, 10)} - {month.amount}{" "}
+                                    birr
+                                    {!isSelectable
+                                      ? " (Pay earlier months first)"
+                                      : ""}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                            {errors.penalty_month && (
+                              <span className="text-red-500 text-xs">
+                                Penalty month is required
+                              </span>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
                   </div>
                 </div>
-
                 {/* Row 2 */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <InputField

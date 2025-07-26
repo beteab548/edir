@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { deletePenalty } from "@/lib/actions";
 
+// app/api/penalty/route.ts
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const memberId = searchParams.get("memberId");
@@ -22,20 +23,21 @@ export async function GET(req: NextRequest) {
         member_id: Number(memberId),
         generated: "manually",
         is_paid: false,
+        waived: false // Add this condition to exclude waived penalties
       },
       select: {
         missed_month: true,
         expected_amount: true,
+        waived: true // Include waived status in the response
       },
     });
 
-    // Return the raw DateTime without conversion
     const monthsWithAmount = penalties.map((penalty) => ({
-      month: penalty.missed_month, // Keep as DateTime
+      month: penalty.missed_month,
       amount: penalty.expected_amount,
+      waived: penalty.waived
     }));
 
-    console.log(monthsWithAmount);
     return NextResponse.json({ monthsWithAmount });
   } catch (error) {
     console.error(error);
@@ -97,13 +99,10 @@ export async function DELETE(request: Request) {
     const result = await deletePenalty(penaltyId);
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 500 });
+      return NextResponse.json({ error: "unable to delete" }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true, data: result.data },
-      { status: 200 }
-    );
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     return NextResponse.json(
       { error: "Internal server error" },
