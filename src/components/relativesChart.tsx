@@ -137,7 +137,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
               )}
             </h2>
             <p className="text-xs text-gray-500">
-              Showing {total} relatives grouped by relation type
+              Showing relatives grouped by relation type
             </p>
           </div>
         </div>
@@ -189,11 +189,11 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="-mt-12 pt-4 border-gray-200">
             <div className="flex items-center justify-center space-x-2">
               <FiUsers className="text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
-                Total Relatives: {total}
+                Total Relatives: <span className="font-bold">{total}</span>
               </span>
             </div>
           </div>
