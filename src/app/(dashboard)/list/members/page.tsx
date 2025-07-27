@@ -155,7 +155,7 @@ const MemberListPage = async ({
       <td className="py-4 pl-6 pr-3">
         <div className="flex items-center gap-4">
           <Image
-            src={item.image_url ?? "/noAvatar.png"}
+            src={item.image_url ?? "/avatar.png"}
             alt=""
             width={48}
             height={48}
