@@ -1,9 +1,6 @@
 "use client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import NProgress from "nprogress";
-import "nprogress/nprogress.css";
-
 const TableSearch = () => {
   const router = useRouter();
 
@@ -14,15 +11,12 @@ const TableSearch = () => {
 
     const params = new URLSearchParams(window.location.search);
     params.set("search", value);
-
-    NProgress.start(); // ⬅️ start loading bar
-    router.push(`${window.location.pathname}?${params.toString()}`);
+    router.push(`${window.location.pathname}?${params}`);
   };
-
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full md:w-auto flex items-center text-xs rounded-full ring-[1.5px] ring-gray-300 px-3"
+      className="w-full md:w-auto flex items-center  text-xs rounded-full ring-[1.5px] ring-gray-300 px-3"
     >
       <Image src="/search.png" alt="" width={14} height={14} />
       <input
@@ -33,5 +27,5 @@ const TableSearch = () => {
     </form>
   );
 };
-
 export default TableSearch;
+ 
