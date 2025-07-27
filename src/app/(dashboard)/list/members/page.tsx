@@ -210,23 +210,20 @@ const MemberListPage = async ({
   const query: Prisma.MemberWhereInput = {};
   if (queryParams.search) {
     const searchTerm = queryParams.search.trim();
+    const words = searchTerm.split(/\s+/);
 
-    // Prepare phone variants for search
+    // Phone variants
     let phoneVariants = [searchTerm];
-
-    // If searchTerm starts with 0, add variant with 251 prefix (without +)
     if (/^0\d+$/.test(searchTerm)) {
       phoneVariants.push("251" + searchTerm.slice(1));
-    }
-    // If searchTerm starts with 251, add variant with 0 prefix
-    else if (/^251\d+$/.test(searchTerm)) {
+    } else if (/^251\d+$/.test(searchTerm)) {
       phoneVariants.push("0" + searchTerm.slice(3));
     }
 
     query.OR = [
-      { first_name: { contains: searchTerm, mode: "insensitive" } },
-      { second_name: { contains: searchTerm, mode: "insensitive" } },
-      { last_name: { contains: searchTerm, mode: "insensitive" } },
+      {
+        custom_id: { contains: searchTerm, mode: Prisma.QueryMode.insensitive },
+      },
       ...phoneVariants.flatMap((variant) => [
         {
           phone_number: {
@@ -241,6 +238,27 @@ const MemberListPage = async ({
           },
         },
       ]),
+      {
+        AND: words.map((word) => ({
+          OR: [
+            {
+              first_name: {
+                contains: word,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              second_name: {
+                contains: word,
+                mode: Prisma.QueryMode.insensitive,
+              },
+            },
+            {
+              last_name: { contains: word, mode: Prisma.QueryMode.insensitive },
+            },
+          ],
+        })),
+      },
     ];
   }
 
@@ -327,7 +345,7 @@ const MemberListPage = async ({
           <div className="flex items-center gap-2">
             <span className="text-sm text-gray-500">Members per page:</span>
             <div className="flex items-center gap-1">
-              {ITEMS_PER_PAGE_OPTIONS.map((option:any) => {
+              {ITEMS_PER_PAGE_OPTIONS.map((option: any) => {
                 const params = new URLSearchParams(
                   searchParams as Record<string, string>
                 );
