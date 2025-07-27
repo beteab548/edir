@@ -515,9 +515,6 @@ export default function ManualPenaltyManagement() {
                       <h3 className="text-lg font-medium text-gray-900 mb-1">
                         No penalties match your search
                       </h3>
-                      <p className="text-gray-500 max-w-md">
-                        Try adjusting your search criteria
-                      </p>
                       <button
                         onClick={() => setSearchTerm("")}
                         className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
@@ -615,19 +612,6 @@ export default function ManualPenaltyManagement() {
             </tbody>
           </table>
         </div>
-
-        {penaltiesWithNumberAmount.length === 0 && (
-          <div className="text-center py-12">
-            <FolderOpenIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              No penalties
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Get started by adding a new penalty.
-            </p>
-            <div className="mt-6"></div>
-          </div>
-        )}
       </div>
 
       {/* Add Penalty Modal */}
