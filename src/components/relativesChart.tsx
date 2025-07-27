@@ -78,10 +78,10 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
 
       const url = `${apiUrl}?${params.toString()}`;
 
-      const response = await fetch(url,{
-          cache: "no-store",
-          next: { revalidate: 0 },
-        });
+      const response = await fetch(url, {
+        cache: "no-store",
+        next: { revalidate: 0 },
+      });
       if (!response.ok) {
         throw new Error(`failed to fetch, refresh page`);
       }
@@ -97,11 +97,11 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [apiUrl, memberId, activeOnly]); 
+  }, [apiUrl, memberId, activeOnly]);
 
   useEffect(() => {
     fetchRelatives();
-  }, [fetchRelatives]); 
+  }, [fetchRelatives]);
 
   const relationCounts = relatives.reduce((acc, relative) => {
     const relation = relative.relation_type;
@@ -154,39 +154,49 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
           No relatives found.
         </div>
       ) : (
-        <div className="flex-1 min-h-[300px] ">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="40%"
-                innerRadius={30}
-                outerRadius={60}
-                paddingAngle={2}
-                dataKey="value"
-                label={({ name, percent }) =>
-                  `${name.replace(/_/g, " ")} ${(percent * 100).toFixed(0)}%`
-                }
-                labelLine={false}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                    stroke="#fff"
-                    strokeWidth={2}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value: number, name: string) => [
-                  value,
-                  name.replace(/_/g, " "),
-                ]}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="flex flex-col h-full">
+          <div className="flex-1 min-h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartData}
+                  cx="50%"
+                  cy="40%"
+                  innerRadius={30}
+                  outerRadius={60}
+                  paddingAngle={2}
+                  dataKey="value"
+                  label={({ name, percent }) =>
+                    `${name.replace(/_/g, " ")} ${(percent * 100).toFixed(0)}%`
+                  }
+                  labelLine={false}
+                >
+                  {chartData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                      stroke="#fff"
+                      strokeWidth={2}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: number, name: string) => [
+                    value,
+                    name.replace(/_/g, " "),
+                  ]}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-center space-x-2">
+              <FiUsers className="text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">
+                Total Relatives: {total}
+              </span>
+            </div>
+          </div>
         </div>
       )}
     </motion.div>
