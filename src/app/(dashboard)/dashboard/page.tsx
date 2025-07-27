@@ -172,14 +172,21 @@ const AdminPage = async () => {
     console.error("AdminPage error:", error);
 
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <h1 className="text-2xl font-bold text-red-600">
-            Something went wrong
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="text-center space-y-6 max-w-md">
+          <h1 className="text-3xl font-bold text-red-600">
+            Connection Issue Detected
           </h1>
-          <p className="text-gray-600">
-            Failed to load the dashboard. Please try refreshing the page.
+          <p className="text-gray-700">
+            We were unable to load your dashboard due to a network or server
+            error. Please try the following:
           </p>
+          <ul className="text-left text-sm text-gray-600 list-disc list-inside space-y-1">
+            <li>Check your internet connection.</li>
+            <li>Refresh the page.</li>
+            <li>Try again in a few minutes.</li>
+            <li>Contact support if the issue persists.</li>
+          </ul>
         </div>
       </div>
     );
