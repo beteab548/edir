@@ -149,10 +149,10 @@ const MemberListPage = async ({
   // Row rendering function
   const renderRow = (item: Member) => (
     <>
-      <td className="px-3 py-4 text-gray-700 font-medium whitespace-nowrap">
+      <td className="px-2 py-4 text-gray-700 font-medium whitespace-nowrap">
         {item.custom_id || item.id}
       </td>
-      <td className="py-4 pl-6 pr-3">
+      <td className="py-2 pl-6 pr-3">
         <div className="flex items-center gap-4">
           <Image
             src={item.image_url ?? "/avatar.png"}
@@ -172,16 +172,16 @@ const MemberListPage = async ({
           </div>
         </div>
       </td>
-      <td className="hidden md:table-cell px-4 py-4 text-gray-600">
+      <td className="hidden md:table-cell px-3 py-4 text-gray-600">
         {item.profession || "-"}
       </td>
-      <td className="hidden lg:table-cell px-4 py-4 text-gray-600">
+      <td className="hidden lg:table-cell px-3 py-4 text-gray-600">
         {item.phone_number || "-"}
       </td>
-      <td className="hidden md:table-cell px-4 py-4 text-gray-600">
+      <td className="hidden md:table-cell px-3 py-4 text-gray-600">
         {calculateAge(item.birth_date)}
       </td>
-      <td className="hidden md:table-cell px-4 py-4">
+      <td className="hidden md:table-cell px-3 py-4">
         <span
           className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
             item.status
@@ -190,7 +190,7 @@ const MemberListPage = async ({
           {item.status}
         </span>
       </td>
-      <td className="hidden md:table-cell px-4 py-4 text-gray-600">
+      <td className="hidden md:table-cell px-3 py-4 text-gray-600">
         {formatDate(item.joined_date)}
       </td>
       <td className="py-4 pr-6 pl-3">
