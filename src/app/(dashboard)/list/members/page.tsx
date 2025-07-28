@@ -32,12 +32,6 @@ const ErrorFallback = () => (
         <li>Refresh the page</li>
         <li>Try again in a few minutes</li>
       </ul>
-      <button
-        onClick={() => window.location.reload()}
-        className="px-5 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition"
-      >
-        Retry
-      </button>
     </div>
   </div>
 );
@@ -195,14 +189,14 @@ const MemberListPage = async ({
         <td className="hidden md:table-cell px-3 py-4">
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
-              item.status
+              item.status??"Active"
             )}`}
           >
             {item.status}
           </span>
         </td>
         <td className="hidden md:table-cell px-5 py-4 text-gray-600">
-          {formatDate(item.joined_date)}
+          {formatDate(item.registered_date)}
         </td>
         <td className="py-4 pr-6 pl-3">
           <div className="flex items-center justify-end gap-3">
@@ -293,9 +287,9 @@ const MemberListPage = async ({
     } else if (currentSort === "status") {
       orderBy = { status: sortDirection };
     } else if (currentSort === "joined_date") {
-      orderBy = { joined_date: sortDirection };
+      orderBy = { registered_date: sortDirection };
     } else {
-      orderBy = { joined_date: "desc" };
+      orderBy = { registered_date: "desc" };
     }
 
     const [data, count] = await prisma.$transaction([

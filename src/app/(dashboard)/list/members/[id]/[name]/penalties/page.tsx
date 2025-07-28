@@ -1,8 +1,11 @@
-export const dynamic = "force-dynamic";
-import prisma from "@/lib/prisma";
+"use client";
+
+import { useState } from "react";
+import useSWR from "swr";
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { WaivePenaltyButton } from "../../../../../../../components/WaivePenaltyButton";
-import { currentUser } from "@clerk/nextjs/server";
-import { notFound, redirect } from "next/navigation";
+import { ViewWaiverModal } from "../../../../../../../components/ViewWaiverModal";
 
 interface MemberPenaltiesPageProps {
   params: {
@@ -11,69 +14,53 @@ interface MemberPenaltiesPageProps {
   };
 }
 
-export default async function MemberPenaltiesPage({
-  params,
-}: MemberPenaltiesPageProps) {
-  console.log("params are:", params);
-  const user = await currentUser();
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-  if (!user) {
-    return redirect("/sign-in");
+export default function MemberPenaltiesPage({ params }: MemberPenaltiesPageProps) {
+  const { user, isSignedIn } = useUser();
+  const router = useRouter();
+  const [viewingPenalty, setViewingPenalty] = useState<any>(null);
+
+  // Redirect if not signed in or role mismatch
+  if (!isSignedIn) {
+    router.push("/sign-in");
+  }
+  if (user && user.publicMetadata?.role !== "chairman") {
+    router.push("/dashboard");
   }
 
-  const role = user.publicMetadata?.role;
-  if (role !== "chairman") return redirect("/dashboard");
+  const { data, error, isLoading, mutate } = useSWR(
+    `/api/member-penalties?memberId=${params.id}&contributionTypeName=${encodeURIComponent(params.name)}`,
+    fetcher
+  );
 
-  const memberId = parseInt(params.id);
-  const decodedName = decodeURIComponent(params.name);
-  const contributionType = await prisma.contributionType.findFirst({
-    where: {
-      name: {
-        equals: decodedName,
-        mode: "insensitive",
-      },
-    },
-  });
-
-  if (!contributionType) {
-    return notFound();
+  if (error) {
+    return (
+      <div className="container mx-auto px-4 py-8 text-red-600">
+        Failed to load data: {error.message || "Unknown error"}
+      </div>
+    );
   }
-  const member = await prisma.member.findUnique({
-    where: { id: memberId },
-    select: {
-      id: true,
-      first_name: true,
-      last_name: true,
-      phone_number: true,
-    },
-  });
-  const penalties = await prisma.penalty.findMany({
-    where: {
-      member_id: memberId,
-      generated: "automatically",
-      penalty_type: contributionType.name,
-    },
-    include: {
-      member: true,
-      contribution: {
-        select: {
-          type_name: true,
-        },
-      },
-      contributionSchedule: {
-        select: {
-          month: true,
-        },
-      },
-    },
-    orderBy: {
-      applied_at: "desc",
-    },
-  });
 
-  if (!member) {
-    return <div className="p-4">Member not found</div>;
+  if (isLoading || !data) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </div>
+    );
   }
+
+  if (!data.member) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="p-4 text-center text-red-500">Member not found</div>
+      </div>
+    );
+  }
+
+  const { member, penalties } = data;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -122,37 +109,42 @@ export default async function MemberPenaltiesPage({
                 </td>
               </tr>
             ) : (
-              penalties.map((penalty:any) => (
-                <tr key={penalty.id} className="hover:bg-gray-50">
+              penalties.map((penalty: any) => (
+                <tr
+                  key={penalty.id}
+                  className={`hover:bg-gray-50 ${penalty.waived ? "bg-purple-50 cursor-pointer" : ""}`}
+                  onClick={() => penalty.waived && setViewingPenalty(penalty)}
+                >
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {penalty.contribution?.type_name}
+                    {penalty.contribution?.type_name || penalty.penalty_type}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(penalty.missed_month).toLocaleDateString(
-                      "en-US",
-                      {
-                        year: "numeric",
-                        month: "long",
-                      }
-                    )}
+                    {new Date(penalty.missed_month).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                    })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {penalty.expected_amount.toFixed(2)}
+                    {penalty.expected_amount}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {penalty.paid_amount.toFixed(2)}
+                    {penalty.paid_amount}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        penalty.is_paid
+                        penalty.waived
+                          ? "bg-purple-100 text-purple-800"
+                          : penalty.is_paid
                           ? "bg-green-100 text-green-800"
                           : Number(penalty.paid_amount) > 0
                           ? "bg-yellow-100 text-yellow-800"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {penalty.is_paid
+                      {penalty.waived
+                        ? "Waived"
+                        : penalty.is_paid
                         ? "Paid"
                         : Number(penalty.paid_amount) > 0
                         ? "Partially Paid"
@@ -163,7 +155,7 @@ export default async function MemberPenaltiesPage({
                     {new Date(penalty.applied_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    {!penalty.is_paid && (
+                    {!penalty.is_paid && !penalty.waived && (
                       <WaivePenaltyButton
                         penaltyId={penalty.id}
                         memberId={penalty.member_id}
@@ -171,6 +163,7 @@ export default async function MemberPenaltiesPage({
                         memberName={penalty.member.first_name}
                         missedMonth={penalty.missed_month}
                         amount={Number(penalty.expected_amount)}
+                        onSuccess={() => mutate()}
                       />
                     )}
                   </td>
@@ -180,6 +173,10 @@ export default async function MemberPenaltiesPage({
           </tbody>
         </table>
       </div>
+
+      {viewingPenalty && (
+        <ViewWaiverModal penalty={viewingPenalty} onClose={() => setViewingPenalty(null)} />
+      )}
     </div>
   );
 }

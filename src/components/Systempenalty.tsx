@@ -57,9 +57,15 @@ export default function PenaltiesOverviewPage({ members }: Props) {
   };
 
   const getPenaltyStatus = (penalties: Props["members"][0]["Penalty"]) => {
-    if (penalties.every((p) => p.is_paid)) return "Paid";
+    if (penalties.length === 0) return "No Penalty";
+
+    if (penalties.every((p) => p.waived)) return "Waived";
+
+    if (penalties.every((p) => p.is_paid || p.waived)) return "Paid";
+
     if (penalties.some((p) => !p.is_paid && Number(p.paid_amount) > 0))
       return "Partially Paid";
+
     return "Unpaid";
   };
 
@@ -71,13 +77,17 @@ export default function PenaltiesOverviewPage({ members }: Props) {
         return "bg-yellow-100 text-yellow-800";
       case "Unpaid":
         return "bg-red-100 text-red-800";
+      case "Waived":
+        return "bg-blue-100 text-blue-800";
+      case "No Penalty":
+        return "bg-gray-100 text-gray-600";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-1 max-w-7xl mx-auto ">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-800">Penalties Overview</h1>
         <p className="text-gray-600">
@@ -148,8 +158,8 @@ export default function PenaltiesOverviewPage({ members }: Props) {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-10 w-10 bg-indigo-100 rounded-full flex items-center justify-center">
                           <span className="text-indigo-600 font-medium">
-                            {member.first_name.charAt(0)}
-                            {member.last_name.charAt(0)}
+                            {member?.first_name?.charAt(0)}
+                            {member?.last_name?.charAt(0)}
                           </span>
                         </div>
                         <div className="ml-4">

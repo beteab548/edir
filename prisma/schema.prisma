@@ -8,17 +8,20 @@ datasource db {
 }
 model Member {
   id           Int     @id @default(autoincrement())
-  custom_id   String  @unique
-  first_name   String
-  second_name  String
-  last_name    String
+  custom_id   String?  @unique
+  first_name   String?
+  second_name  String?
+  last_name    String?
   profession   String?
   title        String?
   job_business String?
-  id_number    String?  @unique
+  identification_type   IDType?
+  identification_number String?
+  identification_image  String?
+  identification_file_id String?
   birth_date   DateTime
-  citizen      String
-  joined_date   DateTime @default(now())
+  citizen      String?
+  registered_date   DateTime @default(now())
   end_date     DateTime?
   wereda        String?        
   zone_or_district String?     
@@ -27,11 +30,11 @@ model Member {
    block String?
   house_number String?
   founding_member Boolean @default(false)
-  sex          Sex
-  marital_status  MaritalStatus
-  phone_number String  
-  phone_number_2 String  
-  member_type MemberType 
+  sex          Sex?
+  marital_status  MaritalStatus?
+  phone_number String?  
+  phone_number_2 String?  
+  member_type MemberType? 
   bank_name    String?
   bank_account_number String? @unique
   bank_account_name String?
@@ -44,7 +47,7 @@ model Member {
   remark String?
   created_at       DateTime  @default(now())     
   status_updated_at DateTime? 
-  status Status 
+  status Status? 
   relative  Relative[]
   Payment Payment[]
   Balance Balance[]
@@ -153,6 +156,9 @@ model Penalty {
   contribution             Contribution?          @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
   contributionSchedule     ContributionSchedule?  @relation(fields: [contribution_schedule_id], references: [id], onDelete: Cascade)
   waived  Boolean? @default(false)
+  waived_reason String?
+  waived_reason_document String?
+  waived_reason_document_file_id String?
   generated PenaltyType? @default(automatically) 
   penalty_type             String?
   reason                   String
@@ -239,4 +245,9 @@ enum MaritalStatus {
   married
   divorced
   widowed
+}
+enum IDType {
+  FAYDA
+  KEBELE_ID
+  PASSPORT
 }

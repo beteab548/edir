@@ -17,6 +17,9 @@ interface SearchParams {
     member_type?: string;
     house_number?: string;
     title?: string;
+    green_area?: string;
+    block?: string;
+    marital_status?: string;
   };
 }
 
@@ -32,20 +35,24 @@ export default async function ReportPage({ searchParams }: SearchParams) {
     profession: searchParams.profession,
     member_type: searchParams.member_type as MemberType,
     house_number: searchParams.house_number,
+    green_area: searchParams.green_area,
+    block: searchParams.block,
     title: searchParams.title,
+    marital_status: searchParams.marital_status,
   });
-  const processedData = members.map((m:any) => ({
+  const processedData = members.map((m: any) => ({
     ID: m.custom_id,
     "Full Name": `${m.first_name} ${m.second_name} ${m.last_name}`,
     Phone: m.phone_number.replace(/^251/, "0"),
-    "Join Date": new Date(m.joined_date).toLocaleDateString(),
+    "Registered Date": new Date(m.registered_date).toLocaleDateString(),
     status: m.status,
+    green_area: m.green_area,
+    block: m.block,
     house_number: m.house_number,
     member_type: m.member_type,
     birth_date: m.birth_date
       ? new Date(m.birth_date).toLocaleDateString()
       : "N/A",
-
     zone_or_district: m.zone_or_district,
     bank_account_name: m.bank_account_name,
     bank_account_number: m.bank_account_number,
@@ -53,13 +60,14 @@ export default async function ReportPage({ searchParams }: SearchParams) {
     email: m.email,
     email_2: m.email_2,
     job_business: m.job_business,
-    id_number: m.id_number,
+    id_number: m.identification_number,
     kebele: m.kebele,
     profession: m.profession,
     wereda: m.wereda,
     citizen: m.citizen,
     phone_number_2: m.phone_number.replace(/^251/, "0").replace(/^\+/, "0"),
     sex: m.sex,
+    marital_status: m.marital_status,
     title: m.title,
     remark: m.remark,
   }));
@@ -115,8 +123,8 @@ export default async function ReportPage({ searchParams }: SearchParams) {
           printWidth: "print:w-[100px]",
         },
         {
-          label: "Join Date",
-          accessor: "Join Date",
+          label: "Registerd Date",
+          accessor: "Registered Date",
           width: "w-auto",
           printWidth: "print:w-[100px]",
         },
@@ -129,6 +137,12 @@ export default async function ReportPage({ searchParams }: SearchParams) {
         {
           label: "Sex",
           accessor: "sex",
+          width: "w-auto",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Martial Status",
+          accessor: "marital_status",
           width: "w-auto",
           printWidth: "print:w-[100px]",
         },
@@ -168,6 +182,24 @@ export default async function ReportPage({ searchParams }: SearchParams) {
           printWidth: "print:w-[100px]",
         },
         {
+          label: "Green Area",
+          accessor: "green_area",
+          width: "w-auto",
+          printWidth: "print:w-[100px]",
+        },
+        {
+          label: "Block",
+          accessor: "block",
+          width: "w-auto",
+          printWidth: "print:w-[100px]",
+        },
+         {
+          label: "House Number",
+          accessor: "house_number",
+          width: "w-auto",
+          printWidth: "print:w-[100px]",
+        },
+        {
           label: "Citizen",
           accessor: "citizen",
           width: "w-auto",
@@ -185,12 +217,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
           width: "w-auto",
           printWidth: "print:w-[100px]",
         },
-        {
-          label: "House Number",
-          accessor: "house_number",
-          width: "w-auto",
-          printWidth: "print:w-[100px]",
-        },
+       
         {
           label: "bank Account Name",
           accessor: "bank_account_name",

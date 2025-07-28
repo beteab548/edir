@@ -50,13 +50,22 @@ export const createMember = async (
             ...(data.member.job_business
               ? { job_business: data.member.job_business }
               : {}),
-            ...(data.member.id_number
-              ? { id_number: data.member.id_number }
+            ...(data.member.identification_number
+              ? { identification_number: data.member.identification_number }
+              : {}),
+            ...(data.member.identification_type
+              ? { identification_type: data.member.identification_type }
+              : {}),
+            ...(data.member.identification_image
+              ? { identification_image: data.member.identification_image }
+              : {}),
+            ...(data.member.identification_file_id
+              ? { identification_file_id: data.member.identification_file_id }
               : {}),
             birth_date: new Date(data.member.birth_date),
             citizen: data.member.citizen,
-            ...(data.member.joined_date
-              ? { joined_date: new Date(data.member.joined_date) }
+            ...(data.member.registered_date
+              ? { registered_date: new Date(data.member.registered_date) }
               : {}),
             ...(data.member.end_date
               ? { end_date: new Date(data.member.end_date) }
@@ -245,11 +254,22 @@ export const updateMember = async (
             ...(data.member.job_business && {
               job_business: data.member.job_business,
             }),
-            ...(data.member.id_number && { id_number: data.member.id_number }),
+            ...(data.member.identification_number
+              ? { identification_number: data.member.identification_number }
+              : {}),
+            ...(data.member.identification_type
+              ? { identification_type: data.member.identification_type }
+              : {}),
+            ...(data.member.identification_image
+              ? { identification_image: data.member.identification_image }
+              : {}),
+            ...(data.member.identification_file_id
+              ? { identification_file_id: data.member.identification_file_id }
+              : {}),
             birth_date: new Date(data.member.birth_date),
             citizen: data.member.citizen,
-            ...(data.member.joined_date && {
-              joined_date: new Date(data.member.joined_date),
+            ...(data.member.registered_date && {
+              registered_date: new Date(data.member.registered_date),
             }),
             ...(newDatePassed
               ? { end_date: new Date(data.member.end_date ?? new Date()) }
@@ -960,7 +980,13 @@ export const paymentActionforAutomatic = async (
     return { success: false, error: true };
   }
 };
-export async function waivePenalty(penaltyId: number, memberId: number) {
+export async function waivePenalty(
+  penaltyId: number,
+  memberId: number,
+  reason: string,
+  waiverEvidence?: string,
+  waiverEvidenceFileId?: string
+) {
   try {
     const penalty = await prisma.penalty.findUnique({
       where: { id: penaltyId, member_id: memberId },
@@ -977,10 +1003,11 @@ export async function waivePenalty(penaltyId: number, memberId: number) {
     const updatedPenalty = await prisma.penalty.update({
       where: { id: penaltyId },
       data: {
-        is_paid: true,
         resolved_at: new Date(),
-        paid_amount: penalty.expected_amount,
         waived: true,
+        waived_reason: reason,
+        waived_reason_document: waiverEvidence,
+        waived_reason_document_file_id: waiverEvidenceFileId,
       },
     });
 
@@ -1379,10 +1406,10 @@ export async function deletePenalty(penaltyId: number) {
           contribution: {
             select: {
               member_id: true,
-              contribution_type_id: true
-            }
-          }
-        }
+              contribution_type_id: true,
+            },
+          },
+        },
       });
 
       if (!penalty) {
@@ -1394,38 +1421,38 @@ export async function deletePenalty(penaltyId: number) {
       const paymentRecord = await prisma.paymentRecord.findFirst({
         where: {
           Penalty_id: penaltyId,
-          member_id: penalty.member_id
-        }
+          member_id: penalty.member_id,
+        },
       });
 
       if (paymentRecord) {
         // First delete all payments associated with this payment record
         await prisma.payment.deleteMany({
           where: {
-            payment_record_id: paymentRecord.id
-          }
+            payment_record_id: paymentRecord.id,
+          },
         });
 
         // Then delete the payment record itself
         deletedPaymentRecord = await prisma.paymentRecord.delete({
-          where: { id: paymentRecord.id }
+          where: { id: paymentRecord.id },
         });
       }
 
       // 3. Delete the penalty
       const deletedPenalty = await prisma.penalty.delete({
-        where: { id: penaltyId }
+        where: { id: penaltyId },
       });
 
       return {
         success: true,
         data: {
           penalty: deletedPenalty,
-          paymentRecord: deletedPaymentRecord
+          paymentRecord: deletedPaymentRecord,
         },
-        message: paymentRecord 
-          ? "Penalty and associated payment record deleted successfully" 
-          : "Penalty deleted successfully"
+        message: paymentRecord
+          ? "Penalty and associated payment record deleted successfully"
+          : "Penalty deleted successfully",
       };
     });
   } catch (error) {
@@ -1433,7 +1460,7 @@ export async function deletePenalty(penaltyId: number) {
     return {
       success: false,
       error: "Failed to delete penalty",
-      details: error instanceof Error ? error.message : "Unknown error"
+      details: error instanceof Error ? error.message : "Unknown error",
     };
   }
 }

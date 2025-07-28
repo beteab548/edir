@@ -4,15 +4,19 @@ import Image from "next/image";
 import { toast } from "react-toastify";
 import { FiLoader } from "react-icons/fi";
 
+interface UploadFileProps {
+  text: string;
+  getImageUrl: (newImage: { Url: string; fileId: string }) => void;
+  setImageReady: (ready: boolean) => void;
+  accept?: string; // Make it optional with a default value
+}
+
 export default function UploadFile({
   text,
   getImageUrl,
   setImageReady,
-}: {
-  text: string;
-  getImageUrl: (newImage: { Url: string; fileId: string }) => void;
-  setImageReady: (ready: boolean) => void;
-}) {
+  accept = "image/*,application/pdf", // Default value
+}: UploadFileProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +26,22 @@ export default function UploadFile({
     if (!e.target.files?.length) return;
 
     const file = e.target.files[0];
+
+    // Validate file type based on accept prop
+    const acceptedTypes = accept.split(",");
+    const isValidType = acceptedTypes.some((type) => {
+      if (type === "*/*") return true;
+      if (type.endsWith("/*")) {
+        return file.type.startsWith(type.split("/*")[0]);
+      }
+      return file.type === type || file.name.endsWith(type.replace(".", ""));
+    });
+
+    if (!isValidType) {
+      toast.error(`Invalid file type. Accepted types: ${accept}`);
+      e.target.value = "";
+      return;
+    }
 
     if (file.size > 3 * 1024 * 1024) {
       toast.error("File size must be less than 3MB");
@@ -110,7 +130,7 @@ export default function UploadFile({
     <div className="max-w-md mx-auto">
       <input
         type="file"
-        accept="image/*,application/pdf"
+        accept={accept}
         onChange={handleFileChange}
         className="block w-full text-sm hover:cursor-pointer text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
       />

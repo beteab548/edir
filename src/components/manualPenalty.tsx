@@ -17,6 +17,7 @@ import {
   CalendarIcon,
   ClipboardDocumentCheckIcon,
   CurrencyDollarIcon,
+  DocumentTextIcon,
   FolderOpenIcon,
   UserIcon,
 } from "@heroicons/react/24/outline";
@@ -28,6 +29,7 @@ import {
   FaHourglassHalf,
 } from "react-icons/fa";
 import Image from "next/image";
+import UploadFile from "./FileUpload/page";
 export const dynamic = "force-dynamic";
 type Member = {
   id: number;
@@ -48,6 +50,9 @@ type Penalty = {
     last_name: string;
     image_url: string;
   };
+  waived_reason?: string;
+  waived_reason_document?: string;
+  waived_reason_document_file_id?: string;
   penalty_type: string;
   reason: string;
   amount: number;
@@ -68,6 +73,13 @@ export default function ManualPenaltyManagement() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [filteredMembers, setFilteredMembers] = useState<Member[]>([]);
   const [isWaiveModalOpen, setIsWaiveModalOpen] = useState(false);
+  const [waiverEvidence, setWaiverEvidence] = useState<{
+    Url: string;
+    fileId: string;
+  } | null>(null);
+  const [waiverEvidenceReady, setWaiverEvidenceReady] = useState(true);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewingPenalty, setViewingPenalty] = useState<Penalty | null>(null);
   const [selectedPenalty, setSelectedPenalty] = useState<Penalty | null>(null);
   const [sortConfig, setSortConfig] = useState<{
     key: string;
@@ -112,6 +124,26 @@ export default function ManualPenaltyManagement() {
       setPenaltyTypes(types.map((t) => t.name))
     );
   }, []);
+  const getWaiverEvidence = async (newImage: {
+    Url: string;
+    fileId: string;
+  }) => {
+    try {
+      if (waiverEvidence) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: waiverEvidence.Url,
+            fileId: waiverEvidence.fileId,
+          }),
+        });
+      }
+      setWaiverEvidence({ Url: newImage.Url, fileId: newImage.fileId });
+    } catch (err) {
+      console.error("Failed to handle waiver evidence:", err);
+    }
+  };
   const handleDeletePenalty = async (penaltyId: number) => {
     setIsloading(true);
     try {
@@ -143,14 +175,23 @@ export default function ManualPenaltyManagement() {
   const handleWaivePenalty = async (penaltyId: number) => {
     setIsloading(true);
     try {
+      const reason = (document.getElementById("reason") as HTMLTextAreaElement)
+        ?.value;
+
       const response = await fetch("/api/penalty", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ penaltyId }),
+        body: JSON.stringify({
+          penaltyId,
+          reason,
+          evidenceUrl: waiverEvidence?.Url || null,
+          evidenceFileId: waiverEvidence?.fileId || null,
+        }),
       });
       setIsloading(false);
+
       if (!response.ok) {
         throw new Error("Failed to waive penalty");
       }
@@ -387,7 +428,7 @@ export default function ManualPenaltyManagement() {
     );
   }
   return (
-    <div className="container mx-auto p-2">
+    <div className="container mx-auto p-1">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -444,7 +485,7 @@ export default function ManualPenaltyManagement() {
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="px-4 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 ">
           <h2 className="font-semibold text-gray-800">Recent Penalties</h2>
           <div className="relative w-full md:w-64">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -528,7 +569,15 @@ export default function ManualPenaltyManagement() {
                 sortedPenalties.map((penalty: Penalty) => (
                   <tr
                     key={penalty.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className={`hover:bg-gray-50 transition-colors ${
+                      penalty.waived ? "cursor-pointer hover:bg-purple-200" : ""
+                    }`}
+                    onClick={() => {
+                      if (penalty.waived) {
+                        setViewingPenalty(penalty);
+                        setIsViewModalOpen(true);
+                      }
+                    }}
                   >
                     <td className=" px-2 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {penalty.member.custom_id}
@@ -596,9 +645,10 @@ export default function ManualPenaltyManagement() {
                           Waive
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={(e) => {
                             setSelectedPenalty(penalty);
                             setIsDeleteModalOpen(true);
+                            e.stopPropagation();
                           }}
                           className="text-red-600 hover:text-red-900"
                         >
@@ -613,6 +663,117 @@ export default function ManualPenaltyManagement() {
           </table>
         </div>
       </div>
+      {/* View Waiver Details Modal */}
+      {isViewModalOpen && viewingPenalty && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Waiver Details
+                </h2>
+                <button
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+                >
+                  <XIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <UserIcon className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">
+                      {viewingPenalty.member.first_name}{" "}
+                      {viewingPenalty.member.second_name}{" "}
+                      {viewingPenalty.member.last_name}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      ID: {viewingPenalty.member.custom_id}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
+                  <div>
+                    <p className="text-gray-500">Amount</p>
+                    <p className="font-medium">
+                      {viewingPenalty.amount.toFixed(2)} birr
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-gray-500">Month</p>
+                    <p className="font-medium">
+                      {format(
+                        new Date(viewingPenalty.missed_month),
+                        "MMM yyyy"
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-1">
+                    Waiver Reason
+                  </h3>
+                  <div className="p-3 bg-gray-50 rounded-md">
+                    <p className="text-gray-800">
+                      {viewingPenalty.waived_reason || "No reason provided"}
+                    </p>
+                  </div>
+                </div>
+
+                {viewingPenalty.waived_reason_document ? (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">
+                      Supporting Evidence
+                    </h3>
+                    {/\.(jpe?g|png|gif|webp)$/i.test(
+                      viewingPenalty.waived_reason_document
+                    ) ? (
+                      <div className="relative h-48 w-full border border-gray-200 rounded-md overflow-hidden">
+                        <Image
+                          src={viewingPenalty.waived_reason_document}
+                          alt="Waiver evidence"
+                          fill
+                          className="object-contain"
+                          unoptimized
+                        />
+                      </div>
+                    ) : (
+                      <a
+                        href={viewingPenalty.waived_reason_document}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                      >
+                        <DocumentTextIcon className="h-5 w-5" />
+                        View Evidence Document
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm mt-4">
+                    No evidence uploaded
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setIsViewModalOpen(false)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Add Penalty Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -917,6 +1078,7 @@ export default function ManualPenaltyManagement() {
         </div>
       )}
       {/* Waive Penalty Modal */}
+      {/* Waive Penalty Modal */}
       {isWaiveModalOpen && selectedPenalty && (
         <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full">
@@ -926,7 +1088,10 @@ export default function ManualPenaltyManagement() {
                   Waive Penalty
                 </h2>
                 <button
-                  onClick={() => setIsWaiveModalOpen(false)}
+                  onClick={() => {
+                    setIsWaiveModalOpen(false);
+                    setWaiverEvidence(null);
+                  }}
                   className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
                 >
                   <XIcon className="h-5 w-5" />
@@ -948,7 +1113,7 @@ export default function ManualPenaltyManagement() {
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm mb-4">
                   <div>
                     <p className="text-gray-500">Amount</p>
                     <p className="font-medium">
@@ -965,19 +1130,96 @@ export default function ManualPenaltyManagement() {
                     </p>
                   </div>
                 </div>
+
+                {/* Reason Textarea */}
+                <div className="mb-4">
+                  <label
+                    htmlFor="reason"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Reason for Waiver <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    id="reason"
+                    name="reason"
+                    rows={3}
+                    className={`w-full p-2 border ${
+                      !(
+                        document.getElementById("reason") as HTMLTextAreaElement
+                      )?.value && document.getElementById("reason")
+                        ? "border-red-500"
+                        : "border-gray-300"
+                    } rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                    placeholder="Enter the reason for waiving this penalty..."
+                    required
+                  />
+                  {!(document.getElementById("reason") as HTMLTextAreaElement)
+                    ?.value &&
+                    document.getElementById("reason") && (
+                      <p className="mt-1 text-sm text-red-600">
+                        Please provide a reason for the waiver
+                      </p>
+                    )}
+                </div>
+                {/* Evidence Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Supporting Evidence
+                  </label>
+                  {waiverEvidence ? (
+                    <div className="mb-2 flex items-center gap-2">
+                      <div className="relative h-28 w-80">
+                        <Image
+                          src={waiverEvidence.Url}
+                          alt="Waiver evidence"
+                          fill
+                          className="object-cover rounded border border-gray-300"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setWaiverEvidence(null)}
+                        className="text-red-500 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <UploadFile
+                      text="Upload Evidence"
+                      getImageUrl={getWaiverEvidence}
+                      setImageReady={setWaiverEvidenceReady}
+                      accept="image/*,.pdf"
+                    />
+                  )}
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload supporting documents or images (optional)
+                  </p>
+                </div>
               </div>
 
               <div className="flex justify-end space-x-3 pt-2">
                 <button
-                  onClick={() => setIsWaiveModalOpen(false)}
+                  onClick={() => {
+                    setIsWaiveModalOpen(false);
+                    setWaiverEvidence(null);
+                  }}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
-                  Cancel
+                  Close
                 </button>
                 <button
-                  disabled={isloading}
+                  disabled={isloading || !waiverEvidenceReady}
                   onClick={async () => {
                     if (!selectedPenalty) return;
+                    const reason = (
+                      document.getElementById("reason") as HTMLTextAreaElement
+                    )?.value;
+                    if (!reason) {
+                      toast.error("Please provide a reason for the waiver");
+                      return;
+                    }
+
                     try {
                       const result = await handleWaivePenalty(
                         selectedPenalty.id
@@ -987,6 +1229,7 @@ export default function ManualPenaltyManagement() {
                           `Penalty waived for ${selectedPenalty.member.first_name}`
                         );
                         mutate();
+                        setWaiverEvidence(null);
                       } else {
                         toast.error(result.error || "Failed to waive penalty");
                       }
@@ -996,9 +1239,9 @@ export default function ManualPenaltyManagement() {
                       setIsWaiveModalOpen(false);
                     }
                   }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm disabled:opacity-50"
                 >
-                  {isloading ? "Processing..." : " Confirm Waive"}
+                  {isloading ? "Processing..." : "Confirm Waive"}
                 </button>
               </div>
             </div>

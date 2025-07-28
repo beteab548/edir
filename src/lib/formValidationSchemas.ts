@@ -6,23 +6,38 @@ export const memberSchema = z.object({
   id: z.coerce.number().optional(),
   first_name: z.string().min(1, { message: "First name is required!" }),
   second_name: z.string().min(1, { message: "Second name is required!" }),
-  last_name: z.string().min(1, { message: "Last name is required!" }),
+  last_name: z
+    .string()
+    .min(1, { message: "Last name is required!" })
+    .optional(),
   profession: z.string().optional(),
   title: z.string().optional(),
   job_business: z.string().optional(),
-  id_number: z.string().optional(),
+  identification_type: z.enum(["FAYDA", "KEBELE_ID", "PASSPORT"], {
+    errorMap: () => ({
+      message: "Please select a valid identification type",
+    }),
+  }),
+  identification_number: z.string().optional(),
+  identification_image: z.string().optional(),
+  identification_file_id: z.string().optional(),
   birth_date: z.coerce.date({ message: "Birth date is required!" }),
-  citizen: z.string().min(1, { message: "Citizenship is required!" }),
-  joined_date: z.coerce.date().optional(),
+  citizen: z
+    .string()
+    .min(1, { message: "Citizenship is required!" })
+    .optional(),
+  registered_date: z.coerce.date().optional(),
   end_date: z.union([z.coerce.date(), z.literal("")]).optional(),
   wereda: z.string().optional(),
   zone_or_district: z.string().optional(),
   founding_member: z.boolean().optional(),
   green_area: z.string(),
   block: z.string(),
-  marital_status: z.enum(["married", "single", "divorced", "widowed"], {
-    message: "Marital Status is required!",
-  }),
+  marital_status: z
+    .enum(["married", "single", "divorced", "widowed"], {
+      message: "Marital Status is required!",
+    })
+    .optional(),
   kebele: z.string().optional(),
   house_number: z.string().optional(),
   sex: z.enum(["Male", "Female"], { message: "Sex is required!" }),

@@ -23,19 +23,19 @@ export async function GET(req: NextRequest) {
         member_id: Number(memberId),
         generated: "manually",
         is_paid: false,
-        waived: false // Add this condition to exclude waived penalties
+        waived: false,
       },
       select: {
         missed_month: true,
         expected_amount: true,
-        waived: true // Include waived status in the response
+        waived: true,
       },
     });
 
     const monthsWithAmount = penalties.map((penalty) => ({
       month: penalty.missed_month,
       amount: penalty.expected_amount,
-      waived: penalty.waived
+      waived: penalty.waived,
     }));
 
     return NextResponse.json({ monthsWithAmount });
@@ -50,8 +50,8 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(request: Request) {
   try {
-    // Extract penalty ID from request body
-    const { penaltyId } = await request.json();
+    const { penaltyId, reason, evidenceUrl, evidenceFileId } =
+      await request.json();
 
     if (!penaltyId || isNaN(Number(penaltyId))) {
       return NextResponse.json(
@@ -59,12 +59,14 @@ export async function PATCH(request: Request) {
         { status: 400 }
       );
     }
-
     const updatedPenalty = await prisma.penalty.update({
       where: { id: Number(penaltyId) },
       data: {
         waived: true,
         resolved_at: new Date(),
+        waived_reason: reason,
+        waived_reason_document: evidenceUrl,
+        waived_reason_document_file_id: evidenceFileId,
       },
       include: {
         member: {

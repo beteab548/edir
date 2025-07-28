@@ -52,6 +52,9 @@ export default function FilterBar({
     status: searchParams.get("status") || "",
     profession: searchParams.get("profession") || "",
     member_type: searchParams.get("member_type") || "",
+    green_area: searchParams.get("green_area") || "",
+    block: searchParams.get("block") || "",
+    marital_status: searchParams.get("marital_status") || "",
     house_number: searchParams.get("house_number") || "",
     title: searchParams.get("title") || "",
     waived: searchParams.get("waived") || "",
@@ -116,7 +119,9 @@ export default function FilterBar({
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 print:hidden m-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
       {/* Search input */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Search</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Search
+        </label>
         <input
           type="text"
           placeholder="Name, ID, Phone..."
@@ -128,14 +133,19 @@ export default function FilterBar({
 
       {/* Status */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          Status
+        </label>
         <select
           value={filters.status}
           onChange={(e) => handleChange("status", e.target.value)}
           className="w-full border border-gray-300 p-2 rounded-md focus:ring-blue-500 focus:border-blue-500"
         >
           <option value="">All Statuses</option>
-          {(type === "members" ? Object.values(Status) : Object.values(paymentStatus)).map((s) => (
+          {(type === "members"
+            ? Object.values(Status)
+            : Object.values(paymentStatus)
+          ).map((s) => (
             <option key={s} value={s}>
               {s}
             </option>
@@ -147,7 +157,9 @@ export default function FilterBar({
       {type === "members" && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Member Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Member Type
+            </label>
             <select
               value={filters.member_type}
               onChange={(e) => handleChange("member_type", e.target.value)}
@@ -162,7 +174,9 @@ export default function FilterBar({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Profession</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Profession
+            </label>
             <input
               type="text"
               value={filters.profession}
@@ -172,7 +186,9 @@ export default function FilterBar({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Title
+            </label>
             <input
               type="text"
               value={filters.title}
@@ -182,18 +198,64 @@ export default function FilterBar({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">House Number</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Green Area
+            </label>
+            <input
+              type="text"
+              value={filters.green_area}
+              placeholder="e.g. 4,7"
+              onChange={(e) => handleChange("green_area", e.target.value)}
+              className="w-full border border-gray-300 p-2 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Block
+            </label>
+            <input
+              type="text"
+              value={filters.block}
+              placeholder="e.g. 2,5"
+              onChange={(e) => handleChange("block", e.target.value)}
+              className="w-full border border-gray-300 p-2 rounded-md"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              House Number
+            </label>
             <input
               type="text"
               value={filters.house_number}
-              placeholder="e.g. 4/5"
+              placeholder="e.g. 8,9"
               onChange={(e) => handleChange("house_number", e.target.value)}
               className="w-full border border-gray-300 p-2 rounded-md"
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Martial Status
+            </label>
+            <select
+              name="marital_status"
+              value={filters.marital_status}
+              onChange={(e) => handleChange("marital_status", e.target.value)}
+              className="w-full border border-gray-300 p-2 rounded-md"
+            >
+              <option value="">All Martial Status</option>
+              <option value="married">Married</option>
+              <option value="single">Single</option>
+              <option value="divorced">Divorced</option>
+              <option value="widowed">Widowed</option>
+            </select>
+          </div>
+
           {/* Dates */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From
+            </label>
             <input
               type="date"
               value={filters.from}
@@ -202,7 +264,9 @@ export default function FilterBar({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To
+            </label>
             <input
               type="date"
               value={filters.to}
@@ -217,7 +281,9 @@ export default function FilterBar({
       {type === "penalty" && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Waived</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Waived
+            </label>
             <select
               value={filters.waived}
               onChange={(e) => handleChange("waived", e.target.value)}
@@ -229,7 +295,9 @@ export default function FilterBar({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Penalty Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Penalty Type
+            </label>
             <select
               value={filters.penalty_type}
               onChange={(e) => handleChange("penalty_type", e.target.value)}
@@ -245,7 +313,9 @@ export default function FilterBar({
           </div>
           {/* Dates */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From
+            </label>
             <input
               type="date"
               value={filters.from}
@@ -254,7 +324,9 @@ export default function FilterBar({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To
+            </label>
             <input
               type="date"
               value={filters.to}
@@ -269,10 +341,14 @@ export default function FilterBar({
       {type === "contributions" && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contribution Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contribution Type
+            </label>
             <select
               value={filters.contribution_type}
-              onChange={(e) => handleChange("contribution_type", e.target.value)}
+              onChange={(e) =>
+                handleChange("contribution_type", e.target.value)
+              }
               className="w-full border border-gray-300 p-2 rounded-md"
             >
               <option value="">All Contributions</option>
@@ -284,7 +360,9 @@ export default function FilterBar({
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Contribution Mode</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contribution Mode
+            </label>
             <select
               value={filters.type}
               onChange={(e) => handleChange("type", e.target.value)}
@@ -300,7 +378,9 @@ export default function FilterBar({
           </div>
           {/* Dates */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              From
+            </label>
             <input
               type="date"
               value={filters.from}
@@ -309,7 +389,9 @@ export default function FilterBar({
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">To</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              To
+            </label>
             <input
               type="date"
               value={filters.to}

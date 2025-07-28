@@ -1,6 +1,6 @@
 "use client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { FieldError, useForm, useWatch } from "react-hook-form";
 import { countryList } from "@/lib/countries";
 import InputField from "../InputField";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
@@ -55,6 +55,7 @@ const MemberForm = ({
     handleSubmit,
     watch,
     reset,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CombinedSchema>({
     resolver: zodResolver(combinedSchema),
@@ -69,11 +70,16 @@ const MemberForm = ({
   );
 
   const [imageReady, setImageReady] = useState(true);
+  const [identificationReady, setIdetificationReady] = useState(true);
   const [document, SetDocumentUrl] = useState<{
     Url: string;
     fileId: string;
   } | null>(null);
   const [documentReady, setDocumentReady] = useState(true);
+  const [identificationImage, setIdentificationUrl] = useState<{
+    Url: string;
+    fileId: string;
+  } | null>(null);
   const [tabIndex, setTabIndex] = useState(0);
   const [state, formAction] = useFormState(
     type === "create" ? createMember : updateMember,
@@ -85,6 +91,15 @@ const MemberForm = ({
       setRelatives(data.relative || []);
     }
   }, [data, reset]);
+
+  const selectedIdType = useWatch({
+    control,
+    name: "member.identification_type",
+  });
+  useEffect(() => {
+    // Clear ID number when type changes
+    setValue("member.identification_number", "");
+  }, [selectedIdType, setValue]);
 
   const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
     try {
@@ -121,6 +136,29 @@ const MemberForm = ({
       console.error("Failed to handle image:", err);
     }
   };
+  const getidentificationImage = async (newImage: {
+    Url: string;
+    fileId: string;
+  }) => {
+    try {
+      if (
+        data?.identification_image &&
+        data?.identification_image !== identificationImage?.Url
+      ) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.identification_image,
+            fileId: data?.identification_file_id,
+          }),
+        });
+      }
+      setIdentificationUrl({ Url: newImage.Url, fileId: newImage.fileId });
+    } catch (err) {
+      console.error("Failed to handle Identification image:", err);
+    }
+  };
 
   const onSubmit = handleSubmit(
     async (formData) => {
@@ -132,38 +170,35 @@ const MemberForm = ({
           document_file_id: document?.fileId ?? undefined,
           image_url: image?.Url ?? undefined,
           image_file_id: image?.fileId ?? undefined,
+          identification_image: identificationImage?.Url ?? undefined,
+          identification_file_id: identificationImage?.fileId ?? undefined,
         },
         relatives: relatives,
       };
       console.log(submissionData);
       await formAction(submissionData);
     },
-    (errors) => {
-      const phoneError = errors?.member?.phone_number;
-      const phone_2Error = errors?.member?.phone_number_2;
-      const firstnameError = errors?.member?.first_name;
-      const secondNameError = errors?.member?.second_name;
-      const lastdNameError = errors?.member?.last_name;
-      const maritalStatusError = errors?.member?.marital_status;
-      const birth_dateError = errors?.member?.birth_date;
 
-      if (phoneError) {
-        toast.error(phoneError.message);
-      } else if (firstnameError) {
-        toast.error(firstnameError.message);
-      } else if (maritalStatusError) {
-        toast.error(maritalStatusError.message);
-      } else if (phone_2Error) {
-        toast.error(phone_2Error.message);
-      } else if (secondNameError) {
-        toast.error(secondNameError.message);
-      } else if (lastdNameError) {
-        toast.error(lastdNameError.message);
-      } else if (birth_dateError) {
-        toast.error(birth_dateError.message);
+    (errors) => {
+      const memberErrors = errors?.member;
+
+      if (memberErrors && typeof memberErrors === "object") {
+        const errorMessages = Object.values(memberErrors)
+          .filter(
+            (error): error is FieldError =>
+              typeof error === "object" && error !== null && "message" in error
+          )
+          .map((error) => error.message);
+
+        if (errorMessages.length > 0) {
+          errorMessages.forEach((msg) => toast.error(msg));
+        } else {
+          toast.error("Please correct the highlighted errors.");
+        }
       } else {
         toast.error("Please correct the highlighted errors.");
       }
+
       console.error("Validation errors:", errors);
     }
   );
@@ -371,12 +406,12 @@ const MemberForm = ({
             />
 
             <InputField
-              label="Joined Date"
-              name="member.joined_date"
+              label="Registered Date"
+              name="member.registered_date"
               type="date"
               register={register}
-              error={errors.member?.joined_date}
-              defaultValue={formatDate(data?.joined_date ?? new Date())}
+              error={errors.member?.registered_date}
+              defaultValue={formatDate(data?.registered_date ?? new Date())}
             />
             <InputField
               label="End Date"
@@ -452,14 +487,6 @@ const MemberForm = ({
             className={`max-h-[400px] overflow-y-auto custom-scrollbar pr-4`}
           >
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
-              <InputField
-                label="ID Number"
-                name="member.id_number"
-                register={register}
-                error={errors.member?.id_number}
-                defaultValue={data?.id_number}
-              />
-
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">
                   Citizen
@@ -667,6 +694,7 @@ const MemberForm = ({
                   text="Upload new profile image"
                   getImageUrl={getImageUrl}
                   setImageReady={setImageReady}
+                  accept="image/*"
                 />
               </div>
 
@@ -703,9 +731,74 @@ const MemberForm = ({
                   text="Upload new document"
                   getImageUrl={getDocument}
                   setImageReady={setDocumentReady}
+                   accept="application/pdf,.pdf" 
                 />
               </div>
+              <div>
+                <SelectField
+                  label="Identification Type"
+                  name="member.identification_type"
+                  register={register}
+                  error={errors.member?.identification_type}
+                  options={[
+                    { value: "", label: "Select ID Type" },
+                    { value: "FAYDA", label: "Fayda" },
+                    { value: "KEBELE_ID", label: "Kebel ID" },
+                    { value: "PASSPORT", label: "Passport" },
+                  ]}
+                  defaultValue={data?.identification_type}
+                  required
+                  registerOptions={{ required: "Please select an ID type" }}
+                />
+              </div>
+              {selectedIdType && (
+                <InputField
+                  label={
+                    selectedIdType === "FAYDA"
+                      ? "Fayda ID Number"
+                      : selectedIdType === "KEBELE_ID"
+                      ? "Kebele ID Number"
+                      : "Passport Number"
+                  }
+                  name="identification_number"
+                  register={register}
+                  error={errors.member?.identification_number}
+                  inputProps={{
+                    placeholder: "Enter ID number",
+                  }}
+                />
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Identification Image
+                </label>
+                {data?.identification_image && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <Image
+                      width={50}
+                      height={50}
+                      src={data?.identification_image}
+                      alt="Profile preview"
+                      className="h-10 w-10 object-cover"
+                    />
+                    <span className="text-sm text-gray-500">
+                      Current Identification image
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload Identification Image"
+                  getImageUrl={getidentificationImage}
+                  setImageReady={setIdetificationReady}
+                    accept="image/*,.pdf"
+                />
 
+                {errors.member?.identification_image && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.member?.identification_image.message}
+                  </p>
+                )}
+              </div>
               <div className="md:col-span-1 flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">
                   Remark
@@ -725,6 +818,7 @@ const MemberForm = ({
             </div>
           </div>
         </div>
+
         {tabIndex === 2 && (
           <div className="w-full bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-[400px] flex flex-col relative custom-scrollbar">
             <button
@@ -1079,7 +1173,9 @@ const MemberForm = ({
           </button>
           <button
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
-            disabled={!imageReady || !documentReady || isLoading}
+            disabled={
+              !imageReady || !documentReady || isLoading || !identificationReady
+            }
             type="submit"
           >
             {isLoading

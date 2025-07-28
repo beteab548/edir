@@ -9,7 +9,14 @@ import {
 } from "@prisma/client";
 
 const validStatuses = ["Active", "Inactive", "Left", "Deceased"] as const;
+const validMartialStatuses = [
+  "married",
+  "widowed",
+  "single",
+  "divorced",
+] as const;
 type Status = (typeof validStatuses)[number];
+type MartialStatuses = (typeof validMartialStatuses)[number];
 const validMemberStatuses = ["New", "Existing"] as const;
 type MemberStatus = (typeof validMemberStatuses)[number];
 type MemberForSearch = Pick<
@@ -18,6 +25,11 @@ type MemberForSearch = Pick<
 >;
 function isValidStatus(status: string): status is Status {
   return validStatuses.includes(status as Status);
+}
+function isValidMartialStatus(
+  martialstatus: string
+): martialstatus is MartialStatuses {
+  return validMartialStatuses.includes(martialstatus as MartialStatuses);
 }
 function isValidMemberStatus(memberType: string): memberType is MemberStatus {
   return validMemberStatuses.includes(memberType as MemberStatus);
@@ -70,8 +82,11 @@ export async function getFilteredMembers({
   status,
   profession,
   member_type,
+  green_area,
+  block,
   house_number,
   title,
+  marital_status,
 }: {
   name?: string;
   from?: string;
@@ -79,13 +94,19 @@ export async function getFilteredMembers({
   status?: Status;
   profession?: string;
   member_type?: MemberType;
+  green_area?: string;
+  block?: string;
   house_number?: string;
   title?: string;
+  marital_status?: string;
 }) {
   const filters: any = {};
 
   if (status && isValidStatus(status)) {
     filters.status = status;
+  }
+  if (marital_status && isValidMartialStatus(marital_status)) {
+    filters.marital_status = marital_status;
   }
 
   if (profession) {
@@ -98,6 +119,12 @@ export async function getFilteredMembers({
 
   if (house_number) {
     filters.house_number = { contains: house_number, mode: "insensitive" };
+  }
+  if (green_area) {
+    filters.green_area = { contains: green_area, mode: "insensitive" };
+  }
+  if (block) {
+    filters.block = { contains: block, mode: "insensitive" };
   }
 
   if (title) {
@@ -112,7 +139,7 @@ export async function getFilteredMembers({
     from && !isNaN(Date.parse(from)) ? new Date(from) : startOfMonth;
   const toDate = to && !isNaN(Date.parse(to)) ? new Date(to) : endOfMonth;
 
-  filters.joined_date = {
+  filters.registered_date = {
     gte: fromDate,
     lte: toDate,
   };
@@ -128,7 +155,7 @@ export async function getFilteredMembers({
       last_name: true,
       phone_number: true,
       custom_id: true,
-      joined_date: true,
+      registered_date: true,
       status: true,
       house_number: true,
       member_type: true,
@@ -141,7 +168,7 @@ export async function getFilteredMembers({
       email: true,
       email_2: true,
       job_business: true,
-      id_number: true,
+      identification_number: true,
       kebele: true,
       profession: true,
       wereda: true,
@@ -149,6 +176,9 @@ export async function getFilteredMembers({
       phone_number_2: true,
       sex: true,
       title: true,
+      green_area: true,
+      block: true,
+      marital_status : true,
       remark: true,
     },
   });
@@ -240,80 +270,85 @@ export const getFilteredContributions = async ({
   contribution_type?: string;
 }) => {
   const fromDate = from ? new Date(from) : undefined;
-const toDate = to ? new Date(to) : undefined;
+  const toDate = to ? new Date(to) : undefined;
 
-const whereClause: any = {};
+  const whereClause: any = {};
 
-// Add contributionType filter if needed
-if (type || contribution_type) {
-  whereClause.contributionType = {
-    is: {
-      ...(validModes.includes(type as ContributionMode) && {
-        mode: type as ContributionMode,
-      }),
-      ...(contribution_type && {
-        name: { contains: contribution_type, mode: "insensitive" },
-      }),
+  // Add contributionType filter if needed
+  if (type || contribution_type) {
+    whereClause.contributionType = {
+      is: {
+        ...(validModes.includes(type as ContributionMode) && {
+          mode: type as ContributionMode,
+        }),
+        ...(contribution_type && {
+          name: { contains: contribution_type, mode: "insensitive" },
+        }),
+      },
+    };
+  }
+
+  const contributionsRaw: (Contribution & {
+    member: Member;
+    contributionType: ContributionType;
+    ContributionSchedule: ContributionSchedule[];
+  })[] = await prisma.contribution.findMany({
+    where: whereClause,
+    include: {
+      member: true,
+      contributionType: true,
+      ContributionSchedule: true,
     },
-  };
-}
-
-const contributionsRaw: (Contribution & {
-  member: Member;
-  contributionType: ContributionType;
-  ContributionSchedule: ContributionSchedule[];
-})[] = await prisma.contribution.findMany({
-  where: whereClause,
-  include: {
-    member: true,
-    contributionType: true,
-    ContributionSchedule: true, 
-  },
-});
-
-// Filter schedules within the date range
-const filteredSchedulesContributions = contributionsRaw.map((contribution) => {
-  const filteredSchedules = contribution.ContributionSchedule.filter((schedule) => {
-    const month = new Date(schedule.month);
-    const isAfterFrom = fromDate ? month >= fromDate : true;
-    const isBeforeTo = toDate ? month <= toDate : true;
-    return isAfterFrom && isBeforeTo;
   });
 
-  return {
-    ...contribution,
-    ContributionSchedule: filteredSchedules,
-  };
-});
-
-// Convert decimals
-const contributions = filteredSchedulesContributions.map(convertDecimalToNumber);
-
-// Filter by name if provided
-const filteredByName = name
-  ? contributions.filter((c) => matchesSearch(c.member, name))
-  : contributions;
-
-// Filter by status
-const filteredByStatus = status
-  ? filteredByName.filter((contribution) => {
-      const expected = contribution.ContributionSchedule.reduce(
-        (sum: any, s: { expected_amount: any }) => sum + s.expected_amount,
-        0
-      );
-      const paid = contribution.ContributionSchedule.reduce(
-        (sum: any, s: { paid_amount: any }) => sum + s.paid_amount,
-        0
+  // Filter schedules within the date range
+  const filteredSchedulesContributions = contributionsRaw.map(
+    (contribution) => {
+      const filteredSchedules = contribution.ContributionSchedule.filter(
+        (schedule) => {
+          const month = new Date(schedule.month);
+          const isAfterFrom = fromDate ? month >= fromDate : true;
+          const isBeforeTo = toDate ? month <= toDate : true;
+          return isAfterFrom && isBeforeTo;
+        }
       );
 
-      if (status === "Paid") return paid === expected && expected > 0;
-      if (status === "Partially Paid") return paid > 0 && paid < expected;
-      if (status === "Unpaid") return paid === 0;
+      return {
+        ...contribution,
+        ContributionSchedule: filteredSchedules,
+      };
+    }
+  );
 
-      return true;
-    })
-  : filteredByName;
+  // Convert decimals
+  const contributions = filteredSchedulesContributions.map(
+    convertDecimalToNumber
+  );
 
-return filteredByStatus;
+  // Filter by name if provided
+  const filteredByName = name
+    ? contributions.filter((c) => matchesSearch(c.member, name))
+    : contributions;
 
+  // Filter by status
+  const filteredByStatus = status
+    ? filteredByName.filter((contribution) => {
+        const expected = contribution.ContributionSchedule.reduce(
+          (sum: any, s: { expected_amount: any }) => sum + s.expected_amount,
+          0
+        );
+        const paid = contribution.ContributionSchedule.reduce(
+          (sum: any, s: { paid_amount: any }) => sum + s.paid_amount,
+          0
+        );
+
+        if (status === "Paid") return paid === expected && expected > 0;
+        if (status === "Partially Paid") return paid > 0 && paid < expected;
+        if (status === "Unpaid") return paid === 0;
+
+        return true;
+      })
+    : filteredByName;
+
+  return filteredByStatus;
 };
