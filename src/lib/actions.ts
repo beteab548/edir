@@ -6,7 +6,7 @@ import prisma from "./prisma";
 import { applyCatchUpPayment } from "./services/paymentService";
 import { ContributionMode, PenaltyType } from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
-import { startOfMonth } from "date-fns";
+import { addMonths, startOfMonth } from "date-fns";
 type Payment = {
   amount?: number;
   paid_amount?: Number;
@@ -537,25 +537,29 @@ export const updateContribution = async (
       select: { member_id: true, id: true },
     });
 
-    let startDate: Date | null = null;
-    let endDate: Date | null = null;
+    const startDate =
+      data.mode === "OneTimeWindow" && data.period_months
+        ? new Date()
+        : data.start_date
+        ? new Date(data.start_date)
+        : null;
 
-    if (data.mode === "OneTimeWindow" && data.period_months) {
-      startDate = new Date();
-      endDate = new Date(startDate);
-      endDate.setMonth(endDate.getMonth() + data.period_months);
-      endDate.setDate(0);
-    } else {
-      startDate = data.start_date ? new Date(data.start_date) : null;
-      endDate = data.end_date ? new Date(data.end_date) : null;
-    }
+    const endDate =
+      data.mode === "OneTimeWindow" && data.period_months
+        ? (() => {
+            const d = new Date();
+            d.setMonth(d.getMonth() + data.period_months);
+            d.setDate(0);
+            return d;
+          })()
+        : data.end_date
+        ? new Date(data.end_date)
+        : null;
 
-    const keepOldStartDate =
-      startDate && currentType.start_date && startDate < currentType.start_date;
-
-    const effectiveStartDate = keepOldStartDate
-      ? currentType.start_date
-      : startDate ?? new Date();
+    const effectiveStartDate =
+      startDate && currentType.start_date && startDate < currentType.start_date
+        ? currentType.start_date
+        : startDate ?? new Date();
 
     const updatedType = await prisma.contributionType.update({
       where: { id: data.id },
@@ -573,7 +577,7 @@ export const updateContribution = async (
       },
     });
 
-    const transactionOps = [];
+    const transactionOps: any[] = [];
 
     const amountChanged = !currentType.amount.equals(data.amount);
     const typeNameChanged = currentType.name !== data.type_name;
@@ -602,73 +606,69 @@ export const updateContribution = async (
       );
     }
 
-    if (amountChanged) {
-      const firstOfThisMonth = startOfMonth(new Date());
-
+    if (amountChanged && updatedType.name !== "Registration") {
+      const Realtoday = startOfMonth(new Date());
+      const today = addMonths(Realtoday, 0);
       const contributionsOfType = await prisma.contribution.findMany({
-        where: {
-          contribution_type_id: updatedType.id,
-        },
-        select: {
-          id: true,
-          member_id: true,
-        },
+        where: { contribution_type_id: updatedType.id },
+        select: { id: true, member_id: true },
       });
 
       const contributionIds = contributionsOfType.map((c) => c.id);
 
       if (contributionIds.length > 0) {
+        // Step 1: Update contribution schedules in-place (unpaid and paid future)
         transactionOps.push(
           prisma.contributionSchedule.updateMany({
             where: {
-              contribution_id: {
-                in: contributionIds,
-              },
-              is_paid: false,
-              month: {
-                gte: firstOfThisMonth,
-              },
+              contribution_id: { in: contributionIds },
+              month: { gte: today },
             },
             data: {
               expected_amount: updatedType.amount,
+              is_paid: false,
+              paid_at: null,
             },
-          }),
+          })
+        );
+
+        // Step 2: Update penalties
+        transactionOps.push(
           prisma.penalty.updateMany({
             where: {
-              contribution_id: {
-                in: contributionIds,
-              },
+              contribution_id: { in: contributionIds },
               is_paid: false,
             },
             data: {
-              expected_amount: Number(updatedType.penalty_amount),
+              expected_amount: new Decimal(updatedType.penalty_amount ?? 0),
             },
           })
         );
 
-        // 🔄 Optimize: Batch find unpaid schedules in parallel
-        const schedulePromises = contributionsOfType.map((contribution) =>
-          prisma.contributionSchedule.findMany({
-            where: {
-              contribution_id: contribution.id,
-              is_paid: false,
-            },
-            select: {
-              expected_amount: true,
-              paid_amount: true,
-            },
-          })
+        // Step 3: Fetch ALL schedules and recalculate balances using updated expected_amount
+        const allSchedulesList = await Promise.all(
+          contributionsOfType.map((contribution) =>
+            prisma.contributionSchedule.findMany({
+              where: { contribution_id: contribution.id },
+              select: { expected_amount: true, paid_amount: true, month: true },
+            })
+          )
         );
 
-        const unpaidSchedulesList = await Promise.all(schedulePromises);
-
-        // 🔄 Batch balance updates based on totalRemaining
         contributionsOfType.forEach((contribution, idx) => {
-          const unpaidSchedules = unpaidSchedulesList[idx];
+          const schedules = allSchedulesList[idx];
 
-          const totalRemaining = unpaidSchedules.reduce((sum, sched) => {
+          const totalRemaining = schedules.reduce((sum, sched) => {
             const paid = sched.paid_amount ?? new Decimal(0);
-            return sum.plus(sched.expected_amount.minus(paid));
+            const monthDate = new Date(sched.month);
+            const isFutureOrCurrent = monthDate >= today;
+
+            const expected = isFutureOrCurrent
+              ? updatedType.amount
+              : sched.expected_amount;
+            const expectedDecimal = new Decimal(expected);
+
+            return sum.plus(expectedDecimal.minus(paid));
           }, new Decimal(0));
 
           transactionOps.push(
@@ -686,31 +686,18 @@ export const updateContribution = async (
       }
     }
 
+    // Handle member list
     if (data.is_for_all) {
-      let membersToAdd;
-
-      if (updatedType.name === "Registration") {
-        membersToAdd = await prisma.member.findMany({
-          where: {
-            status: "Active",
-            member_type: "New",
-            id: {
-              notIn: currentContributions.map((c) => c.member_id),
-            },
+      const membersToAdd = await prisma.member.findMany({
+        where: {
+          status: "Active",
+          ...(updatedType.name === "Registration" && { member_type: "New" }),
+          id: {
+            notIn: currentContributions.map((c) => c.member_id),
           },
-          select: { id: true },
-        });
-      } else {
-        membersToAdd = await prisma.member.findMany({
-          where: {
-            status: "Active",
-            id: {
-              notIn: currentContributions.map((c) => c.member_id),
-            },
-          },
-          select: { id: true },
-        });
-      }
+        },
+        select: { id: true },
+      });
 
       if (membersToAdd.length > 0) {
         transactionOps.push(

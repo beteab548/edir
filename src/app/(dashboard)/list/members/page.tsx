@@ -59,13 +59,13 @@ const MemberListPage = async ({
         { first_name: "asc" },
         { second_name: "asc" },
       ],
-      date_joined: { created_at: "desc" },
+      registered_date: { created_at: "desc" },
       profession: { profession: "asc" },
       status: { status: "asc" },
     };
 
     const currentSort =
-      (searchParams.sort as keyof typeof sortableColumns) || "date_joined";
+      (searchParams.sort as keyof typeof sortableColumns) || "registered_date";
     const sortDirection = searchParams.direction === "asc" ? "asc" : "desc";
 
     const columns = [
@@ -108,13 +108,13 @@ const MemberListPage = async ({
       {
         header: (
           <SortableHeader
-            label="Joined Date"
-            sortKey="date_joined"
+            label="Registered Date"
+            sortKey="registered_date"
             currentSort={currentSort}
             sortDirection={sortDirection}
           />
         ),
-        accessor: "joined_date",
+        accessor: "registered_date",
       },
       { header: "Action", accessor: "action" },
     ];
@@ -189,7 +189,7 @@ const MemberListPage = async ({
         <td className="hidden md:table-cell px-3 py-4">
           <span
             className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClasses(
-              item.status??"Active"
+              item.status ?? "Active"
             )}`}
           >
             {item.status}
@@ -280,13 +280,13 @@ const MemberListPage = async ({
         { first_name: sortDirection },
         { second_name: sortDirection },
       ];
-    } else if (currentSort === "date_joined") {
+    } else if (currentSort === "registered_date") {
       orderBy = { created_at: sortDirection };
     } else if (currentSort === "profession") {
       orderBy = { profession: sortDirection };
     } else if (currentSort === "status") {
       orderBy = { status: sortDirection };
-    } else if (currentSort === "joined_date") {
+    } else if (currentSort === "registered_date") {
       orderBy = { registered_date: sortDirection };
     } else {
       orderBy = { registered_date: "desc" };

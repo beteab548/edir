@@ -2,38 +2,37 @@
 
 import { useState } from "react";
 
-export default function UploadExcelForm() {
+export default function UploadExcelForm({url}: { url: string }) {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState("");
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  const fileInput = (e.currentTarget as HTMLFormElement).querySelector(
-    'input[name="file"]'
-  ) as HTMLInputElement | null;
+    const fileInput = (e.currentTarget as HTMLFormElement).querySelector(
+      'input[name="file"]'
+    ) as HTMLInputElement | null;
 
-  if (!fileInput?.files?.length) return;
+    if (!fileInput?.files?.length) return;
 
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
 
-  setUploading(true);
-  try {
-    const res = await fetch("/api/import-members", {
-      method: "POST",
-      body: formData,
-    });
+    setUploading(true);
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        body: formData,
+      });
 
-    const data = await res.json();
-    setResult(data.message || "Upload complete");
-  } catch (error) {
-    setResult("Upload failed.");
-  } finally {
-    setUploading(false);
-  }
-};
-
+      const data = await res.json();
+      setResult(data.message || "Upload complete");
+    } catch (error) {
+      setResult("Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-md">

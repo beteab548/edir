@@ -43,7 +43,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
   const processedData = members.map((m: any) => ({
     ID: m.custom_id,
     "Full Name": `${m.first_name} ${m.second_name} ${m.last_name}`,
-    Phone: m.phone_number.replace(/^251/, "0"),
+    Phone: m.phone_number ? m.phone_number.replace(/^251/, "0") : "",
     "Registered Date": new Date(m.registered_date).toLocaleDateString(),
     status: m.status,
     green_area: m.green_area,
@@ -65,7 +65,9 @@ export default async function ReportPage({ searchParams }: SearchParams) {
     profession: m.profession,
     wereda: m.wereda,
     citizen: m.citizen,
-    phone_number_2: m.phone_number.replace(/^251/, "0").replace(/^\+/, "0"),
+    phone_number_2: m.phone_number
+      ? m.phone_number.replace(/^251/, "0").replace(/^\+/, "0")
+      : "",
     sex: m.sex,
     marital_status: m.marital_status,
     title: m.title,
@@ -193,7 +195,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
           width: "w-auto",
           printWidth: "print:w-[100px]",
         },
-         {
+        {
           label: "House Number",
           accessor: "house_number",
           width: "w-auto",
@@ -217,7 +219,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
           width: "w-auto",
           printWidth: "print:w-[100px]",
         },
-       
+
         {
           label: "bank Account Name",
           accessor: "bank_account_name",
