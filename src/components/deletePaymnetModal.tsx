@@ -5,7 +5,6 @@ import { useState } from "react";
 import { deletePayment } from "@/lib/actions";
 import { UserIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
-import Decimal from "decimal.js";
 import { PenaltyType } from "@prisma/client";
 
 interface DeletePaymentButtonProps {
@@ -46,9 +45,7 @@ export default function DeletePaymentButton({
     };
     try {
       const result = await deletePayment(
-        { success: false, error: false },
         data,
-        type
       );
       if (result?.success) {
         setShowModal(false);
@@ -129,7 +126,7 @@ export default function DeletePaymentButton({
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                   disabled={isLoading}
                 >
-                  Cancel
+                  Close
                 </button>
                 <button
                   onClick={handleDelete}

@@ -1,6 +1,5 @@
 "use client";
 import { Member } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import React, { ReactEventHandler, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -319,24 +318,23 @@ export default function ContributionTemplate({
         toast.error("Please select a member first");
         return;
       }
-
-      if (type === "automatically") {
-        const enteredAmount = Number(data.paid_amount);
-        const balance = await fetchMemberBalance(
-          selectedMember.id,
-          data.contribution_id
-        );
-
-        const balanceNumber =
-          typeof balance === "number" ? balance : Number(balance);
-        if (enteredAmount > balanceNumber) {
-          setAmountError(
-            `The entered amount (${enteredAmount}) is greater than the amount owed (${balanceNumber})`
-          );
-          setLoading(false);
-          return;
-        }
-      }
+             //used for paymnet limitation
+      // if (type === "automatically") {
+      //   const enteredAmount = Number(data.paid_amount);
+      //   const balance = await fetchMemberBalance(
+      //     selectedMember.id,
+      //     data.contribution_id
+      //   );
+      //   const balanceNumber =
+      //     typeof balance === "number" ? balance : Number(balance);
+      //   if (enteredAmount > balanceNumber) {
+      //     setAmountError(
+      //       `The entered amount (${enteredAmount}) is greater than the amount owed (${balanceNumber})`
+      //     );
+      //     setLoading(false);
+      //     return;
+      //   }
+      // }
       const baseData = {
         member_id: selectedMember.id,
         paid_amount: Number(data.paid_amount),

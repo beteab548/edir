@@ -37,7 +37,7 @@ export default async function ContributionPage() {
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center mb-4 bg-blue-100 text-blue-800 rounded-full px-4 py-1.5">
               <span className="text-sm font-medium">
-               Contributions Selection
+                Contributions Selection
               </span>
             </div>
             {/* <h1 className="text-xl md:text-2xl font-bold text-blue-900 mb-4"></h1> */}
@@ -177,24 +177,6 @@ export default async function ContributionPage() {
             We couldn&apos;t load the contribution page. Please check your
             internet connection and try again.
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5 mr-2"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Refresh Page
-          </button>
         </div>
       </div>
     );

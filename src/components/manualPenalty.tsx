@@ -673,6 +673,7 @@ export default function ManualPenaltyManagement() {
                   Waiver Details
                 </h2>
                 <button
+                  disabled={isloading && !waiverEvidenceReady}
                   onClick={() => setIsViewModalOpen(false)}
                   className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
                 >

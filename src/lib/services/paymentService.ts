@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { Decimal } from "@prisma/client/runtime/library";
-import { addMonths } from "date-fns";
+import { addMonths, startOfMonth, isBefore, endOfDay, isAfter } from "date-fns";
 
 class PaymentProcessingError extends Error {
   constructor(message: string) {
@@ -27,8 +27,22 @@ interface ApplyCatchUpPaymentParams {
   memberId: number;
   contributionId: number;
   paidAmount: number;
-  paymentMethod: string;
+  paymentMethod?: string;
   documentReference?: string;
+  simulate?: boolean;
+  simulationMonths?: number;
+}
+
+interface PaymentResult {
+  payments: Array<{
+    month: Date;
+    paid: number;
+    type: string;
+  }>;
+  isSimulated: boolean;
+  simulatedMonths?: number;
+  simulationDate?: Date;
+  remainingBalance: Decimal;
 }
 
 export async function applyCatchUpPayment({
@@ -37,8 +51,10 @@ export async function applyCatchUpPayment({
   paidAmount,
   paymentMethod = "Cash",
   documentReference = "-",
-}: ApplyCatchUpPaymentParams) {
-  // Validate inputs (unchanged logic)
+  simulate = false,
+  simulationMonths = 0,
+}: ApplyCatchUpPaymentParams): Promise<PaymentResult> {
+  // Validate inputs
   if (!memberId || !contributionId) {
     throw new ValidationError("Member ID and Contribution ID are required");
   }
@@ -48,13 +64,26 @@ export async function applyCatchUpPayment({
   if (!paymentMethod) {
     throw new ValidationError("Payment method is required");
   }
+  if (
+    simulate &&
+    (simulationMonths < 0 || !Number.isInteger(simulationMonths))
+  ) {
+    throw new ValidationError("Simulation months must be a positive integer");
+  }
 
   try {
+    let usedForContribution = new Decimal(0);
+    let usedForPenalty = new Decimal(0); // Track penalty payments separately
+    const payments: Array<{ month: Date; paid: number; type: string }> = [];
+
     return await prisma.$transaction(
       async (tx) => {
-        // OPTIMIZATION: Parallel member + contribution fetch
+        // 1. Lock and verify member and contribution records
         const [member, contribution] = await Promise.all([
-          tx.member.findUnique({ where: { id: memberId } }),
+          tx.member.findUnique({
+            where: { id: memberId },
+            select: { id: true, status: true, member_type: true },
+          }),
           tx.contribution.findUnique({
             where: {
               member_id_contribution_type_id: {
@@ -71,14 +100,7 @@ export async function applyCatchUpPayment({
           throw new NotFoundError(`Contribution ${contributionId} not found`);
         }
 
-        let remaining = new Decimal(paidAmount);
-        const payments: Array<{
-          month: Date;
-          paid: number;
-          type: string;
-        }> = [];
-
-        // OPTIMIZATION: Generate custom_id upfront
+        // 2. Create payment record to track this payment batch
         const nextId = (await tx.paymentRecord.count()) + 1;
         const formattedId = `PYN-${nextId.toString().padStart(4, "0")}`;
 
@@ -90,40 +112,63 @@ export async function applyCatchUpPayment({
             payment_method: paymentMethod,
             document_reference: documentReference,
             total_paid_amount: new Decimal(paidAmount),
-            custom_id: formattedId, // Set directly to avoid update query
+            custom_id: formattedId,
           },
         });
 
+        // 3. Determine current date based on simulation
+        const currentDate = simulate
+          ? addMonths(new Date(), simulationMonths)
+          : new Date();
+        const currentMonthStart = startOfMonth(currentDate);
+
+        let remainingPayment = new Decimal(paidAmount);
+
+        // 4. Handle OneTimeWindow contributions differently
         if (contribution.contributionType.mode === "OneTimeWindow") {
-          // OPTIMIZATION: Parallel schedule + payments sum fetch
-          const [schedule, totalPaidResult] = await Promise.all([
-            tx.contributionSchedule.findFirst({
-              where: {
-                member_id: memberId,
-                contribution_id: contribution.id,
-              },
-            }),
-            tx.payment.aggregate({
-              where: {
-                member_id: memberId,
-                contribution_id: contribution.id,
-                payment_type: "OneTimeWindow",
-              },
-              _sum: { paid_amount: true },
-            }),
-          ]);
+          // Validate payment window
+          const startDate = contribution.contributionType.start_date;
+          const endDate = contribution.contributionType.end_date;
+
+          if (!startDate || !endDate) {
+            throw new PaymentProcessingError(
+              "OneTimeWindow contribution must have start and end dates"
+            );
+          }
+
+          if (isBefore(currentDate, startDate)) {
+            throw new PaymentProcessingError(
+              `Payment cannot be made before the start date (${startDate.toISOString()})`
+            );
+          }
+
+          if (isAfter(currentDate, endOfDay(endDate))) {
+            throw new PaymentProcessingError(
+              `Payment cannot be made after the end date (${endDate.toISOString()})`
+            );
+          }
+
+          // Find the OneTimeWindow schedule
+          const schedule = await tx.contributionSchedule.findFirst({
+            where: {
+              member_id: memberId,
+              contribution_id: contribution.id,
+            },
+            orderBy: { month: "asc" },
+          });
 
           if (!schedule) {
             throw new NotFoundError("OneTimeWindow schedule not found");
           }
 
-          const alreadyPaid = new Decimal(totalPaidResult._sum.paid_amount ?? 0);
-          const unpaidAmount = contribution.amount.minus(alreadyPaid);
-          const amountToPay = Decimal.min(remaining, unpaidAmount);
-          const remainingAfter = remaining.minus(amountToPay);
+          const unpaidAmount = schedule.expected_amount.minus(
+            schedule.paid_amount ?? new Decimal(0)
+          );
+          const amountToPay = Decimal.min(remainingPayment, unpaidAmount);
 
           if (amountToPay.gt(0)) {
-            // OPTIMIZATION: Parallel payment + schedule update
+            const isFullyPaid = amountToPay.gte(unpaidAmount);
+
             await Promise.all([
               tx.payment.create({
                 data: {
@@ -139,11 +184,9 @@ export async function applyCatchUpPayment({
               tx.contributionSchedule.update({
                 where: { id: schedule.id },
                 data: {
-                  paid_amount: (schedule.paid_amount ?? new Decimal(0)).plus(amountToPay),
-                  ...(amountToPay.gte(unpaidAmount) && {
-                    is_paid: true,
-                    paid_at: new Date(),
-                  }),
+                  paid_amount: { increment: amountToPay },
+                  is_paid: isFullyPaid,
+                  paid_at: isFullyPaid ? new Date() : undefined,
                 },
               }),
             ]);
@@ -151,204 +194,220 @@ export async function applyCatchUpPayment({
             payments.push({
               month: schedule.month,
               paid: amountToPay.toNumber(),
-              type: unpaidAmount.lte(amountToPay)
-                ? "contribution_full"
-                : "contribution_partial",
+              type: isFullyPaid ? "contribution_full" : "contribution_partial",
             });
 
-            // OPTIMIZATION: Single upsert for balance
-            await tx.balance.upsert({
-              where: {
-                member_id_contribution_id: {
-                  member_id: memberId,
-                  contribution_id: contribution.id,
-                },
-              },
-              update: { amount: { decrement: amountToPay } },
-              create: {
-                member_id: memberId,
-                contribution_id: contribution.id,
-                amount: new Decimal(0).minus(amountToPay),
-              },
-            });
-
-            const graceMonths =
-              contribution.contributionType.months_before_inactivation ?? 5;
-            const deadlineDate = addMonths(
-              contribution.start_date,
-              graceMonths
-            );
-
-            if (
-              new Date() > deadlineDate &&
-              (schedule.paid_amount ?? new Decimal(0)).plus(amountToPay).lt(contribution.amount)
-            ) {
-              await tx.member.update({
-                where: { id: memberId },
-                data: {
-                  status: "Inactive",
-                  end_date: new Date(),
-                  remark: "Inactivated due to unpaid contributions",
-                },
-              });
-            }
-          }
-
-          if (remainingAfter.gt(0)) {
-            payments.push({
-              month: new Date(),
-              paid: remainingAfter.toNumber(),
-              type: "unallocated",
-            });
+            remainingPayment = remainingPayment.minus(amountToPay);
+            usedForContribution = usedForContribution.plus(amountToPay);
           }
         } else {
-          // Recurring contributions - optimized with penalty pre-loading
-          const schedules = await tx.contributionSchedule.findMany({
-            where: {
-              member_id: memberId,
-              contribution_id: contribution.id,
-              is_paid: false,
-            },
-            orderBy: { month: "asc" },
-            include: {
-              penalties: {
-                where: { resolved_at: null },
-              },
-            },
-          });
+          // 5. For recurring contributions, process in priority order:
+          //    a) Past unpaid penalties
+          //    b) Past unpaid schedules
+          //    c) Current month's schedule
 
-          if (schedules.length === 0) {
-            throw new PaymentProcessingError("No unpaid schedules found");
-          }
+          // a) Pay past unpaid penalties first (DOES NOT AFFECT BALANCE)
+          if (remainingPayment.gt(0)) {
+            const pastSchedulesWithPenalties =
+              await tx.contributionSchedule.findMany({
+                where: {
+                  member_id: memberId,
+                  contribution_id: contribution.id,
+                  is_paid: false,
+                  month: { lt: currentMonthStart },
+                },
+                include: {
+                  penalties: {
+                    where: { is_paid: false },
+                    orderBy: { applied_at: "asc" },
+                  },
+                },
+                orderBy: { month: "asc" },
+              });
 
-          let totalContributionPaid = new Decimal(0);
+            for (const schedule of pastSchedulesWithPenalties) {
+              if (remainingPayment.lte(0)) break;
 
-          for (const sched of schedules) {
-            if (remaining.lte(0)) break;
+              for (const penalty of schedule.penalties) {
+                if (remainingPayment.lte(0)) break;
 
-            const penalty = sched.penalties[0]; // Pre-loaded penalty
-            const currentPaid = sched.paid_amount ?? new Decimal(0);
+                const due = penalty.expected_amount.minus(
+                  penalty.paid_amount ?? 0
+                );
+                if (due.lte(0)) continue;
 
-            // Handle penalty if exists
-            if (penalty) {
-              const penaltyAmount = penalty.expected_amount ?? new Decimal(0);
-              const penaltyPaidAmount = penalty.paid_amount ?? new Decimal(0);
-              const penaltyRemaining = penaltyAmount.minus(penaltyPaidAmount);
-              const penaltyToPay = Decimal.min(penaltyRemaining, remaining);
-
-              if (penaltyToPay.gt(0)) {
-                const newPenaltyPaid = penaltyPaidAmount.plus(penaltyToPay);
-                const penaltyFullyPaid = newPenaltyPaid.gte(penaltyAmount);
+                const toPay = Decimal.min(remainingPayment, due);
+                const isFullyPaid = toPay.gte(due);
 
                 await Promise.all([
+                  tx.penalty.update({
+                    where: { id: penalty.id },
+                    data: {
+                      paid_amount: { increment: toPay },
+                      is_paid: isFullyPaid,
+                      resolved_at: isFullyPaid ? new Date() : undefined,
+                    },
+                  }),
                   tx.payment.create({
                     data: {
                       payment_record_id: paymentRecord.id,
                       member_id: memberId,
                       contribution_id: contribution.id,
-                      contribution_schedule_id: sched.id,
+                      contribution_schedule_id: schedule.id,
+                      penalty_id: penalty.id, 
                       payment_type: "penalty",
-                      payment_month: sched.month.toISOString().slice(0, 7),
-                      paid_amount: penaltyToPay,
-                    },
-                  }),
-                  tx.penalty.update({
-                    where: { id: penalty.id },
-                    data: {
-                      paid_amount: newPenaltyPaid,
-                      ...(penaltyFullyPaid && {
-                        is_paid: true,
-                        resolved_at: new Date(),
-                      }),
+                      payment_month: schedule.month.toISOString().slice(0, 7),
+                      paid_amount: toPay,
                     },
                   }),
                 ]);
 
+                remainingPayment = remainingPayment.minus(toPay);
+                usedForPenalty = usedForPenalty.plus(toPay); 
                 payments.push({
-                  month: sched.month,
-                  paid: penaltyToPay.toNumber(),
-                  type: penaltyFullyPaid ? "penalty" : "penalty_partial",
+                  month: schedule.month,
+                  paid: toPay.toNumber(),
+                  type: "penalty",
                 });
-
-                remaining = remaining.minus(penaltyToPay);
               }
             }
+          }
 
-            // Handle contribution payment
-            const expectedAmount = sched.expected_amount;
-            const unpaid = expectedAmount.minus(currentPaid);
-            const toPay = Decimal.min(unpaid, remaining);
+          // b) Pay past unpaid schedules (oldest first)
+          if (remainingPayment.gt(0)) {
+            const pastSchedules = await tx.contributionSchedule.findMany({
+              where: {
+                member_id: memberId,
+                contribution_id: contribution.id,
+                is_paid: false,
+                month: { lt: currentMonthStart },
+              },
+              orderBy: { month: "asc" },
+            });
 
-            if (toPay.gt(0)) {
-              const newTotalPaid = currentPaid.plus(toPay);
-              totalContributionPaid = totalContributionPaid.plus(toPay);
-              const isFullyPaid = newTotalPaid.gte(expectedAmount);
+            for (const schedule of pastSchedules) {
+              if (remainingPayment.lte(0)) break;
+
+              const paidAlready = schedule.paid_amount ?? 0;
+              const remainingDue = schedule.expected_amount.minus(paidAlready);
+              if (remainingDue.lte(0)) continue;
+
+              const toPay = Decimal.min(remainingPayment, remainingDue);
+              const isFullyPaid = paidAlready.plus(toPay).gte(schedule.expected_amount);
 
               await Promise.all([
+                tx.contributionSchedule.update({
+                  where: { id: schedule.id },
+                  data: {
+                    paid_amount: { increment: toPay },
+                    is_paid: isFullyPaid,
+                    paid_at: isFullyPaid ? new Date() : undefined,
+                  },
+                }),
                 tx.payment.create({
                   data: {
                     payment_record_id: paymentRecord.id,
                     member_id: memberId,
                     contribution_id: contribution.id,
-                    contribution_schedule_id: sched.id,
-                    payment_type: contribution.type_name,
-                    payment_month: sched.month.toISOString().slice(0, 7),
+                    contribution_schedule_id: schedule.id,
+                    payment_type: contribution.contributionType.name,
+                    payment_month: schedule.month.toISOString().slice(0, 7),
                     paid_amount: toPay,
-                  },
-                }),
-                tx.contributionSchedule.update({
-                  where: { id: sched.id },
-                  data: {
-                    paid_amount: newTotalPaid,
-                    ...(isFullyPaid && {
-                      is_paid: true,
-                      paid_at: new Date(),
-                    }),
                   },
                 }),
               ]);
 
+              remainingPayment = remainingPayment.minus(toPay);
+              usedForContribution = usedForContribution.plus(toPay);
               payments.push({
-                month: sched.month,
+                month: schedule.month,
                 paid: toPay.toNumber(),
-                type: isFullyPaid
-                  ? currentPaid.gt(0)
-                    ? "contribution_partial_to_full"
-                    : "contribution_full"
-                  : "contribution_partial",
+                type: isFullyPaid ? "contribution_full" : "contribution_partial",
               });
-
-              remaining = remaining.minus(toPay);
             }
           }
 
-          // Handle remaining amount
-          if (remaining.gt(0)) {
-            payments.push({
-              month: new Date(),
-              paid: remaining.toNumber(),
-              type: "unallocated",
-            });
-          }
-
-          // Update balance
-          await tx.balance.upsert({
-            where: {
-              member_id_contribution_id: {
+          // c) Pay current month's schedule
+          if (remainingPayment.gt(0)) {
+            const currentSchedule = await tx.contributionSchedule.findFirst({
+              where: {
                 member_id: memberId,
                 contribution_id: contribution.id,
+                month: {
+                  gte: currentMonthStart,
+                  lt: startOfMonth(addMonths(currentMonthStart, 1)),
+                },
               },
-            },
-            update: { amount: { decrement: totalContributionPaid } },
-            create: {
-              member_id: memberId,
-              contribution_id: contribution.id,
-              amount: new Decimal(0).minus(totalContributionPaid),
-            },
-          });
+            });
+
+            if (currentSchedule) {
+              const paidAlready = currentSchedule.paid_amount ?? 0;
+              const remainingDue = currentSchedule.expected_amount.minus(paidAlready);
+              if (remainingDue.gt(0)) {
+                const toPay = Decimal.min(remainingPayment, remainingDue);
+                const isFullyPaid = paidAlready.plus(toPay).gte(currentSchedule.expected_amount);
+
+                await Promise.all([
+                  tx.contributionSchedule.update({
+                    where: { id: currentSchedule.id },
+                    data: {
+                      paid_amount: { increment: toPay },
+                      is_paid: isFullyPaid,
+                      paid_at: isFullyPaid ? new Date() : undefined,
+                    },
+                  }),
+                  tx.payment.create({
+                    data: {
+                      payment_record_id: paymentRecord.id,
+                      member_id: memberId,
+                      contribution_id: contribution.id,
+                      contribution_schedule_id: currentSchedule.id,
+                      payment_type: contribution.contributionType.name,
+                      payment_month: currentSchedule.month.toISOString().slice(0, 7),
+                      paid_amount: toPay,
+                    },
+                  }),
+                ]);
+
+                remainingPayment = remainingPayment.minus(toPay);
+                usedForContribution = usedForContribution.plus(toPay);
+                payments.push({
+                  month: currentSchedule.month,
+                  paid: toPay.toNumber(),
+                  type: isFullyPaid ? "contribution_full" : "contribution_partial",
+                });
+              }
+            }
+          }
         }
 
-        // Final updates
+        // 6. Update balance (ONLY deduct contribution payments, ignore penalties)
+        await tx.balance.upsert({
+          where: {
+            member_id_contribution_id: {
+              member_id: memberId,
+              contribution_id: contribution.id,
+            },
+          },
+          update: {
+            amount: { decrement: usedForContribution }, // Only contributions affect balance
+            ...(remainingPayment.gt(0) && {
+              unallocated_amount: {
+                increment: remainingPayment,
+              },
+            }),
+          },
+          create: {
+            member_id: memberId,
+            contribution_id: contribution.id,
+            amount: new Decimal(0).minus(usedForContribution), // Only contributions affect balance
+            unallocated_amount: remainingPayment.gt(0)
+              ? remainingPayment
+              : new Decimal(0),
+          },
+        });
+
+        // 7. Get final balance for response
         const updatedBalance = await tx.balance.findUnique({
           where: {
             member_id_contribution_id: {
@@ -360,9 +419,11 @@ export async function applyCatchUpPayment({
 
         const remainingBalance = updatedBalance?.amount ?? new Decimal(0);
 
+        // 8. Handle special case for Registration contributions
         if (
           contribution.contributionType.name === "Registration" &&
-          remainingBalance.eq(0)
+          remainingBalance.eq(0) &&
+          !simulate
         ) {
           await tx.member.update({
             where: { id: memberId },
@@ -370,18 +431,27 @@ export async function applyCatchUpPayment({
           });
         }
 
+        // 9. Update payment record with remaining balance
         await tx.paymentRecord.update({
           where: { id: paymentRecord.id },
           data: {
-            remaining_balance: remainingBalance.greaterThan(0)
-              ? remainingBalance
-              : new Decimal(0),
+            remaining_balance: remainingBalance,
           },
         });
 
-        return payments;
+        return {
+          payments,
+          isSimulated: simulate,
+          simulatedMonths: simulationMonths,
+          simulationDate: currentDate,
+          remainingBalance,
+        };
       },
-      { timeout: 20000 } 
+      {
+        isolationLevel: "Serializable",
+        timeout: 20000,
+        maxWait: 10000,
+      }
     );
   } catch (error) {
     if (
@@ -392,7 +462,7 @@ export async function applyCatchUpPayment({
       throw error;
     }
     if (error instanceof Error) {
-      throw new PaymentProcessingError(`Database failed: ${error.message}`);
+      throw new PaymentProcessingError(`Payment processing failed: ${error.message}`);
     }
     throw new PaymentProcessingError("Unknown payment error occurred");
   }

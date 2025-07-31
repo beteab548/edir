@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import FilterBar from "@/components/report/FilterBar";
 import ReportShell from "@/components/report/ReportShell";
 import { getFilteredContributions } from "@/lib/report";
+import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 interface SearchParams {
@@ -21,7 +22,7 @@ export default async function ContributionReportPage({
 }: SearchParams) {
   const user = await currentUser();
   if (!user) return redirect("/sign-in");
-
+  await generateContributionSchedulesForAllActiveMembers();
   const contributions = await getFilteredContributions({
     name: searchParams.query,
     from: searchParams.from,
@@ -31,7 +32,8 @@ export default async function ContributionReportPage({
     contribution_type: searchParams.contribution_type,
   });
 
-  const processed = contributions.map((c:any) => {
+  const processed = contributions.map((c: any) => {
+    console.log("unallocated amount ", c.Balance.unallocated_amount ?? 0);
     const expected = c.ContributionSchedule.reduce(
       (sum: number, s: { expected_amount: any }) =>
         sum + Number(s.expected_amount),
@@ -51,6 +53,7 @@ export default async function ContributionReportPage({
       "Expected Amount": expected,
       "Paid Amount": paid,
       "Remaining Amount": expected - paid,
+      "unallocated balance": c.balance?.unallocated_amount ?? 0,
       Status:
         expected === paid ? "Paid" : paid > 0 ? "Partially Paid" : "Unpaid",
     };
@@ -108,6 +111,12 @@ export default async function ContributionReportPage({
         {
           label: "Remaining Amount / balance",
           accessor: "Remaining Amount",
+          width: "w-[100px]",
+          printWidth: "print:w-[70px]",
+        },
+        {
+          label: "Unallocated Balance",
+          accessor: "unallocated balance",
           width: "w-[100px]",
           printWidth: "print:w-[70px]",
         },

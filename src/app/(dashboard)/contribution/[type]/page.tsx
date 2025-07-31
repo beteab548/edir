@@ -16,7 +16,25 @@ interface PageProps {
     query?: string;
   };
 }
+function convertDecimalsToNumbers(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj !== "object") return obj;
 
+  if (obj instanceof Date) return obj;
+
+  // Handle Decimal.js or Prisma Decimal
+  if (typeof obj.toNumber === "function") return obj.toNumber();
+
+  if (Array.isArray(obj)) {
+    return obj.map(convertDecimalsToNumbers);
+  }
+
+  const result: any = {};
+  for (const key in obj) {
+    result[key] = convertDecimalsToNumbers(obj[key]);
+  }
+  return result;
+}
 export default async function ContributionPage({
   params,
   searchParams = {},
@@ -45,25 +63,7 @@ export default async function ContributionPage({
 
     if (isPenaltiesPage) {
       const membersRaw = await getMembersWithPenalties();
-
-      if (!Array.isArray(membersRaw)) {
-        throw new Error("Expected membersRaw to be an array");
-      }
-
-      const members = membersRaw.map((member:any) => ({
-        ...member,
-        Penalty: (member.Penalty ?? [])
-          .filter((penalty:any) => penalty.contribution !== null)
-          .map((penalty:any) => ({
-            ...penalty,
-            amount: Number(penalty.expected_amount),
-            contribution: {
-              ...penalty.contribution!,
-              amount: Number(penalty.contribution!.amount),
-            },
-          })),
-      }));
-
+      const members = convertDecimalsToNumbers(membersRaw);
       return (
         <div className="contribution-page">
           <Penalty members={members} />
@@ -134,20 +134,6 @@ export default async function ContributionPage({
       },
     });
 
-    const members = membersRaw.map((member:any) => ({
-      ...member,
-      Contribution: member.Contribution.map((c:any) => ({
-        ...c,
-        amount: Number(c.amount),
-      })),
-      Balance: member.Balance
-        ? {
-            ...member.Balance,
-            balance: Number(member.Balance),
-          }
-        : null,
-    }));
-
     const paymentsRaw = await prisma.paymentRecord.findMany({
       where: paymentFilter,
       include: {
@@ -160,39 +146,14 @@ export default async function ContributionPage({
       },
     });
 
-    const payments = paymentsRaw.map((payment:any) => ({
-      ...payment,
-      total_paid_amount: Number(payment.total_paid_amount),
-      remaining_balance: Number(payment.remaining_balance),
-      contributionType: payment.contributionType
-        ? {
-            ...payment.contributionType,
-            amount: Number(payment.contributionType.amount),
-            penalty_amount:
-              payment.contributionType.penalty_amount !== null
-                ? Number(payment.contributionType.penalty_amount)
-                : null,
-          }
-        : null,
-      payments: payment.payments.map((p:any) => ({
-        ...p,
-        paid_amount: Number(p.paid_amount),
-      })),
-    }));
-
-    const updatedContributionType = {
-      ...contributionType!,
-      amount: Number(contributionType!.amount),
-      penalty_amount:
-        contributionType!.penalty_amount !== null
-          ? Number(contributionType!.penalty_amount)
-          : null,
-    };
+    const members = convertDecimalsToNumbers(membersRaw);
+    const payments = convertDecimalsToNumbers(paymentsRaw);
+    const updatedContributionType = convertDecimalsToNumbers(contributionType);
 
     return (
       <div className="contribution-page">
         <ContributionTemplate
-          ContributionType={updatedContributionType}
+          ContributionType={updatedContributionType!}
           members={members}
           payments={payments}
           type="automatically"

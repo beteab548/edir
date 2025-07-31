@@ -41,7 +41,7 @@ export default function ReportsPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        if (!isLoaded) return; // wait for clerk to load
+        if (!isLoaded) return; 
 
         if (!isSignedIn) {
           router.push("/sign-in");
@@ -62,13 +62,11 @@ export default function ReportsPage() {
     return (
       <div className="min-h-screen flex items-start justify-start p-8">
         <div className="space-y-8 max-w-6xl w-full">
-          {/* Header skeleton - now left-aligned */}
           <div className="space-y-4 text-left">
             <div className="h-10 bg-gray-200 rounded w-64 animate-pulse" />
             <div className="h-4 bg-gray-200 rounded w-96 animate-pulse" />
           </div>
 
-          {/* Cards skeleton */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((item) => (
               <div key={item} className="bg-white rounded-lg shadow-md p-6">
@@ -108,7 +106,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto ">
       <h1 className="text-3xl font-bold mb-6">Reports</h1>
       <p className="m-4">Choose Reports to View or To Export</p>
       <div className="grid md:grid-cols-3 gap-6">

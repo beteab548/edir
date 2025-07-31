@@ -127,9 +127,11 @@ model Payment {
   member_id               Int
   contribution_id         Int
   contribution_schedule_id Int?    
+  penalty_id              Int?
   payment_type            String   
   payment_month           String    
   paid_amount             Decimal
+  penalty                 Penalty?      @relation(fields: [penalty_id], references: [id], onDelete: SetNull, onUpdate: Cascade)
   paymentRecord           PaymentRecord @relation(fields: [payment_record_id], references: [id],onDelete: Cascade)
   member                  Member        @relation(fields: [member_id], references: [id],onDelete: Cascade)
   contribution            Contribution  @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
@@ -141,6 +143,7 @@ model Balance {
   member_id         Int
   contribution_id   Int
   amount            Decimal      @default(0)
+  unallocated_amount Decimal @default(0)
   updated_at        DateTime     @updatedAt
   member            Member       @relation(fields: [member_id], references: [id], onDelete: Cascade)
   contribution      Contribution @relation(fields: [contribution_id], references: [id], onDelete: Cascade)
@@ -169,6 +172,7 @@ model Penalty {
   applied_at               DateTime              @default(now())
   resolved_at              DateTime?
   penaltyTypeId Int?
+   Payment Payment[] 
   penaltyType   PenaltyTypeModel?   @relation(fields: [penaltyTypeId], references: [id], onDelete: Cascade)
 }
 

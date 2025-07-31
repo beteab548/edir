@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getFilteredPenalties } from "@/lib/report";
 import ReportShell from "@/components/report/ReportShell";
 import FilterBar from "@/components/report/FilterBar";
+import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 
 interface SearchParams {
   searchParams: {
@@ -22,6 +23,7 @@ export default async function PenaltyReportPage({
 }: SearchParams) {
   const user = await currentUser();
   if (!user) return redirect("/sign-in");
+  await generateContributionSchedulesForAllActiveMembers();
 
   const penalties = await getFilteredPenalties({
     name: searchParams.query,
@@ -31,7 +33,7 @@ export default async function PenaltyReportPage({
     waived: searchParams.waived,
     penalty_type: searchParams.penalty_type,
   });
-  const processed = penalties.map((p:any) => ({
+  const processed = penalties.map((p: any) => ({
     ID: p.member.custom_id,
     "Full Name": `${p.member.first_name} ${p.member.second_name} ${p.member.last_name}`,
     Phone: p.member.phone_number.replace(/^251/, "0"),

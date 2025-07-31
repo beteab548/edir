@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import {
+  Balance,
   Contribution,
   ContributionMode,
   ContributionSchedule,
@@ -292,12 +293,14 @@ export const getFilteredContributions = async ({
     member: Member;
     contributionType: ContributionType;
     ContributionSchedule: ContributionSchedule[];
+    Balance:Balance[]
   })[] = await prisma.contribution.findMany({
     where: whereClause,
     include: {
       member: true,
       contributionType: true,
       ContributionSchedule: true,
+      Balance:true
     },
   });
 
