@@ -54,6 +54,13 @@ const menuItems = [
         hasDropdown: true,
       },
       {
+        icon: <FiAlertCircle size={20} />,
+        label: "Transfer Role",
+        href: "/transferRole",
+        visible: ["admin", "secretary"],
+        hasDropdown: true,
+      },
+      {
         icon: <FiFileText size={20} />,
         label: "Report",
         href: "/reports",

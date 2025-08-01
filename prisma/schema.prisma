@@ -6,69 +6,107 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+model Family {
+  id        Int      @id @default(autoincrement())
+  // This is the human-readable, unique ID for the family (e.g., FAM-0001)
+  familyId  String   @unique
+
+  // A family can have many members (principal, spouse, children, etc.)
+  members   Member[]
+
+  // A family has one set of relatives.
+  relatives Relative[]
+
+  created_at DateTime @default(now())
+}
+
+
+// ===================================================================
+// === 2. THE UPDATED MEMBER MODEL ===
+// Now links to the 'Family' model via a foreign key.
+// ===================================================================
 model Member {
-  id           Int     @id @default(autoincrement())
-  custom_id   String?  @unique
-  first_name   String?
-  second_name  String?
-  last_name    String?
-  profession   String?
-  title        String?
-  job_business String?
+  id                    Int      @id @default(autoincrement())
+  custom_id             String?  @unique
+  first_name            String?
+  second_name           String?
+  last_name             String?
+  profession            String?
+  title                 String?
+  job_business          String?
   identification_type   IDType?
   identification_number String?
   identification_image  String?
   identification_file_id String?
-  birth_date   DateTime
-  citizen      String?
-  registered_date   DateTime @default(now())
-  end_date     DateTime?
-  wereda        String?        
-  zone_or_district String?     
-  kebele        String? 
-   green_area  String?
-   block String?
-  house_number String?
-  founding_member Boolean @default(false)
-  sex          Sex?
-  marital_status  MaritalStatus?
-  phone_number String?  
-  phone_number_2 String?  
-  member_type MemberType? 
-  bank_name    String?
-  bank_account_number String? @unique
-  bank_account_name String?
-  email        String? @unique
-  email_2      String? @unique
-  image_url String?
-  image_file_id String?
-  document     String?
-  document_file_id     String?
-  remark String?
-  created_at       DateTime  @default(now())     
-  status_updated_at DateTime? 
-  status Status? 
-  relative  Relative[]
-  Payment Payment[]
-  Balance Balance[]
-  Penalty Penalty[]
-  Contribution Contribution[]
-  PaymentRecord PaymentRecord[]
+  birth_date            DateTime
+  citizen               String?
+  registered_date       DateTime @default(now())
+  end_date              DateTime?
+  wereda                String?
+  zone_or_district      String?
+  kebele                String?
+  green_area            String?
+  block                 String?
+  house_number          String?
+  founding_member       Boolean  @default(false)
+  sex                   Sex?
+  marital_status        MaritalStatus?
+  phone_number          String?
+  phone_number_2        String?
+  member_type           MemberType?
+  bank_name             String?
+  bank_account_number   String?
+  bank_account_name     String?
+  email                 String?
+  email_2               String?
+  image_url             String?
+  image_file_id         String?
+  document              String?
+  document_file_id      String?
+  remark                String?
+  created_at            DateTime  @default(now())
+  status_updated_at     DateTime?
+  status                Status?
+
+  // --- Family & Spouse Relations ---
+  isPrincipal           Boolean   @default(false)
+  spouseId              Int?      @unique
+  spouse                Member?   @relation("SpouseRelation", fields: [spouseId], references: [id])
+  spousedBy             Member?   @relation("SpouseRelation")
+
+  // --- LINK TO THE FAMILY MODEL ---
+  // A member belongs to one family. This defines the "many" side of the relation.
+  family                Family    @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  familyId              Int       // This is the foreign key to the Family table's 'id'.
+
+  // --- Financial Relations ---
+  Payment               Payment[]
+  Balance               Balance[]
+  Penalty               Penalty[]
+  Contribution          Contribution[]
+  PaymentRecord         PaymentRecord[]
 }
 
-model Relative{
-  id Int @id @default(autoincrement())
-  member_id Int 
-  first_name String
-  second_name String
-  last_name String
-  relation_type String
-  status RelativeStatus
-  member Member @relation(fields: [member_id],references: [id],onDelete: Cascade)
-  created_at       DateTime  @default(now())     
-  status_updated_at DateTime? 
-}
 
+// ===================================================================
+// === 3. THE UPDATED RELATIVE MODEL ===
+// Now links to the 'Family' model, not a specific member.
+// ===================================================================
+model Relative {
+  id                Int      @id @default(autoincrement())
+  first_name        String
+  second_name       String?
+  last_name         String
+  relation_type     String
+  status            RelativeStatus
+  created_at        DateTime  @default(now())
+  status_updated_at DateTime?
+
+  // --- LINK TO THE FAMILY MODEL ---
+  // A relative belongs to one family.
+  family            Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  familyId          Int      // This is the foreign key to the Family table's 'id'.
+}
 model Contribution {
   id                 Int       @id @default(autoincrement())
   member_id          Int

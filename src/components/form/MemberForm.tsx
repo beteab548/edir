@@ -4,9 +4,12 @@ import { FieldError, useForm, useWatch } from "react-hook-form";
 import { countryList } from "@/lib/countries";
 import InputField from "../InputField";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
-import { combinedSchema, CombinedSchema } from "@/lib/formValidationSchemas";
+import {
+  FamilyMemberSchema,
+  familyMemberSchema,
+} from "@/lib/formValidationSchemas";
 import { useFormState } from "react-dom";
-import { createMember, updateMember } from "@/lib/actions";
+import { createFamily, updateFamily } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import UploadFile from "../FileUpload/page";
@@ -15,9 +18,62 @@ import SelectField from "../SelectField";
 import Link from "next/link";
 import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
-const tabs = ["Principal Info", "Principal detail", "Principal Relatives"];
-import "./phone-input.css";
+// import "./phone-input.css"; // Let's assume this is the correct path
 import SmallCheckbox from "../ui/checkbox";
+
+const initialTabs = [
+  "Principal Info",
+  "Principal detail",
+  "Principal Relatives",
+];
+// This function can be inside your MemberForm component or outside it.
+// It takes your raw server data and returns data ready for the form.
+
+const getFormattedFormValues = (rawData: any) => {
+  const formatDate = (dateStr?: string | Date): string => {
+    if (!dateStr) return "";
+    return new Date(dateStr).toISOString().split("T")[0];
+  };
+
+  // "Create" mode defaults remain the same
+  if (!rawData || !rawData.principal) {
+    return {
+      principal: {
+        isPrincipal: true,
+        sex: "Male",
+        registered_date: formatDate(new Date()),
+        status: "Active",
+        member_type: rawData?.principal?.member_type || "New",
+      },
+      spouse: undefined,
+      relatives: [],
+    };
+  }
+
+  // "Update" mode logic
+  const formattedPrincipal = {
+    ...rawData.principal,
+    birth_date: formatDate(rawData.principal?.birth_date),
+    registered_date: formatDate(rawData.principal?.registered_date),
+    end_date: formatDate(rawData.principal?.end_date),
+  };
+
+  let formattedSpouse;
+  if (rawData.spouse) {
+    formattedSpouse = {
+      ...rawData.spouse,
+      birth_date: formatDate(rawData.spouse?.birth_date),
+      registered_date: formatDate(rawData.spouse?.registered_date),
+      end_date: formatDate(rawData.spouse?.end_date),
+    };
+  }
+
+  return {
+    principal: formattedPrincipal,
+    spouse: formattedSpouse,
+    relatives: rawData.principal?.family?.relatives || [],
+  };
+};
 const MemberForm = ({
   type,
   data,
@@ -27,8 +83,106 @@ const MemberForm = ({
   data?: any;
   setOpen?: Dispatch<SetStateAction<boolean>>;
 }) => {
+  console.log("data is:", data);
   const formatDate = (dateStr?: string) =>
     dateStr ? new Date(dateStr).toISOString().split("T")[0] : "";
+
+  const {
+    register,
+    setValue,
+    getValues,
+    handleSubmit,
+    watch,
+    reset,
+    control,
+    formState: { errors, isSubmitting },
+  } = useForm<FamilyMemberSchema>({
+    resolver: zodResolver(familyMemberSchema),
+    defaultValues: getFormattedFormValues(data),
+  });
+  useEffect(() => {
+    if (data) {
+      // When data arrives, format it and then reset the form
+      const formattedData = getFormattedFormValues(data);
+      reset(formattedData);
+    }
+  }, [data, reset]);
+  const maritalStatus = useWatch({
+    control,
+    name: "principal.marital_status",
+  });
+  const principalSex = useWatch({
+    control,
+    name: "principal.sex",
+  });
+
+  const [tabs, setTabs] = useState(initialTabs);
+
+  useEffect(() => {
+    // --- LOGIC FOR A MARRIED PRINCIPAL ---
+    if (maritalStatus === "married") {
+      // 1. Show the spouse tabs.
+      setTabs([
+        "Principal Info",
+        "Principal detail",
+        "Spouse Info",
+        "Spouse Detail",
+        "Principal Relatives",
+      ]);
+
+      // 2. Check if a spouse object already exists in the form's state.
+      const existingSpouse = getValues("spouse");
+
+      // 3. If NO spouse data exists, set all the defaults in one go.
+      // This block will run for a NEW form, or if the user switches from "single" to "married".
+      // It will NOT run when loading an existing married couple for an update.
+      if (!existingSpouse) {
+        setValue("spouse", {
+          // --- Required Fields from Your Schema ---
+          first_name: "",
+          second_name: "",
+          birth_date: new Date(),
+          identification_type: "FAYDA",
+          sex: principalSex === "Male" ? "Female" : "Male",
+          bank_name: "Commercial Bank of Ethiopia",
+          green_area: "1",
+          block: "",
+          phone_number: "", // <-- THIS IS THE FIX. Added the missing required field.
+
+          // --- Your Other Defaults ---
+          registered_date: new Date(),
+          member_type: "New",
+          status: "Active",
+          marital_status: "married",
+          isPrincipal: false,
+
+          // --- Optional Fields (Good practice to set them explicitly) ---
+          last_name: undefined,
+          profession: undefined,
+          title: undefined,
+          job_business: undefined,
+          identification_number: undefined,
+          citizen: "Ethiopia",
+          wereda: undefined,
+          zone_or_district: undefined,
+          kebele: undefined,
+          house_number: undefined,
+          phone_number_2: undefined,
+          bank_account_number: undefined,
+          bank_account_name: undefined,
+          email: undefined,
+          email_2: undefined,
+          remark: undefined,
+        });
+      }
+    } else {
+      // 1. Hide the spouse tabs.
+      setTabs(initialTabs);
+
+      // 2. Clear out the entire spouse object.
+      setValue("spouse", undefined, { shouldValidate: true });
+    }
+  }, [maritalStatus, setValue, getValues, principalSex]);
   const [relatives, setRelatives] = useState<any[]>(data?.relatives || []);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(
@@ -48,113 +202,211 @@ const MemberForm = ({
     relation_type: "Mother",
   });
 
-  const {
-    register,
-    setValue,
-    getValues,
-    handleSubmit,
-    watch,
-    reset,
-    control,
-    formState: { errors, isSubmitting },
-  } = useForm<CombinedSchema>({
-    resolver: zodResolver(combinedSchema),
-  });
-
   const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
     null
   );
-  const [phone, setPhone] = useState<string | undefined>(data?.phone_number);
+  const [phone, setPhone] = useState<string | undefined>(
+    data?.principal?.phone_number
+  );
   const [phone2, setPhone2] = useState<string | undefined>(
-    data?.phone_number_2
+    data?.spouse?.phone_number_2
+  );
+  const [phone3, setPhone3] = useState<string | undefined>(
+    data?.principal?.phone_number
+  );
+  const [phone4, setPhone4] = useState<string | undefined>(
+    data?.spouse?.phone_number_2
   );
 
-  const [imageReady, setImageReady] = useState(true);
-  const [identificationReady, setIdetificationReady] = useState(true);
-  const [document, SetDocumentUrl] = useState<{
+  const [principalImage, setPrincipalImage] = useState<{
     Url: string;
     fileId: string;
   } | null>(null);
-  const [documentReady, setDocumentReady] = useState(true);
-  const [identificationImage, setIdentificationUrl] = useState<{
+  const [principalDocument, setPrincipalDocument] = useState<{
     Url: string;
     fileId: string;
   } | null>(null);
+  const [principalIdentificationImage, setPrincipalIdentificationImage] =
+    useState<{ Url: string; fileId: string } | null>(null);
+
+  const [principalImageReady, setPrincipalImageReady] = useState(true);
+  const [principalDocumentReady, setPrincipalDocumentReady] = useState(true);
+  const [principalIdReady, setPrincipalIdReady] = useState(true);
+  const [spouseImage, setSpouseImage] = useState<{
+    Url: string;
+    fileId: string;
+  } | null>(null);
+  const [spouseDocument, setSpouseDocument] = useState<{
+    Url: string;
+    fileId: string;
+  } | null>(null);
+  const [spouseIdentificationImage, setSpouseIdentificationImage] = useState<{
+    Url: string;
+    fileId: string;
+  } | null>(null);
+
+  const [spouseImageReady, setSpouseImageReady] = useState(true);
+  const [spouseDocumentReady, setSpouseDocumentReady] = useState(true);
+  const [spouseIdReady, setSpouseIdReady] = useState(true);
+
   const [tabIndex, setTabIndex] = useState(0);
   const [state, formAction] = useFormState(
-    type === "create" ? createMember : updateMember,
+    type === "create" ? createFamily : updateFamily,
     { success: false, error: false }
   );
 
-  useEffect(() => {
+   useEffect(() => {
     if (data) {
-      setRelatives(data.relative || []);
+      const formattedData = getFormattedFormValues(data);
+      reset(formattedData);
+     
+      setRelatives(data.relatives || []);
     }
   }, [data, reset]);
-
   const selectedIdType = useWatch({
     control,
-    name: "member.identification_type",
+    name: "principal.identification_type",
   });
   useEffect(() => {
-    // Clear ID number when type changes
-    setValue("member.identification_number", "");
+    setValue("principal.identification_number", "");
   }, [selectedIdType, setValue]);
 
-  const getImageUrl = async (newImage: { Url: string; fileId: string }) => {
-    try {
-      if (data?.image_url && data?.image_url !== newImage.Url) {
-        await fetch("/api/imageKit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: data?.image_url,
-            fileId: data?.image_file_id,
-          }),
-        });
-      }
-      setImageUrl({ Url: newImage.Url, fileId: newImage.fileId });
-    } catch (err) {
-      console.error("Failed to handle image:", err);
-    }
-  };
-
-  const getDocument = async (newImage: { Url: string; fileId: string }) => {
-    try {
-      if (data?.document && data?.document !== document?.Url) {
-        await fetch("/api/imageKit", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: data?.document,
-            fileId: data?.document_file_id,
-          }),
-        });
-      }
-      SetDocumentUrl({ Url: newImage.Url, fileId: newImage.fileId });
-    } catch (err) {
-      console.error("Failed to handle image:", err);
-    }
-  };
-  const getidentificationImage = async (newImage: {
+  const getPrincipalImageUrl = async (newImage: {
     Url: string;
     fileId: string;
   }) => {
     try {
       if (
-        data?.identification_image &&
-        data?.identification_image !== identificationImage?.Url
+        data?.principal?.image_url &&
+        data?.principal?.image_url !== newImage.Url
       ) {
         await fetch("/api/imageKit", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            url: data?.identification_image,
-            fileId: data?.identification_file_id,
+            url: data?.principal?.image_url,
+            fileId: data?.principal?.image_file_id,
           }),
         });
       }
-      setIdentificationUrl({ Url: newImage.Url, fileId: newImage.fileId });
+      setPrincipalImage({ Url: newImage.Url, fileId: newImage.fileId });
+    } catch (err) {
+      console.error("Failed to handle image:", err);
+    }
+  };
+
+  const getPrincipalDocument = async (newDoc: {
+    Url: string;
+    fileId: string;
+  }) => {
+    try {
+      if (
+        data?.principal?.document &&
+        data?.principal?.document !== principalDocument?.Url
+      ) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.principal?.document,
+            fileId: data?.principal?.document_file_id,
+          }),
+        });
+      }
+      setPrincipalDocument({ Url: newDoc.Url, fileId: newDoc.fileId });
+    } catch (err) {
+      console.error("Failed to handle image:", err);
+    }
+  };
+  const getPrincipalIdentificationImage = async (newImage: {
+    Url: string;
+    fileId: string;
+  }) => {
+    try {
+      if (
+        data?.principal?.identification_image &&
+        data?.principal?.identification_image !==
+          principalIdentificationImage?.Url
+      ) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.principal?.identification_image,
+            fileId: data?.principal?.identification_file_id,
+          }),
+        });
+      }
+      setPrincipalIdentificationImage({
+        Url: newImage.Url,
+        fileId: newImage.fileId,
+      });
+    } catch (err) {
+      console.error("Failed to handle Identification image:", err);
+    }
+  };
+  const getSpouseImageUrl = async (newImage: {
+    Url: string;
+    fileId: string;
+  }) => {
+    try {
+      if (data?.spose?.image_url && data?.spose?.image_url !== newImage.Url) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.spose?.image_url,
+            fileId: data?.spose?.image_file_id,
+          }),
+        });
+      }
+      setSpouseImage({ Url: newImage.Url, fileId: newImage.fileId });
+    } catch (err) {
+      console.error("Failed to handle image:", err);
+    }
+  };
+  const getSpouseDocument = async (newDoc: { Url: string; fileId: string }) => {
+    try {
+      if (
+        data?.spouse?.document &&
+        data?.spouse?.document !== spouseDocument?.Url
+      ) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.spouse?.document,
+            fileId: data?.spouse?.document_file_id,
+          }),
+        });
+      }
+      setSpouseDocument({ Url: newDoc.Url, fileId: newDoc.fileId });
+    } catch (err) {
+      console.error("Failed to handle image:", err);
+    }
+  };
+  const getSpouseIdentificationImage = async (newImage: {
+    Url: string;
+    fileId: string;
+  }) => {
+    try {
+      if (
+        data?.spouse?.identification_image &&
+        data?.spouse?.identification_image !== spouseIdentificationImage?.Url
+      ) {
+        await fetch("/api/imageKit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            url: data?.spouse?.identification_image,
+            fileId: data?.spouse?.identification_file_id,
+          }),
+        });
+      }
+      setSpouseIdentificationImage({
+        Url: newImage.Url,
+        fileId: newImage.fileId,
+      });
     } catch (err) {
       console.error("Failed to handle Identification image:", err);
     }
@@ -162,43 +414,117 @@ const MemberForm = ({
 
   const onSubmit = handleSubmit(
     async (formData) => {
+      // formData is { principal, spouse, relatives }
       setIsLoading(true);
+
+      // --- Attach file data to the PRINCIPAL object ---
+      if (principalImage) {
+        formData.principal.image_url = principalImage.Url;
+        formData.principal.image_file_id = principalImage.fileId;
+      }
+      if (principalDocument) {
+        formData.principal.document = principalDocument.Url;
+        formData.principal.document_file_id = principalDocument.fileId;
+      }
+      if (principalIdentificationImage) {
+        formData.principal.identification_image =
+          principalIdentificationImage.Url;
+        formData.principal.identification_file_id =
+          principalIdentificationImage.fileId;
+      }
+
+      // --- Attach file data to the SPOUSE object (if a spouse exists) ---
+      if (formData.spouse) {
+        if (spouseImage) {
+          formData.spouse.image_url = spouseImage.Url;
+          formData.spouse.image_file_id = spouseImage.fileId;
+        }
+        if (spouseDocument) {
+          formData.spouse.document = spouseDocument.Url;
+          formData.spouse.document_file_id = spouseDocument.fileId;
+        }
+        if (spouseIdentificationImage) {
+          formData.spouse.identification_image = spouseIdentificationImage.Url;
+          formData.spouse.identification_file_id =
+            spouseIdentificationImage.fileId;
+        }
+      }
+
       const submissionData = {
-        member: {
-          ...formData.member,
-          document: document?.Url ?? undefined,
-          document_file_id: document?.fileId ?? undefined,
-          image_url: image?.Url ?? undefined,
-          image_file_id: image?.fileId ?? undefined,
-          identification_image: identificationImage?.Url ?? undefined,
-          identification_file_id: identificationImage?.fileId ?? undefined,
-        },
+        ...formData,
         relatives: relatives,
       };
-      console.log(submissionData);
-      await formAction(submissionData);
+
+      console.log("Submitting prepared data:", submissionData);
+      formAction(submissionData);
     },
-
+    // This is the onInvalid callback for handleSubmit
+    // This is the onInvalid callback for handleSubmit
     (errors) => {
-      const memberErrors = errors?.member;
+      // Helper function to extract and prefix error messages.
+      const extractErrorMessages = (
+        errorObject: Record<string, any> | undefined,
+        prefix: string
+      ): string[] => {
+        // If the errorObject is invalid or doesn't exist, return an empty array.
+        if (!errorObject || typeof errorObject !== "object") {
+          return [];
+        }
 
-      if (memberErrors && typeof memberErrors === "object") {
-        const errorMessages = Object.values(memberErrors)
+        // Otherwise, extract, filter, and prefix the messages.
+        return Object.values(errorObject)
           .filter(
             (error): error is FieldError =>
               typeof error === "object" && error !== null && "message" in error
           )
-          .map((error) => error.message);
+          .map((error) => `${prefix} ${error.message as string}`);
+      };
 
-        if (errorMessages.length > 0) {
-          errorMessages.forEach((msg) => toast.error(msg));
-        } else {
-          toast.error("Please correct the highlighted errors.");
-        }
-      } else {
-        toast.error("Please correct the highlighted errors.");
+      // Get the form's current state to check the marital status.
+      const currentFormValues = getValues();
+
+      // Extract and prefix the errors for both principal and spouse.
+      const principalErrorMessages = extractErrorMessages(
+        errors.principal,
+        "Principal:"
+      );
+      const spouseErrorMessages = extractErrorMessages(
+        errors.spouse,
+        "Spouse:"
+      );
+
+      // Start building the list of all messages to display.
+      let allErrorMessages = [...principalErrorMessages];
+
+      // Only add spouse errors to the list if the principal is married.
+      if (currentFormValues.principal?.marital_status === "married") {
+        allErrorMessages = [...allErrorMessages, ...spouseErrorMessages];
       }
 
+      // Display the toasts if there are any errors to show.
+      if (allErrorMessages.length > 0) {
+        // Display a summary toast.
+        toast.error("Please fix the following errors:", {
+          toastId: "form-error-summary", // Prevents this from being dismissed by other toasts
+          // The autoClose property is removed to restore default behavior.
+        });
+
+        // Display a toast for each specific validation error.
+        allErrorMessages.forEach((msg) => {
+          toast.error(msg, {
+            toastId: msg, // Uses the message itself as an ID to prevent duplicates
+            // The autoClose property is removed to restore default behavior.
+          });
+        });
+      } else if (Object.keys(errors).length > 0) {
+        // Fallback for any other unexpected errors that didn't have a message.
+        toast.error("Please correct the highlighted errors in the form.", {
+          toastId: "generic-form-error",
+          // The autoClose property is removed to restore default behavior.
+        });
+      }
+
+      // Always log the full, raw error object to the console for easier debugging.
       console.error("Validation errors:", errors);
     }
   );
@@ -293,9 +619,11 @@ const MemberForm = ({
     deleteDialogRef.current?.close();
   };
   useEffect(() => {
-    setValue("member.phone_number", phone ?? "");
-    setValue("member.phone_number_2", phone2 ?? "");
-  }, [phone, setValue, phone2]);
+    setValue("principal.phone_number", phone ?? "");
+    setValue("principal.phone_number_2", phone2 ?? "");
+    setValue("spouse.phone_number", phone3 ?? "");
+    setValue("spouse.phone_number_2", phone4 ?? "");
+  }, [phone, setValue, phone2, phone3, phone4]);
   return (
     <div
       className={`${
@@ -321,58 +649,53 @@ const MemberForm = ({
       </div>
 
       <form className="flex flex-col p-6 w-full" onSubmit={onSubmit}>
-        {tabIndex === 0 && (
+        {tabs[tabIndex] === "Principal Info" && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[400px] overflow-y-auto custom-scrollbar pr-4">
+            {/* Principal Info fields... */}
             <InputField
               label="First Name"
-              name="member.first_name"
+              name="principal.first_name"
               register={register}
-              error={errors?.member?.first_name}
-              defaultValue={data?.first_name}
+              error={errors?.principal?.first_name}
             />
             <InputField
               label="Second Name"
-              name="member.second_name"
+              name="principal.second_name"
               register={register}
-              error={errors?.member?.second_name}
-              defaultValue={data?.second_name}
+              error={errors?.principal?.second_name}
             />
             <InputField
               label="Last Name"
-              name="member.last_name"
+              name="principal.last_name"
               register={register}
-              error={errors?.member?.last_name}
-              defaultValue={data?.last_name}
+              error={errors?.principal?.last_name}
             />
             <InputField
               label="Birth Date"
-              name="member.birth_date"
+              name="principal.birth_date"
               type="date"
               register={register}
-              defaultValue={formatDate(data?.birth_date)}
-              error={errors?.member?.birth_date}
+              error={errors?.principal?.birth_date}
               inputProps={{
                 max: formatDate(new Date().toISOString()),
               }}
             />
-
-            <div className="flex flex-col gap-2 ">
-              <label className="text-sm font-medium text-gray-700">Sex</label>
-              <select
-                {...register("member.sex")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                defaultValue={data?.sex}
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </div>
+            <SelectField
+              label="Sex"
+              name="principal.sex"
+              register={register}
+              error={errors.principal?.sex}
+              options={[
+                { value: "", label: "Select Sex" },
+                { value: "Male", label: "Male" },
+                { value: "Female", label: "Female" },
+              ]}
+            />
             <SelectField
               label="Marital Status"
-              name="member.marital_status"
+              name="principal.marital_status"
               register={register}
-              error={errors.member?.marital_status}
-              defaultValue={data?.marital_status}
+              error={errors.principal?.marital_status}
               options={[
                 { value: "", label: "Select Marital Status" },
                 { value: "married", label: "Married" },
@@ -383,118 +706,119 @@ const MemberForm = ({
             />
             <InputField
               label="Title"
-              name="member.title"
+              name="principal.title"
               register={register}
-              error={errors.member?.title}
-              defaultValue={data?.title}
+              error={errors.principal?.title}
             />
 
             <InputField
               label="Job/Business"
-              name="member.job_business"
+              name="principal.job_business"
               register={register}
-              error={errors.member?.job_business}
-              defaultValue={data?.job_business}
+              error={errors.principal?.job_business}
             />
 
             <InputField
               label="Profession"
-              name="member.profession"
+              name="principal.profession"
               register={register}
-              error={errors.member?.profession}
-              defaultValue={data?.profession}
+              error={errors.principal?.profession}
             />
 
             <InputField
               label="Registered Date"
-              name="member.registered_date"
+              name="principal.registered_date"
               type="date"
               register={register}
-              error={errors.member?.registered_date}
-              defaultValue={formatDate(data?.registered_date ?? new Date())}
+              error={errors.principal?.registered_date}
             />
             <InputField
               label="End Date"
               name="member.end_date"
               type="date"
               register={register}
-              error={errors.member?.end_date}
-              defaultValue={formatDate(data?.end_date)}
+              error={errors.principal?.end_date}
             />
 
-            <div className="flex flex-col gap-2 ">
-              <label className="text-sm font-medium text-gray-700">
-                Status
-              </label>
-              <select
-                {...register("member.status")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                defaultValue={data?.status ?? "Active"}
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Deceased">Deceased</option>
-                <option value="Left">Left</option>
-              </select>
-              {errors.member?.status && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.member?.status?.message?.toString()}
-                </p>
-              )}
-            </div>
+            <SelectField
+              label="Status"
+              name="principal.status"
+              register={register}
+              error={errors.principal?.status}
+              options={[
+                { value: "", label: "Select Status" },
+                { value: "Active", label: "Active" },
+                { value: "Inactive", label: "Inactive" },
+                { value: "Deceased", label: "Deceased" },
+                { value: "Left", label: "Left" },
+              ]}
+            />
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Member Type
-              </label>
-              <select
-                {...register("member.member_type")}
-                className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                defaultValue={data?.member_type || "New"}
-              >
-                <option value="New">New</option>
-                <option value="Existing">Existing</option>
-              </select>
-              {errors.member?.member_type && (
-                <p className="text-xs text-red-500 mt-1">
-                  {errors.member?.member_type?.message?.toString()}
-                </p>
-              )}
-            </div>
+            <SelectField
+              label="Status"
+              name="principal.member_type"
+              register={register}
+              error={errors.principal?.member_type}
+              options={[
+                { value: "", label: "Select Member Type" },
+                { value: "New", label: "New" },
+                { value: "Existing", label: "Existing" },
+              ]}
+            />
             <div className="h-8 flex items-end justify-start mt-6">
               <SmallCheckbox
-                name="member.founding_member"
+                name="principal.founding_member"
                 label="Founding Member"
                 register={register}
-                error={errors?.member?.founding_member}
-                defaultChecked={data?.founding_member}
+                error={errors?.principal?.founding_member}
+                defaultChecked={data?.principal?.founding_member}
               />
+            </div>
+            <div className="h-8 flex items-end justify-start mt-6">
+              <div className="flex items-center gap-2 mt-6">
+                <input
+                  type="checkbox"
+                  checked={true} // Always checked
+                  disabled={true} // Always disabled
+                  className="w-4 h-4 text-blue-600 bg-gray-200 border-gray-300 rounded cursor-not-allowed focus:ring-blue-500"
+                />
+                <label className="text-sm font-medium text-gray-700">
+                  Principal
+                </label>
+                {/* The hidden input ensures the value is submitted correctly */}
+                <input
+                  type="hidden"
+                  {...register("principal.isPrincipal")}
+                  value="true"
+                />
+              </div>
             </div>
             {data && (
               <InputField
                 label=""
-                name="member.id"
+                name="principal.id"
                 register={register}
-                error={errors?.member?.id}
+                error={errors?.principal?.id}
                 hidden={true}
-                defaultValue={data?.id}
+                defaultValue={data?.principal?.id}
               />
             )}
           </div>
         )}
-        <div className={tabIndex === 1 ? "" : "hidden"}>
+        {tabs[tabIndex] === "Principal detail" && (
           <div
             className={`max-h-[400px] overflow-y-auto custom-scrollbar pr-4`}
           >
+            {/* Principal detail fields... */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">
                   Citizen
                 </label>
                 <select
-                  {...register("member.citizen")}
+                  {...register("principal.citizen")}
                   className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
-                  defaultValue={data?.citizen ?? "Ethiopia"}
+                  defaultValue={data?.principal?.citizen ?? "Ethiopia"}
                 >
                   <option value="">Select a country</option>
                   {countryList.map(({ code, name }) => (
@@ -503,69 +827,63 @@ const MemberForm = ({
                     </option>
                   ))}
                 </select>
-                {errors.member?.citizen && (
+                {errors.principal?.citizen && (
                   <p className="text-xs text-red-500 mt-1">
-                    {errors.member?.citizen?.message?.toString()}
+                    {errors.principal?.citizen?.message?.toString()}
                   </p>
                 )}
               </div>
               <PhoneInputField
                 value={phone ?? ""}
                 onChange={(val) => setPhone(val)}
-                error={errors?.member?.phone_number?.message}
+                error={errors?.principal?.phone_number?.message}
               />
 
               <PhoneInputField
                 value={phone2 ?? ""}
                 onChange={(val) => setPhone2(val)}
-                error={errors?.member?.phone_number_2?.message}
+                error={errors?.principal?.phone_number_2?.message}
               />
 
               <InputField
                 label="Email"
-                name="member.email"
+                name="principal.email"
                 register={register}
-                error={errors.member?.email}
-                defaultValue={data?.email}
+                error={errors.principal?.email}
               />
 
               <InputField
                 label="Second Email"
-                name="member.email_2"
+                name="principal.email_2"
                 register={register}
-                error={errors.member?.email_2}
-                defaultValue={data?.email_2}
+                error={errors.principal?.email_2}
               />
 
               <InputField
                 label="Wereda"
-                name="member.wereda"
+                name="principal.wereda"
                 register={register}
-                error={errors.member?.wereda}
-                defaultValue={data?.wereda}
+                error={errors.principal?.wereda}
               />
 
               <InputField
                 label="Zone / District"
-                name="member.zone_or_district"
+                name="principal.zone_or_district"
                 register={register}
-                error={errors.member?.zone_or_district}
-                defaultValue={data?.zone_or_district}
+                error={errors.principal?.zone_or_district}
               />
 
               <InputField
                 label="Kebele"
-                name="member.kebele"
+                name="principal.kebele"
                 register={register}
-                error={errors.member?.kebele}
-                defaultValue={data?.kebele}
+                error={errors.principal?.kebele}
               />
               <SelectField
                 label="Green Area"
-                name="member.green_area"
+                name="principal.green_area"
                 register={register}
-                error={errors.member?.green_area}
-                defaultValue={data?.green_area}
+                error={errors.principal?.green_area}
                 options={[
                   { value: "", label: "Select Green Area Number" },
                   { value: "1", label: "1" },
@@ -584,25 +902,22 @@ const MemberForm = ({
               />
               <InputField
                 label="Block"
-                name="member.block"
+                name="principal.block"
                 register={register}
-                error={errors.member?.block}
-                defaultValue={data?.block}
+                error={errors.principal?.block}
               />
               <InputField
                 label="House Number"
-                name="member.house_number"
+                name="principal.house_number"
                 register={register}
-                error={errors.member?.house_number}
-                defaultValue={data?.house_number}
+                error={errors.principal?.house_number}
               />
 
               <SelectField
                 label="Bank Name"
-                name="member.bank_name"
+                name="principal.bank_name"
                 register={register}
-                error={errors.member?.bank_name}
-                defaultValue={data?.bank_name || ""}
+                error={errors.principal?.bank_name}
                 options={[
                   { value: "", label: "Select Bank Name" },
                   {
@@ -658,30 +973,28 @@ const MemberForm = ({
 
               <InputField
                 label="Bank Account Number"
-                name="member.bank_account_number"
+                name="principal.bank_account_number"
                 register={register}
-                error={errors.member?.bank_account_number}
-                defaultValue={data?.bank_account_number}
+                error={errors.principal?.bank_account_number}
               />
 
               <InputField
                 label="Bank Account Name"
-                name="member.bank_account_name"
+                name="principal.bank_account_name"
                 register={register}
-                error={errors.member?.bank_account_name}
-                defaultValue={data?.bank_account_name}
+                error={errors.principal?.bank_account_name}
               />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Profile Image
                 </label>
-                {data?.image_url && (
+                {data?.principal?.image_url && (
                   <div className="mb-4 flex items-center gap-4">
                     <Image
                       width={50}
                       height={50}
-                      src={data?.image_url}
+                      src={data?.principal?.image_url}
                       alt="Profile preview"
                       className="h-10 w-10 object-cover"
                     />
@@ -692,8 +1005,8 @@ const MemberForm = ({
                 )}
                 <UploadFile
                   text="Upload new profile image"
-                  getImageUrl={getImageUrl}
-                  setImageReady={setImageReady}
+                  getImageUrl={getPrincipalImageUrl}
+                  setImageReady={setPrincipalImageReady}
                   accept="image/*"
                 />
               </div>
@@ -703,10 +1016,10 @@ const MemberForm = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Document
                 </label>
-                {data?.document && (
+                {data?.principal?.document && (
                   <div className="mb-4 flex items-center gap-4">
                     <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
-                      <Link href={data.document} target="blanck">
+                      <Link href={data?.principal?.document} target="blanck">
                         <svg
                           className="w-8 h-8 text-gray-400"
                           fill="none"
@@ -729,24 +1042,23 @@ const MemberForm = ({
                 )}
                 <UploadFile
                   text="Upload new document"
-                  getImageUrl={getDocument}
-                  setImageReady={setDocumentReady}
-                   accept="application/pdf,.pdf" 
+                  getImageUrl={getPrincipalDocument}
+                  setImageReady={setPrincipalDocumentReady}
+                  accept="application/pdf,.pdf"
                 />
               </div>
               <div>
                 <SelectField
                   label="Identification Type"
-                  name="member.identification_type"
+                  name="principal.identification_type"
                   register={register}
-                  error={errors.member?.identification_type}
+                  error={errors.principal?.identification_type}
                   options={[
                     { value: "", label: "Select ID Type" },
                     { value: "FAYDA", label: "Fayda" },
                     { value: "KEBELE_ID", label: "Kebel ID" },
                     { value: "PASSPORT", label: "Passport" },
                   ]}
-                  defaultValue={data?.identification_type}
                   required
                   registerOptions={{ required: "Please select an ID type" }}
                 />
@@ -760,9 +1072,9 @@ const MemberForm = ({
                       ? "Kebele ID Number"
                       : "Passport Number"
                   }
-                  name="identification_number"
+                  name="principal.identification_number"
                   register={register}
-                  error={errors.member?.identification_number}
+                  error={errors.principal?.identification_number}
                   inputProps={{
                     placeholder: "Enter ID number",
                   }}
@@ -772,12 +1084,12 @@ const MemberForm = ({
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Identification Image
                 </label>
-                {data?.identification_image && (
+                {data?.principal?.identification_image && (
                   <div className="mb-4 flex items-center gap-4">
                     <Image
                       width={50}
                       height={50}
-                      src={data?.identification_image}
+                      src={data?.principal?.identification_image}
                       alt="Profile preview"
                       className="h-10 w-10 object-cover"
                     />
@@ -788,14 +1100,14 @@ const MemberForm = ({
                 )}
                 <UploadFile
                   text="Upload Identification Image"
-                  getImageUrl={getidentificationImage}
-                  setImageReady={setIdetificationReady}
-                    accept="image/*,.pdf"
+                  getImageUrl={getPrincipalIdentificationImage}
+                  setImageReady={setPrincipalIdReady}
+                  accept="image/*,.pdf"
                 />
 
-                {errors.member?.identification_image && (
+                {errors.principal?.identification_image && (
                   <p className="text-xs text-red-500 mt-1">
-                    {errors.member?.identification_image.message}
+                    {errors.principal?.identification_image.message}
                   </p>
                 )}
               </div>
@@ -804,23 +1116,509 @@ const MemberForm = ({
                   Remark
                 </label>
                 <textarea
-                  {...register("member.remark")}
+                  {...register("principal.remark")}
                   rows={5}
                   className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   defaultValue={data?.remark}
                 />
-                {errors.member?.remark && (
+                {errors.principal?.remark && (
                   <p className="text-xs text-red-500 mt-1">
-                    {errors.member?.remark?.message?.toString()}
+                    {errors.principal?.remark?.message?.toString()}
                   </p>
                 )}
               </div>
             </div>
           </div>
-        </div>
+        )}
+        {tabs[tabIndex] === "Spouse Info" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-h-[400px] overflow-y-auto custom-scrollbar pr-4">
+            {/* Hidden input to ensure a spouse is never a principal from this form */}
+            <input
+              type="hidden"
+              {...register("spouse.isPrincipal")}
+              value="false"
+            />
+            <InputField
+              label="First Name"
+              name="spouse.first_name" // Changed from member.first_name
+              register={register}
+              error={errors?.spouse?.first_name} // Changed from errors.member
+            />
+            <InputField
+              label="Second Name"
+              name="spouse.second_name" // Changed from member.second_name
+              register={register}
+              error={errors?.spouse?.second_name} // Changed from errors.member
+            />
+            <InputField
+              label="Last Name"
+              name="spouse.last_name" // Changed from member.last_name
+              register={register}
+              error={errors?.spouse?.last_name} // Changed from errors.member
+            />
+            <InputField
+              label="Birth Date"
+              name="spouse.birth_date" // Changed from member.birth_date
+              type="date"
+              register={register}
+              error={errors?.spouse?.birth_date} // Changed from errors.member
+              inputProps={{
+                max: formatDate(new Date().toISOString()),
+              }}
+            />
 
-        {tabIndex === 2 && (
+            <SelectField
+              label="Sex"
+              name="spouse.sex"
+              register={register}
+              error={errors.spouse?.sex}
+              options={[
+                { value: "", label: "Select Sex" },
+                { value: "Male", label: "Male" },
+                { value: "Female", label: "Female" },
+              ]}
+            />
+            <SelectField
+              label="Marital Status"
+              name="spouse.marital_status"
+              register={register}
+              error={errors.spouse?.marital_status}
+              options={[
+                { value: "", label: "Select Marital Status" },
+                { value: "married", label: "Married" },
+                { value: "divorced", label: "Divorced" },
+                { value: "single", label: "Single" },
+                { value: "widowed", label: "Widowed" },
+              ]}
+            />
+            <InputField
+              label="Title"
+              name="spouse.title" // Changed from member.title
+              register={register}
+              error={errors.spouse?.title} // Changed from errors.member
+            />
+
+            <InputField
+              label="Job/Business"
+              name="spouse.job_business" // Changed from member.job_business
+              register={register}
+              error={errors.spouse?.job_business} // Changed from errors.member
+            />
+
+            <InputField
+              label="Profession"
+              name="spouse.profession" // Changed from member.profession
+              register={register}
+              error={errors.spouse?.profession} // Changed from errors.member
+            />
+
+            <InputField
+              label="Registered Date"
+              name="spouse.registered_date" // Changed from member.registered_date
+              type="date"
+              register={register}
+              error={errors.spouse?.registered_date} // Changed from errors.member
+            />
+
+            <InputField
+              label="End Date"
+              name="spouse.end_date" // Changed from member.end_date
+              type="date"
+              register={register}
+              error={errors.spouse?.end_date} // Changed from errors.member
+            />
+
+            <SelectField
+              label="Status"
+              name="spouse.status"
+              register={register}
+              error={errors.spouse?.status}
+              options={[
+                { value: "", label: "Select Status" },
+                { value: "Active", label: "Active" },
+                { value: "Inactive", label: "Inactive" },
+                { value: "Deceased", label: "Deceased" },
+                { value: "Left", label: "Left" },
+              ]}
+            />
+
+            <div className="flex flex-col gap-2">
+              <SelectField
+                label="Status"
+                name="spouse.member_type"
+                register={register}
+                error={errors.spouse?.member_type}
+                options={[
+                  { value: "", label: "Select Member Type" },
+                  { value: "New", label: "New" },
+                  { value: "Existing", label: "Existing" },
+                ]}
+              />
+              {errors.spouse?.member_type && (
+                <p className="text-xs text-red-500 mt-1">
+                  {errors.spouse?.member_type?.message?.toString()}
+                </p>
+              )}
+            </div>
+            <div className="h-8 flex items-end justify-start mt-6">
+              <SmallCheckbox
+                name="spouse.founding_member" // Changed from member.founding_member
+                label="Founding Member"
+                register={register}
+                error={errors?.spouse?.founding_member} // Changed from errors.member
+                defaultChecked={data?.spouse?.founding_member} // RHF handles this
+              />
+            </div>
+            <div className="h-8 flex items-end justify-start mt-6">
+              <div className="flex items-center gap-2 mt-6">
+                <input
+                  type="checkbox"
+                  checked={false} // Always checked
+                  disabled={true} // Always disabled
+                  className="w-4 h-4 text-blue-600 bg-gray-200 border-gray-300 rounded cursor-not-allowed focus:ring-blue-500"
+                />
+                <label className="text-sm font-medium text-gray-700">
+                  Principal
+                </label>
+                {/* The hidden input ensures the value is submitted correctly */}
+                <input
+                  type="hidden"
+                  {...register("principal.isPrincipal")}
+                  value="true"
+                />
+              </div>
+            </div>
+            {/* The 'principal' checkbox is intentionally removed for the spouse. */}
+
+            {data?.spouse && (
+              <InputField
+                label=""
+                name="spouse.id" // Changed from member.id
+                register={register}
+                error={errors?.spouse?.id} // Changed from errors.member
+                hidden={true}
+                defaultValue={data?.spouse?.id} // RHF handles this
+              />
+            )}
+          </div>
+        )}
+
+        {tabs[tabIndex] === "Spouse Detail" && (
+          <div
+            className={`max-h-[400px] overflow-y-auto custom-scrollbar pr-4`}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 ">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Citizen
+                </label>
+                <select
+                  {...register("spouse.citizen")} // Changed from member.citizen
+                  className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                  defaultValue={data?.spouse?.citizen ?? "Ethiopia"}
+                >
+                  <option value="">Select a country</option>
+                  {countryList.map(({ code, name }) => (
+                    <option key={code} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                {errors.spouse?.citizen && ( // Changed from errors.member
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.spouse?.citizen?.message?.toString()}
+                  </p>
+                )}
+              </div>
+
+              {/* NOTE: You will need separate state (e.g., spousePhone, setSpousePhone) for these fields */}
+              <PhoneInputField
+                value={phone3 ?? ""}
+                onChange={(val) => setPhone3(val)}
+                error={errors?.spouse?.phone_number?.message} // Changed from errors.member
+              />
+              <PhoneInputField
+                value={phone4 ?? ""}
+                onChange={(val) => setPhone4(val)}
+                error={errors?.spouse?.phone_number_2?.message} // Changed from errors.member
+              />
+
+              <InputField
+                label="Email"
+                name="spouse.email" // Changed from member.email
+                register={register}
+                error={errors.spouse?.email} // Changed from errors.member
+              />
+
+              <InputField
+                label="Second Email"
+                name="spouse.email_2" // Changed from member.email_2
+                register={register}
+                error={errors.spouse?.email_2} // Changed from errors.member
+              />
+
+              <InputField
+                label="Wereda"
+                name="spouse.wereda" // Changed from member.wereda
+                register={register}
+                error={errors.spouse?.wereda} // Changed from errors.member
+              />
+
+              <InputField
+                label="Zone / District"
+                name="spouse.zone_or_district" // Changed from member.zone_or_district
+                register={register}
+                error={errors.spouse?.zone_or_district} // Changed from errors.member
+              />
+
+              <InputField
+                label="Kebele"
+                name="spouse.kebele" // Changed from member.kebele
+                register={register}
+                error={errors.spouse?.kebele} // Changed from errors.member
+              />
+              <SelectField
+                label="Green Area"
+                name="spouse.green_area" // Changed from member.green_area
+                register={register}
+                error={errors.spouse?.green_area} // Changed from errors.member
+                options={[
+                  { value: "", label: "Select Green Area Number" },
+                  { value: "1", label: "1" },
+                 { value: "2", label: "2" },
+                  { value: "3", label: "3" },
+                  { value: "4", label: "4" },
+                  { value: "5", label: "5" },
+                  { value: "6", label: "6" },
+                  { value: "7", label: "7" },
+                  { value: "8", label: "8" },
+                  { value: "9", label: "9" },
+                  { value: "10", label: "10" },
+                  { value: "11", label: "11" },
+                  { value: "12", label: "12" },
+                ]}
+              />
+              <InputField
+                label="Block"
+                name="spouse.block" // Changed from member.block
+                register={register}
+                error={errors.spouse?.block} // Changed from errors.member
+              />
+              <InputField
+                label="House Number"
+                name="spouse.house_number" // Changed from member.house_number
+                register={register}
+                error={errors.spouse?.house_number} // Changed from errors.member
+              />
+
+              <SelectField
+                label="Bank Name"
+                name="spouse.bank_name"
+                register={register}
+                error={errors.spouse?.bank_name}
+                options={[
+                  { value: "", label: "Select Bank Name" },
+                  {
+                    value: "Commercial Bank of Ethiopia",
+                    label: "Commercial Bank of Ethiopia",
+                  },
+                  { value: "Dashen Bank", label: "Dashen Bank" },
+                  { value: "Awash Bank", label: "Awash Bank" },
+                  {
+                    value: "Nib International Bank",
+                    label: "Nib International Bank",
+                  },
+                  { value: "Wegagen Bank", label: "Wegagen Bank" },
+                  { value: "United Bank", label: "United Bank" },
+                  { value: "Bank of Abyssinia", label: "Bank of Abyssinia" },
+                  { value: "Zemen Bank", label: "Zemen Bank" },
+                  { value: "Berhan Bank", label: "Berhan Bank" },
+                  {
+                    value: "Cooperative Bank of Oromia",
+                    label: "Cooperative Bank of Oromia",
+                  },
+                  {
+                    value: "Lion International Bank",
+                    label: "Lion International Bank",
+                  },
+                  { value: "Enat Bank", label: "Enat Bank" },
+                  {
+                    value: "Addis International Bank",
+                    label: "Addis International Bank",
+                  },
+                  {
+                    value: "Bunna International Bank",
+                    label: "Bunna International Bank",
+                  },
+                  { value: "Debub Global Bank", label: "Debub Global Bank" },
+                  { value: "Abay Bank", label: "Abay Bank" },
+                  {
+                    value: "Oromia International Bank",
+                    label: "Oromia International Bank",
+                  },
+                  { value: "Hijra Bank", label: "Hijra Bank" },
+                  { value: "ZamZam Bank", label: "ZamZam Bank" },
+                  { value: "Goh Betoch Bank", label: "Goh Betoch Bank" },
+                  { value: "Siinqee Bank", label: "Siinqee Bank" },
+                  { value: "Shabelle Bank", label: "Shabelle Bank" },
+                  { value: "Tsedey Bank", label: "Tsedey Bank" },
+                ]}
+                selectProps={{
+                  className:
+                    "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white",
+                }}
+              />
+
+              <InputField
+                label="Bank Account Number"
+                name="spouse.bank_account_number" // Changed from member.bank_account_number
+                register={register}
+                error={errors.spouse?.bank_account_number} // Changed from errors.member
+              />
+
+              <InputField
+                label="Bank Account Name"
+                name="spouse.bank_account_name" // Changed from member.bank_account_name
+                register={register}
+                error={errors.spouse?.bank_account_name} // Changed from errors.member
+              />
+
+              {/* NOTE: You need separate state for spouse images */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Image
+                </label>
+                {data?.spouse?.image_url && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <Image
+                      width={50}
+                      height={50}
+                      src={data?.spouse.image_url}
+                      alt="Spouse profile preview"
+                      className="h-10 w-10 object-cover"
+                    />
+                    <span className="text-sm text-gray-500">
+                      Current profile image
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload new profile image"
+                  getImageUrl={getSpouseImageUrl}
+                  setImageReady={setSpouseImageReady}
+                  accept="image/*"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Document
+                </label>
+                {data?.spouse?.document && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <Link href={data.spouse.document} target="blanck">
+                      {/* ... SVG Icon ... */}
+                    </Link>
+                    <span className="text-sm text-gray-500">
+                      Current document
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload new document"
+                  getImageUrl={getSpouseDocument}
+                  setImageReady={setSpouseDocumentReady}
+                  accept="application/pdf,.pdf"
+                />
+              </div>
+              <div>
+                <SelectField
+                  label="Identification Type"
+                  name="spouse.identification_type" // Changed from member.identification_type
+                  register={register}
+                  error={errors.spouse?.identification_type} // Changed from errors.member
+                  options={[
+                    { value: "", label: "Select ID Type" },
+                    { value: "FAYDA", label: "Fayda" },
+                    { value: "KEBELE_ID", label: "Kebel ID" },
+                    { value: "PASSPORT", label: "Passport" },
+                  ]}
+                  required
+                />
+              </div>
+
+              {/* NOTE: This needs to watch 'spouse.identification_type' */}
+              {selectedIdType && (
+                <InputField
+                  label={
+                    selectedIdType === "FAYDA"
+                      ? "Fayda ID Number"
+                      : selectedIdType === "KEBELE_ID"
+                      ? "Kebele ID Number"
+                      : "Passport Number"
+                  }
+                  name="spouse.identification_number" // Changed from member.identification_number
+                  register={register}
+                  error={errors.spouse?.identification_number} // Changed from errors.member
+                  inputProps={{
+                    placeholder: "Enter ID number",
+                  }}
+                />
+              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Identification Image
+                </label>
+                {data?.spouse?.identification_image && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <Image
+                      width={50}
+                      height={50}
+                      src={data.spouse.identification_image}
+                      alt="Spouse ID preview"
+                      className="h-10 w-10 object-cover"
+                    />
+                    <span className="text-sm text-gray-500">
+                      Current Identification image
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload Identification Image"
+                  getImageUrl={getSpouseIdentificationImage}
+                  setImageReady={setSpouseIdReady}
+                  accept="image/*,.pdf"
+                />
+
+                {errors.spouse?.identification_image && (
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.spouse?.identification_image.message}
+                  </p>
+                )}
+              </div>
+              <div className="md:col-span-1 flex flex-col gap-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Remark
+                </label>
+                <textarea
+                  {...register("spouse.remark")} // Changed from member.remark
+                  rows={5}
+                  className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  // defaultValue={data?.spouse?.remark} // RHF handles this
+                />
+                {errors.spouse?.remark && ( // Changed from errors.member
+                  <p className="text-xs text-red-500 mt-1">
+                    {errors.spouse?.remark?.message?.toString()}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {tabs[tabIndex] === "Principal Relatives" && (
           <div className="w-full bg-white p-6 rounded-lg shadow-sm border border-gray-200 h-[400px] flex flex-col relative custom-scrollbar">
+            {/* Relatives content... */}
             <button
               type="button"
               onClick={() => openRelativesDialog()}
@@ -1050,10 +1848,10 @@ const MemberForm = ({
                         onChange={handleRelativeChange}
                         className="border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
-                        <option value="Mother">Mother</option>
-                        <option value="Father">Father</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Brother">Brother</option>
+                        <option value="Mother">Principal Mother</option>
+                        <option value="Father"> Principal Father</option>
+                        <option value="Sister"> Principal Sister</option>
+                        <option value="Brother"> Principal Brother</option>
                         <option value="Son">Son</option>
                         <option value="Daughter">Daughter</option>
                         <option value="Spouse">Spouse</option>
@@ -1174,7 +1972,13 @@ const MemberForm = ({
           <button
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 flex items-center gap-1"
             disabled={
-              !imageReady || !documentReady || isLoading || !identificationReady
+              !principalImageReady ||
+              !principalDocumentReady ||
+              isLoading ||
+              !principalIdReady ||
+              !spouseDocumentReady ||
+              !spouseImageReady ||
+              !spouseIdReady
             }
             type="submit"
           >
@@ -1199,21 +2003,25 @@ interface PhoneInputFieldProps {
 const PhoneInputField = ({ value, onChange, error }: PhoneInputFieldProps) => {
   return (
     <div className="flex flex-col gap-1 w-full">
-      {" "}
       <label className="text-sm font-medium text-gray-700">Phone Number</label>
-      <div className="w-full">
-        {" "}
+      <div className="relative w-full">
         <PhoneInput
           country={"et"}
           value={value}
           onChange={onChange}
           containerClass="w-full"
-          inputClass="w-full border border-gray-300 rounded-md p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          inputClass={`w-full px-3 py-2 border ${
+            error ? "border-red-500" : "border-gray-300"
+          } rounded-md shadow-sm focus:outline-none focus:ring-2 ${
+            error
+              ? "focus:ring-red-500 focus:border-red-500"
+              : "focus:ring-blue-500 focus:border-blue-500"
+          } bg-white text-sm`}
           buttonClass="border border-gray-300 rounded-l-md"
           dropdownClass="z-20"
         />
       </div>
-      {error && <span className="text-red-500 text-xs">{error}</span>}
+      {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
     </div>
   );
 };

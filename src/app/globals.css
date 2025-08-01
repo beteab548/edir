@@ -164,3 +164,36 @@ body {
     width: 100%;
   }
 }
+/* In your global CSS file, e.g., globals.css */
+
+.scrollable-toast-container {
+  /* This is the most important part. It limits the maximum height of the toast area. */
+  max-height: 400px; /* You can adjust this pixel value to your liking */
+
+  /* This tells the browser to show a vertical scrollbar ONLY when the content exceeds the max-height. */
+  overflow-y: auto;
+  
+  /* These are optional but highly recommended for better aesthetics */
+  /* This makes the scrollbar itself less intrusive */
+  scrollbar-width: thin; /* For Firefox */
+  scrollbar-color: #aab7c4 #f1f1f1; /* For Firefox */
+}
+
+/* Styling the scrollbar for Webkit browsers (Chrome, Safari, Edge) */
+.scrollable-toast-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollable-toast-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.scrollable-toast-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.scrollable-toast-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

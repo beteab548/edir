@@ -13,14 +13,17 @@ export const memberSchema = z.object({
   profession: z.string().optional(),
   title: z.string().optional(),
   job_business: z.string().optional(),
-  identification_type: z.enum(["FAYDA", "KEBELE_ID", "PASSPORT"], {
-    errorMap: () => ({
-      message: "Please select a valid identification type",
-    }),
-  }),
-  identification_number: z.string().optional(),
-  identification_image: z.string().optional(),
-  identification_file_id: z.string().optional(),
+  identification_type: z
+    .enum(["FAYDA", "KEBELE_ID", "PASSPORT"], {
+      errorMap: () => ({
+        message: "Please select a valid identification type",
+      }),
+    })
+    .optional()
+    .nullable(),
+  identification_number: z.string().optional().nullable(),
+  identification_image: z.string().optional().nullable(),
+  identification_file_id: z.string().optional().nullable(),
   birth_date: z.coerce.date({ message: "Birth date is required!" }),
   citizen: z
     .string()
@@ -31,8 +34,8 @@ export const memberSchema = z.object({
   wereda: z.string().optional(),
   zone_or_district: z.string().optional(),
   founding_member: z.boolean().optional(),
-  green_area: z.string(),
-  block: z.string(),
+  green_area: z.string().optional(),
+  block: z.string().optional(),
   marital_status: z
     .enum(["married", "single", "divorced", "widowed"], {
       message: "Marital Status is required!",
@@ -75,10 +78,10 @@ export const memberSchema = z.object({
         message: "Invalid email address!",
       }
     ),
-  document: z.string().optional(),
-  document_file_id: z.string().optional(),
-  image_url: z.string().optional(),
-  image_file_id: z.string().optional(),
+  document: z.string().optional().nullable(),
+  document_file_id: z.string().optional().nullable(),
+  image_url: z.string().optional().nullable(),
+  image_file_id: z.string().optional().nullable(),
   remark: z.string().optional(),
   status: z.enum(["Active", "Inactive", "Deceased", "Left"], {
     message: "Member Status is required!",
@@ -86,6 +89,9 @@ export const memberSchema = z.object({
   member_type: z.enum(["New", "Existing"], {
     message: "member status is required!",
   }),
+  familyId: z.coerce.number().optional(), 
+  isPrincipal: z.coerce.boolean().optional(),
+  spouseId: z.coerce.number().optional(),
 });
 
 export type MemberSchema = z.infer<typeof memberSchema>;
@@ -115,11 +121,12 @@ export const relativeSchema = z.object({
     message: "Relative status is required!",
   }),
 });
-export const combinedSchema = z.object({
-  member: memberSchema,
+export const familyMemberSchema = z.object({
+  principal: memberSchema,
+  spouse: memberSchema.optional(),
   relatives: z.array(relativeSchema).optional(),
 });
-export type CombinedSchema = z.infer<typeof combinedSchema>;
+export type FamilyMemberSchema = z.infer<typeof familyMemberSchema>;
 export type RelativeSchema = z.infer<typeof relativeSchema>;
 
 export const ContributionSchema = z
@@ -377,27 +384,4 @@ export const penaltyFormSchema = z.object({
   missed_month: z.string(),
   generated: z.enum(["automatically", "manually"]),
   penalty_type: z.string().min(1, { message: "Penalty type is required" }),
-});
-export const announcementSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(1, "Title is required")
-    .max(100, "Title too long"),
-  Description: z
-    .string()
-    .trim()
-    .min(1, "Description is required")
-    .max(500, "Description too long"),
-  calendar: z.preprocess(
-    (val) => {
-      const date = typeof val === "string" ? new Date(val) : val;
-      return isNaN(date as any) ? undefined : date;
-    },
-    z
-      .date({ required_error: "Calendar date is required" })
-      .refine((date) => date > new Date(), {
-        message: "Calendar date must be in the future",
-      })
-  ),
 });
