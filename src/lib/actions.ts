@@ -1812,3 +1812,26 @@ export const transferPrincipalRole = async (
     };
   }
 };
+export const getPendingTransfersCount = async (): Promise<number> => {
+  try {
+    const count = await prisma.member.count({
+      where: {
+        // Condition 1: They must be a principal.
+        isPrincipal: true,
+        // Condition 2: Their status must require a transfer.
+        status: { in: ["Deceased", "Left"] },
+        // Condition 3: They must have a spouse to transfer to.
+        spouseId: { not: null },
+        // Condition 4: The spouse must be in a state to accept the role.
+        spouse: {
+          status: "Active",
+        },
+      },
+    });
+    return count;
+  } catch (error) {
+    console.error("Failed to fetch pending transfers count:", error);
+    // Return 0 in case of an error to prevent the UI from breaking.
+    return 0;
+  }
+};

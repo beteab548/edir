@@ -3,14 +3,16 @@ import Navbar from "@/components/Navbar";
 import ClientOnly from "@/components/ui/ClientOnly";
 import Image from "next/image";
 import Link from "next/link";
+import { getPendingTransfersCount } from "@/lib/actions";
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pendingTransfers = await getPendingTransfersCount();
   return (
-    <div className="h-screen flex " >
+    <div className="h-screen flex ">
       {/* LEFT - Sidebar */}
       <div className="w-[20%] md:w-[20%] lg:w-[18%] xl:w-[18%] p-2 bg-white shadow-sm">
         <Link
@@ -27,7 +29,7 @@ export default function DashboardLayout({
           <span className="hidden lg:block font-bold text-lg">Edir</span>
         </Link>
         <ClientOnly>
-          <Menu />
+          <Menu pendingTransfers={pendingTransfers} />
         </ClientOnly>
       </div>
 

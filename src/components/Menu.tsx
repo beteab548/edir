@@ -58,7 +58,7 @@ const menuItems = [
         label: "Transfer Role",
         href: "/transferRole",
         visible: ["admin", "secretary"],
-        hasDropdown: true,
+        hasDropdown: false,
       },
       {
         icon: <FiFileText size={20} />,
@@ -83,7 +83,7 @@ const menuItems = [
   },
 ];
 
-const Menu = () => {
+const Menu = ({ pendingTransfers }: { pendingTransfers: number }) => {
   const { user } = useUser();
   const role = user?.publicMetadata.role as string;
   const pathname = usePathname();
@@ -230,7 +230,50 @@ const Menu = () => {
                   }
 
                   const logoutItem = item.label === "Logout";
+                  if (item.label === "Transfer Role") {
+                    return (
+                      <motion.div key={item.label} /* ... motion props ... */>
+                        <Link
+                          href={item.href} // Your menuItems object already has the correct href
+                          onClick={() => NProgress.start()}
+                          // Apply the same styling as your other links
+                          className={`relative flex items-center justify-between gap-4 rounded-lg px-3 py-3 transition-all duration-300 ${
+                            isActive(item.href)
+                              ? "bg-lamaSkyLight/80 text-lama font-medium shadow"
+                              : "text-gray-600 hover:bg-lamaSkyLight/60 hover:text-gray-800"
+                          }`}
+                        >
+                          {/* Left side content (icon and label) */}
+                          <div className="flex items-center gap-4">
+                            {React.cloneElement(item.icon, {
+                              className: `opacity-90 ${
+                                isActive(item.href)
+                                  ? "text-lama"
+                                  : "text-current"
+                              }`,
+                            })}
+                            <span className="hidden md:block text-sm">
+                              {item.label}
+                            </span>
+                          </div>
 
+                          {/* --- THE NOTIFICATION BADGE --- */}
+                          {/* It's wrapped in a div to help with positioning */}
+                          <div>
+                            {pendingTransfers > 0 && (
+                              <motion.span
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full"
+                              >
+                                {pendingTransfers}
+                              </motion.span>
+                            )}
+                          </div>
+                        </Link>
+                      </motion.div>
+                    );
+                  }
                   return (
                     <motion.div
                       key={item.label}
