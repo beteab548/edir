@@ -72,8 +72,7 @@ export async function GET(req: NextRequest) {
         break;
 
       case "deceased members":
-        const [ memberCount] = await Promise.all([
-          
+        const [memberCount] = await Promise.all([
           prisma.member.count({
             where: {
               status: "Deceased",
@@ -84,11 +83,10 @@ export async function GET(req: NextRequest) {
             },
           }),
         ]);
-        currentCount =  memberCount;
+        currentCount = memberCount;
         break;
       case "deceased relative":
-        const [ relativecount] = await Promise.all([
-          
+        const [relativecount] = await Promise.all([
           prisma.member.count({
             where: {
               status: "Deceased",
@@ -99,7 +97,22 @@ export async function GET(req: NextRequest) {
             },
           }),
         ]);
-        currentCount =  relativecount;
+        currentCount = relativecount;
+        break;
+      case "role transfer pending":
+        const [roleTransferCount] = await Promise.all([
+          prisma.member.count({
+            where: {
+              isPrincipal: true,
+              status: { in: ["Deceased", "Left"] },
+              spouseId: { not: null },
+              spouse: {
+                status: "Active",
+              },
+            },
+          }),
+        ]);
+        currentCount = roleTransferCount;
         break;
 
       case "penalized members":

@@ -1,113 +1,72 @@
 "use client";
 import React, { useCallback, useEffect, useState } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { FiRefreshCw, FiUsers, FiPieChart, FiInfo } from "react-icons/fi";
+import { FiUsers, FiPieChart } from "react-icons/fi";
 import { motion } from "framer-motion";
 
-enum RelationType {
-  Mother = "Mother",
-  Father = "Father",
-  Daughter = "Daughter",
-  Son = "Son",
-  Sister = "Sister",
-  Brother = "Brother",
-  Spouse_Mother = "Spouse_Mother",
-  Spouse_Father = "Spouse_Father",
-  Spouse_Sister = "Spouse_Sister",
-  Spouse_Brother = "Spouse_Brother",
-  Other = "Other",
-}
-
-enum RelativeStatus {
-  Active = "Active",
-  Inactive = "Inactive",
-  Pending = "Pending",
-}
-
+// --- The 'Relative' type definition is still correct from our last fix ---
 type Relative = {
   id: number;
-  member_id: number;
+  familyId: number;
   first_name: string;
-  second_name: string;
+  second_name: string | null;
   last_name: string;
-  relation_type: RelationType;
-  status: RelativeStatus;
-  created_at: Date;
-  status_updated_at?: Date;
+  relation_type: string;
+  status: string;
+  created_at: string;
+  status_updated_at?: string;
 };
 
+// --- STEP 1: SIMPLIFY THE PROPS ---
+// The component no longer needs memberId.
 interface RelativeRelationsChartProps {
   apiUrl: string;
-  memberId?: number;
 }
 
 const COLORS = [
-  "#6366F1",
-  "#8B5CF6",
-  "#EC4899",
-  "#F43F5E",
-  "#FF7849",
-  "#FFB02E",
-  "#84CC16",
-  "#10B981",
-  "#06B6D4",
-  "#0EA5E9",
-  "#3B82F6",
-  "#64748B",
+  "#6366F1", "#8B5CF6", "#EC4899", "#F43F5E", "#FF7849",
+  "#FFB02E", "#84CC16", "#10B981", "#06B6D4", "#0EA5E9",
+  "#3B82F6", "#64748B",
 ];
 
-const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
-  apiUrl,
-  memberId,
-}) => {
+const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({ apiUrl }) => {
   const [relatives, setRelatives] = useState<Relative[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [activeOnly, setActiveOnly] = useState<boolean>(false);
 
+  // --- STEP 2: SIMPLIFY THE FETCH LOGIC ---
   const fetchRelatives = useCallback(async () => {
     try {
       setLoading(true);
-      setIsRefreshing(true);
       setError(null);
 
-      const params = new URLSearchParams();
-      if (memberId) params.append("member_id", memberId.toString());
-      if (activeOnly) params.append("activeOnly", "true");
-
-      const url = `${apiUrl}?${params.toString()}`;
-
-      const response = await fetch(url, {
-        cache: "no-store",
-        next: { revalidate: 0 },
-      });
+      // The URL is now static and doesn't need any parameters.
+      const response = await fetch(apiUrl, { cache: "no-store" });
       if (!response.ok) {
-        throw new Error(`failed to fetch, refresh page`);
+        throw new Error(`Failed to fetch, please refresh the page`);
       }
 
       const data = await response.json();
       setRelatives(data);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to fetch relatives"
-      );
+      setError(err instanceof Error ? err.message : "Failed to fetch relatives");
       console.error("Error fetching relatives:", err);
     } finally {
       setLoading(false);
-      setIsRefreshing(false);
     }
-  }, [apiUrl, memberId, activeOnly]);
+    // The dependency array is now simpler.
+  }, [apiUrl]);
 
   useEffect(() => {
     fetchRelatives();
   }, [fetchRelatives]);
 
+  // The chart data calculation logic does not need to change at all.
   const relationCounts = relatives.reduce((acc, relative) => {
     const relation = relative.relation_type;
     acc[relation] = (acc[relation] || 0) + 1;
     return acc;
-  }, {} as Record<RelationType, number>);
+  }, {} as Record<string, number>);
 
   const chartData = Object.entries(relationCounts)
     .map(([name, value]) => ({ name, value }))
@@ -115,29 +74,25 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
 
   const total = relatives.length;
 
+  // The JSX render logic also remains mostly the same.
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       className=" h-full flex flex-col"
     >
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
           <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
             <FiPieChart className="w-5 h-5" />
           </div>
           <div>
+            {/* --- STEP 3: UPDATE THE TITLE --- */}
             <h2 className="text-lg font-semibold text-gray-900">
-              Member Relatives Distribution
-              {memberId && (
-                <span className="text-xs font-normal text-gray-500 ml-2">
-                  (Member #{memberId})
-                </span>
-              )}
+              Relatives Distribution (Active Families)
             </h2>
             <p className="text-xs text-gray-500">
-              Showing relatives grouped by relation type
+              Showing relatives from families with an active principal
             </p>
           </div>
         </div>
@@ -151,17 +106,19 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
         <div className="text-red-600">{error}</div>
       ) : total === 0 ? (
         <div className="text-center text-gray-500 flex-1 flex items-center justify-center">
-          No relatives found.
+          No relatives found for active families.
         </div>
       ) : (
         <div className="flex flex-col h-full">
+          {/* The chart rendering itself requires no changes */}
           <div className="flex-1 min-h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie
+              
+  <Pie
                   data={chartData}
                   cx="50%"
-                  cy="40%"
+                  cy="30%"
                   innerRadius={30}
                   outerRadius={60}
                   paddingAngle={2}
@@ -189,7 +146,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="-mt-12 pt-4 border-gray-200">
+          <div className="-mt-24 pt-4 border-gray-200">
             <div className="flex items-center justify-center space-x-2">
               <FiUsers className="text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
@@ -204,3 +161,4 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({
 };
 
 export default RelativeRelationsChart;
+

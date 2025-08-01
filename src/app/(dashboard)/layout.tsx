@@ -13,7 +13,6 @@ export default async function DashboardLayout({
   const pendingTransfers = await getPendingTransfersCount();
   return (
     <div className="h-screen flex ">
-      {/* LEFT - Sidebar */}
       <div className="w-[20%] md:w-[20%] lg:w-[18%] xl:w-[18%] p-2 bg-white shadow-sm">
         <Link
           href="/"
@@ -33,7 +32,6 @@ export default async function DashboardLayout({
         </ClientOnly>
       </div>
 
-      {/* RIGHT - Main Content */}
       <div className="w-[80%] md:w-[80%] lg:w-[82%] xl:w-[82%] bg-[#F7F8FA] overflow-y-auto flex flex-col">
         <Navbar />
         {children}

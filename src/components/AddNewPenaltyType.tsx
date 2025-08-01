@@ -81,7 +81,7 @@ export default function AddNewPenaltyType() {
 
   return (
     <div className="mt-6 bg-white p-6 rounded-xl shadow-md border border-gray-100">
-      <h3 className="text-xl font-semibold text-gray-800 mb-4">
+      <h3 className="text-xl font-semibold text-gray-600 mb-4">
         Manage Penalty Types
       </h3>
 

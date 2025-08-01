@@ -395,7 +395,7 @@ export default function ContributionTemplate({
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">
+            <h1 className="text-2xl font-bold text-gray-600">
               {type === "manually"
                 ? "Penalty Payments"
                 : ContributionType?.name + " Payments"}
@@ -442,7 +442,7 @@ export default function ContributionTemplate({
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Table Header with Search */}
           <div className="px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <h2 className="font-semibold text-gray-800 text-lg">
+            <h2 className="font-semibold text-gray-600 text-lg">
               Payment Records
             </h2>
           </div>

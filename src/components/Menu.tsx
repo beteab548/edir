@@ -129,7 +129,7 @@ const Menu = ({ pendingTransfers }: { pendingTransfers: number }) => {
         {[...Array(5)].map((_, i) => (
           <div
             key={i}
-            className="h-10 bg-gray-400 rounded-md dark:bg-gray-300/20"
+            className="h-10 bg-gray-300 rounded-md dark:bg-gray-300/20"
           />
         ))}
       </div>

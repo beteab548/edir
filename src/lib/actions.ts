@@ -1786,6 +1786,10 @@ export const transferPrincipalRole = async (
           where: { member_id: outgoingPrincipalId },
           data: { member_id: incomingPrincipalId },
         });
+        await tx.contributionSchedule.updateMany({
+          where: { member_id: outgoingPrincipalId },
+          data: { member_id: incomingPrincipalId },
+        });
 
         await tx.paymentRecord.updateMany({
           where: { member_id: outgoingPrincipalId },

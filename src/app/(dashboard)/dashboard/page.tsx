@@ -51,8 +51,8 @@ const AdminPage = async () => {
           <header className="mb-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
-                  Welcome back, {user?.firstName}!
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
+                  Welcome back, {user?.firstName}
                 </h1>
                 <DateTimeDisplay />
               </div>
@@ -66,12 +66,14 @@ const AdminPage = async () => {
             <div className="lg:col-span-3 space-y-6">
               {isSecretary && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 ">
                     <UserCard type="Total Members" />
                     <UserCard type="Active Members" />
                     <UserCard type="Inactive Members" />
                     <UserCard type="New Members" />
                     <UserCard type="Deceased Members" />
+                    <UserCard type="Deceased Relative" />
+                    <UserCard type="Role Transfer Pending" />
                     <UserCard type="Left Members" />
                   </div>
 
@@ -186,6 +188,7 @@ const AdminPage = async () => {
             <li>Refresh the page.</li>
             <li>Try again in a few minutes.</li>
             <li>Contact support if the issue persists.</li>
+            <li>too Many requests .</li>
           </ul>
         </div>
       </div>
