@@ -30,6 +30,7 @@ import {
 } from "react-icons/fa";
 import Image from "next/image";
 import UploadFile from "./FileUpload/page";
+import { PenaltyType, PenaltyTypeModel } from "@prisma/client";
 export const dynamic = "force-dynamic";
 type Member = {
   id: number;
@@ -96,7 +97,7 @@ export default function ManualPenaltyManagement() {
     },
   });
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [penaltyTypes, setPenaltyTypes] = useState<string[]>([]);
+  const [penaltyTypes, setPenaltyTypes] = useState<PenaltyTypeModel[]>([]);
   const [isloading, setIsloading] = useState<boolean>(false);
 
   const fetchSettingDatas = async () => {
@@ -120,10 +121,11 @@ export default function ManualPenaltyManagement() {
     error: false,
   });
   useEffect(() => {
-    getPenaltyTypes().then((types) =>
-      setPenaltyTypes(types.map((t) => t.name))
-    );
+    getPenaltyTypes().then((types) => {
+      setPenaltyTypes(types);
+    });
   }, []);
+
   const getWaiverEvidence = async (newImage: {
     Url: string;
     fileId: string;
@@ -237,25 +239,54 @@ export default function ManualPenaltyManagement() {
   };
 
   // Add this function to calculate the penalty amount
-  const calculatePenaltyAmount = (unpaidCount: number): number => {
-    if (unpaidCount === 0) return 500;
-    if (unpaidCount >= 5) return 500 * 5; // Cap at 5 levels (2500 birr)
-    return 500 * (unpaidCount + 1);
+  // Modify the function to accept a baseAmount
+  const calculatePenaltyAmount = (
+    unpaidCount: number,
+    baseAmount: number
+  ): number => {
+    if (baseAmount <= 0) return 0;
+    if (unpaidCount === 0) return baseAmount;
+    if (unpaidCount >= 5) return baseAmount * 5;
+    return baseAmount * (unpaidCount + 1);
   };
+  const watchedPenaltyType = form.watch("penalty_type");
+  useEffect(() => {
+    // Only proceed if both a member and a penalty type are selected
+    if (selectedMember && watchedPenaltyType) {
+      const penaltyType = penaltyTypes.find(
+        (p) => p.name === watchedPenaltyType
+      );
+
+      if (penaltyType) {
+        // Find the number of existing unpaid penalties for the selected member
+        const unpaidPenalties = penaltiesWithNumberAmount.filter(
+          (p: Penalty) =>
+            p.member.id === selectedMember.id && !p.is_paid && !p.waived
+        );
+
+        // Calculate the final amount using the penalty type's amount as the base
+        const finalAmount = calculatePenaltyAmount(
+          unpaidPenalties.length,
+          penaltyType.amount
+        );
+
+        // Update the form's amount field
+        form.setValue("amount", finalAmount);
+      }
+    }
+  }, [
+    selectedMember,
+    watchedPenaltyType,
+    penaltyTypes,
+    penaltiesWithNumberAmount,
+    form.setValue,
+  ]);
 
   // Modify your handleMemberSelect function to include the penalty calculation
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);
     form.setValue("member_id", member.id);
-
-    // Check for unpaid penalties for this member
-    const unpaidPenalties = penaltiesWithNumberAmount.filter(
-      (p: Penalty) => p.member.id === member.id && !p.is_paid && !p.waived
-    );
-
-    // Calculate the new penalty amount
-    const newAmount = calculatePenaltyAmount(unpaidPenalties.length);
-    form.setValue("amount", newAmount);
+    // The useEffect above will handle the amount calculation
   };
   const onSubmit: SubmitHandler<z.infer<typeof penaltyFormSchema>> = async (
     data
@@ -941,14 +972,14 @@ export default function ManualPenaltyManagement() {
                     label="Penalty Type"
                     name="penalty_type"
                     required
-                    register={form.register}
-                    registerOptions={{ required: "Penalty type is required" }}
+                    register={form.register} // No onChange needed here, the useEffect handles it
                     error={form.formState.errors.penalty_type}
                     options={[
                       { value: "", label: "Select Penalty type" },
+                      // Use the penaltyTypes state which contains name and amount
                       ...penaltyTypes.map((type) => ({
-                        value: type,
-                        label: type,
+                        value: type.name,
+                        label: `${type.name} (Base: ${type.amount})`, // Optionally show the base amount in the label
                       })),
                     ]}
                     icon={

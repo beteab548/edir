@@ -36,10 +36,16 @@ const ErrorFallback = () => (
 export default function MemberPenaltiesPage({
   params,
 }: MemberPenaltiesPageProps) {
+  const { user, isSignedIn } = useUser();
+  const router = useRouter();
+  const [viewingPenalty, setViewingPenalty] = useState<any>(null);
+  const { data, error, isLoading, mutate } = useSWR(
+    `/api/member-penalties?memberId=${
+      params.id
+    }&contributionTypeName=${encodeURIComponent(params.name)}`,
+    fetcher
+  );
   try {
-    const { user, isSignedIn } = useUser();
-    const router = useRouter();
-    const [viewingPenalty, setViewingPenalty] = useState<any>(null);
 
     // Redirect if not signed in or role mismatch
     if (!isSignedIn) {
@@ -49,12 +55,6 @@ export default function MemberPenaltiesPage({
       router.push("/dashboard");
     }
 
-    const { data, error, isLoading, mutate } = useSWR(
-      `/api/member-penalties?memberId=${
-        params.id
-      }&contributionTypeName=${encodeURIComponent(params.name)}`,
-      fetcher
-    );
 
     if (error) {
       return (

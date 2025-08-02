@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic"; 
+export const revalidate = 0; 
 import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import * as XLSX from "xlsx";
@@ -103,16 +105,16 @@ export async function POST(req: Request) {
         last_name,
       });
 
-      await prisma.member.create({
-        data: {
-          title,
-          first_name,
-          second_name,
-          last_name: last_name ?? "",
-          birth_date: new Date(0),
-          citizen: " ",
-        },
-      });
+      // await prisma.member.create({
+      //   data: {
+      //     title,
+      //     first_name,
+      //     second_name,
+      //     last_name: last_name ?? "",
+      //     birth_date: new Date(0),
+      //     citizen: " ",
+      //   },
+      // });
 
       console.log(
         `✅ Imported: ${first_name} ${second_name} ${

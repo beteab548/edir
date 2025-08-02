@@ -71,7 +71,7 @@ model Member {
   // --- Family & Spouse Relations ---
   isPrincipal           Boolean   @default(false)
   spouseId              Int?      @unique
-  spouse                Member?   @relation("SpouseRelation", fields: [spouseId], references: [id])
+  spouse                Member?   @relation("SpouseRelation", fields: [spouseId], references: [id], onDelete: Cascade)
   spousedBy             Member?   @relation("SpouseRelation")
 
   // --- LINK TO THE FAMILY MODEL ---
@@ -219,6 +219,7 @@ model PenaltyTypeModel {
 
   id        Int      @id @default(autoincrement())
   name      String   @unique
+  amount Int 
   penalties Penalty[]
 
 }

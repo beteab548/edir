@@ -1203,7 +1203,7 @@ export const paymentActionforManual = async (
 export async function getPenaltyTypes() {
   return await prisma.penaltyTypeModel.findMany({ orderBy: { name: "asc" } });
 }
-export async function addPenaltyType(name: string) {
+export async function addPenaltyType(name: string,amount:number) {
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error("Penalty type cannot be empty");
   const existing = await prisma.penaltyTypeModel.findUnique({
@@ -1212,14 +1212,14 @@ export async function addPenaltyType(name: string) {
   if (existing) return existing;
   try {
     return await prisma.penaltyTypeModel.create({
-      data: { name: trimmedName },
+      data: { name: trimmedName,amount },
     });
   } catch (err) {
     console.log(err);
   }
 }
-export async function addPenaltyTypeModel(name: string) {
-  return prisma.penaltyTypeModel.create({ data: { name } });
+export async function addPenaltyTypeModel(name: string,amount:number) {
+  return prisma.penaltyTypeModel.create({ data: { name,amount } });
 }
 
 // Get all
@@ -1228,8 +1228,8 @@ export async function getPenaltyTypesModel() {
 }
 
 // Update
-export async function updatePenaltyType(id: number, name: string) {
-  return prisma.penaltyTypeModel.update({ where: { id }, data: { name } });
+export async function updatePenaltyType(id: number, name: string,amount:number) {
+  return prisma.penaltyTypeModel.update({ where: { id }, data: { name ,amount} });
 }
 
 // Delete
@@ -1320,7 +1320,6 @@ interface GenerateSchedulesOptions {
   simulationMonths?: number;
 }
 
-// --- Main Job: Schedule Generation & Auto-Payment (FIXED) ---
 
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}

@@ -771,7 +771,6 @@ const MemberForm = ({
                 label="Founding Member"
                 register={register}
                 error={errors?.principal?.founding_member}
-                defaultChecked={data?.principal?.founding_member}
               />
             </div>
             <div className="h-8 flex items-end justify-start mt-6">
@@ -1268,7 +1267,6 @@ const MemberForm = ({
                 label="Founding Member"
                 register={register}
                 error={errors?.spouse?.founding_member} // Changed from errors.member
-                defaultChecked={data?.spouse?.founding_member} // RHF handles this
               />
             </div>
             <div className="h-8 flex items-end justify-start mt-6">

@@ -30,7 +30,7 @@ export default async function PendingTransfersPage() {
       </h1>
       <p className="text-sm text-gray-500 mt-1">
         These families require a new principal to be assigned due to the former
-        principal's status.
+        principal&apos;s status.
       </p>
 
       {eligiblePrincipals.length === 0 ? (

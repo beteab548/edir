@@ -179,12 +179,11 @@ export default function ContributionTemplate({
     setValue("member_id", principal.id, { shouldValidate: true });
   };
 
-  const clearSelectedPrincipal = () => {
+  const clearSelectedPrincipal = useCallback(() => {
     setSelectedPrincipal(null);
     setSearchTerm("");
     setValue("member_id", 0, { shouldValidate: true });
-  };
-
+  }, [setSelectedPrincipal, setSearchTerm, setValue]);
   const resetValues = useCallback(() => {
     setShowAddModal(false);
     clearSelectedPrincipal();
@@ -203,7 +202,7 @@ export default function ContributionTemplate({
       member_id: 1,
       contribution_id: ContributionType?.id?.toString() || "",
     });
-  }, [reset, type, ContributionType]);
+  }, [reset, type, ContributionType,clearSelectedPrincipal]);
 
   const onSubmit = async (
     data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
