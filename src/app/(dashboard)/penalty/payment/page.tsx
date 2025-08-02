@@ -46,7 +46,7 @@ export default async function PenaltyPage({ searchParams }: SearchParams) {
     Penalty: {
       some: {
         is_paid: false,
-        waived: null, // or false, depending on your schema
+        waived: false, // or false, depending on your schema
       },
     },
   };

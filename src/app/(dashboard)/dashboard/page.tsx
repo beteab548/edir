@@ -8,13 +8,7 @@ import FinanceChart from "@/components/ContributionChart";
 import UserCard from "@/components/UserCard";
 import prisma from "@/lib/prisma";
 import RelativeRelationsChart from "@/components/relativesChart";
-import {
-  FiUsers,
-  FiUserCheck,
-  FiClock,
-  FiActivity,
-  FiFileText,
-} from "react-icons/fi";
+import { FiUsers, FiUserCheck, FiFileText, FiActivity } from "react-icons/fi";
 import Activity from "@/components/activity";
 import { redirect } from "next/navigation";
 import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
@@ -22,16 +16,20 @@ import DateTimeDisplay from "@/components/ui/datetimeshower";
 
 const AdminPage = async () => {
   try {
-    // Safeguard long-running logic
+    // This is a long-running task, consider moving it to a cron job or webhook if it causes timeouts.
     await generateContributionSchedulesForAllActiveMembers();
 
     const user = await currentUser();
     if (!user) redirect("/sign-in");
 
     const role = user?.publicMetadata?.role as string;
+
+    // --- 1. DEFINE ALL ROLE FLAGS ---
     const isSecretary = role === "secretary";
     const isChairman = role === "chairman";
+    const isAdmin = role === "admin"; // The new flag for the admin role
 
+    // Fetch data needed for all roles
     const [contributionTypes, penalties] = await Promise.all([
       prisma.contributionType.findMany({ select: { name: true } }),
       prisma.penalty.findMany(),
@@ -64,9 +62,11 @@ const AdminPage = async () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3 space-y-6">
-              {isSecretary && (
+              {/* --- 2. SECRETARY & ADMIN SECTION --- */}
+              {/* This section will now render if the role is 'secretary' OR 'admin' */}
+              {(isSecretary || isAdmin) && (
                 <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 ">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
                     <UserCard type="Total Members" />
                     <UserCard type="Active Members" />
                     <UserCard type="Inactive Members" />
@@ -104,7 +104,9 @@ const AdminPage = async () => {
                 </>
               )}
 
-              {isChairman && (
+              {/* --- 3. CHAIRMAN & ADMIN SECTION --- */}
+              {/* This section will now render if the role is 'chairman' OR 'admin' */}
+              {(isChairman || isAdmin) && (
                 <div className="mb-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
                     <UserCard type="Penalized Members" />
@@ -113,13 +115,13 @@ const AdminPage = async () => {
                     <UserCard type="Inactivated Members" />
                   </div>
 
-                  <div className="bg-white p-4 border border-gray-200">
+                  <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-xs">
                     <div className="h-[530px]">
                       <FinanceChart contributionTypes={contributionTypes} />
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200 mt-10">
+                  <div className="bg-white rounded-lg shadow-xs p-4 border border-gray-200 mt-10">
                     <PenaltyChart penaltyTypes={penaltyTypes} />
                   </div>
                 </div>
@@ -135,24 +137,39 @@ const AdminPage = async () => {
                   Quick Actions
                 </h3>
                 <div className="space-y-2">
+                  {/* --- 4. QUICK ACTIONS LOGIC FOR ADMIN --- */}
+                  {/* Admin will see "Add New Member" */}
                   <LinkButtonWithProgress
-                    href={isSecretary ? "/list/addNewMember" : "/contribution"}
+                    href={
+                      isSecretary || isAdmin
+                        ? "/list/addNewMember"
+                        : "/contribution"
+                    }
                   >
                     <button className="w-full flex items-center justify-between p-3 mb-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 text-sm font-medium">
                       <span>
-                        {isSecretary ? "Add New Member" : "Check Contribution"}
+                        {isSecretary || isAdmin
+                          ? "Add New Member"
+                          : "Check Contribution"}
                       </span>
                       <FiUserCheck className="w-4 h-4" />
                     </button>
                   </LinkButtonWithProgress>
+
+                  {/* Admin will see "Members List" */}
                   <LinkButtonWithProgress
-                    href={isSecretary ? "/list/members" : "/penalty"}
+                    href={isSecretary || isAdmin ? "/list/members" : "/penalty"}
                   >
                     <button className="w-full flex items-center justify-between p-3 mb-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 text-sm font-medium">
-                      <span>{isSecretary ? "Members" : "Check Penalty"}</span>
+                      <span>
+                        {isSecretary || isAdmin
+                          ? "Members List"
+                          : "Check Penalty"}
+                      </span>
                       <FiUsers className="w-4 h-4" />
                     </button>
                   </LinkButtonWithProgress>
+
                   <LinkButtonWithProgress href="/reports">
                     <button className="w-full flex items-center justify-between p-3 mb-2 bg-green-50 text-green-700 rounded-md hover:bg-green-100 text-sm font-medium">
                       <span>Check Reports</span>
@@ -163,7 +180,7 @@ const AdminPage = async () => {
               </div>
 
               <div className="bg-white rounded-lg">
-                <Activity type={isChairman ? "chairman" : "secretary"} />
+                <Activity type={role} />
               </div>
             </div>
           </div>
@@ -172,7 +189,6 @@ const AdminPage = async () => {
     );
   } catch (error) {
     console.error("AdminPage error:", error);
-
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="text-center space-y-6 max-w-md">
@@ -190,7 +206,7 @@ const AdminPage = async () => {
             <li>Contact support if the issue persists.</li>
             <li>too Many requests .</li>
           </ul>
-        </div>
+        </div>{" "}
       </div>
     );
   }

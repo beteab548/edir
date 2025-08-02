@@ -20,15 +20,16 @@ const LoginPage = () => {
     img.src = "/bgImage.webp";
     img.onload = () => setBackgroundLoaded(true);
   }, []);
-
   useEffect(() => {
     try {
       const role = user?.publicMetadata.role;
+      console.log("role is :", role);
       if (role) {
         setIsAuthenticating(true);
         switch (role) {
           case "secretary":
           case "chairman":
+          case "admin":
             router.push("/dashboard");
             break;
           default:
