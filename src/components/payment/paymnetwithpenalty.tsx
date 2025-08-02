@@ -127,7 +127,7 @@ export default function ContributionTemplate({
   >([]);
   const [loadingPenaltyMonths, setLoadingPenaltyMonths] = useState(false);
   const [isAmountLocked, setIsAmountLocked] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   // --- Hooks ---
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -175,7 +175,6 @@ export default function ContributionTemplate({
     setSelectedPrincipal(principal);
     setSearchTerm(`${principal.first_name} ${principal.last_name}`);
     setSearchResults([]);
-    setIsDropdownOpen(false);
     setValue("member_id", principal.id, { shouldValidate: true });
   };
 
@@ -189,7 +188,6 @@ export default function ContributionTemplate({
     setShowAddModal(false);
     clearSelectedPrincipal();
     setImageUrl(null);
-    setIsDropdownOpen(false);
     setIsAmountLocked(false);
     setPenaltyMonths([]);
     reset({
@@ -255,11 +253,15 @@ export default function ContributionTemplate({
   // Smart search for principals and their spouses
   // Smart search for principals and their spouses
   useEffect(() => {
-    if (!principals) return;
+    // If a member is selected, or the search term is empty, clear results.
+    if (selectedPrincipal || searchTerm.length === 0) {
+      setSearchResults([]);
+      return;
+    }
 
-    // The single source of truth for filtering is the `principals` prop.
+    // Only perform search when the user is typing
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    const results = principals.filter((principal) => {
+    const results = principals?.filter((principal) => {
       const principalName =
         `${principal.first_name} ${principal.second_name} ${principal.last_name}`.toLowerCase();
       if (
@@ -276,7 +278,7 @@ export default function ContributionTemplate({
       return false;
     });
     setSearchResults(results);
-  }, [searchTerm, principals]);
+  }, [searchTerm, selectedPrincipal, principals]);
 
   // Click outside dropdown handler
   useEffect(() => {
@@ -285,7 +287,7 @@ export default function ContributionTemplate({
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsDropdownOpen(false); // This is now correctly placed inside the handler
+        setSearchResults([]);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -386,7 +388,7 @@ export default function ContributionTemplate({
         {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-600">
+            <h1 className="text-3xl font-bold text-gray-800">
               {type === "manually"
                 ? "Penalty Payments"
                 : `${ContributionType?.name || "Contribution"} Payments`}
@@ -414,7 +416,7 @@ export default function ContributionTemplate({
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           {/* Table content from previous examples */}
           <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="font-semibold text-gray-600 text-lg">
+            <h2 className="font-semibold text-gray-700 text-lg">
               Payment Records
             </h2>
           </div>
@@ -600,99 +602,114 @@ export default function ContributionTemplate({
                 onSubmit={handleSubmit(onSubmit, onError)}
                 className="space-y-6"
               >
-                {/* --- Row 1: Search and Type --- */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Col 1: Find Family */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Find Family (Search by Principal or Spouse)
-                    </label>
-                    <div className="relative" ref={dropdownRef}>
-                      {selectedPrincipal ? (
-                        <div className="p-1 border border-blue-200 rounded-lg bg-blue-50">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-semibold text-blue-800">
-                                {selectedPrincipal.first_name}{" "}
-                                {selectedPrincipal.second_name}{" "}
-                                {selectedPrincipal.last_name} (Principal)
-                              </p>
-                              <p className="text-sm text-blue-600">
-                                {selectedPrincipal.phone_number}
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={clearSelectedPrincipal}
-                              className="p-1 text-red-500 rounded-full hover:bg-red-100"
-                            >
-                              <FiX size={20} />
-                            </button>
+                {/* Principal/Family Selection UI */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Find Family (Search by Principal or Spouse Name)
+                  </label>
+                  <div className="relative" ref={dropdownRef}>
+                    {selectedPrincipal ? (
+                      <div className="p-4 border border-blue-200 rounded-lg bg-blue-50">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-blue-800">
+                              {selectedPrincipal.first_name}{" "}
+                              {selectedPrincipal.last_name} (Principal)
+                            </p>
+                            <p className="text-sm text-blue-600">
+                              {selectedPrincipal.phone_number}
+                            </p>
                           </div>
+                          <button
+                            type="button"
+                            onClick={clearSelectedPrincipal}
+                            className="p-1 text-red-500 rounded-full hover:bg-red-100"
+                          >
+                            <FiX size={20} />
+                          </button>
                         </div>
-                      ) : (
-                        <>
-                          <input
-                            type="text"
-                            placeholder="Click to show all or start typing..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                            value={searchTerm}
-                            onChange={handleSearchChange}
-                            onFocus={() => {
-                              setIsDropdownOpen(true);
-                              if (searchTerm === "") {
-                                setSearchResults(principals);
-                              }
-                            }}
-                          />
-                          {isDropdownOpen && (
-                            <div className="absolute z-10 mt-1 w-full border border-gray-200 rounded-lg shadow-lg bg-white max-h-60 overflow-y-auto">
-                              {principals.length === 0 ? (
-                                // A) Case 1: The initial list passed via props is empty.
-                                <div className="p-4 text-center text-sm text-gray-500">
-                                  {type === "manually"
-                                    ? "No members with outstanding penalties found."
-                                    : "No eligible members found for this contribution."}
-                                </div>
-                              ) : searchResults.length > 0 ? (
-                                // B) Case 2: We have search results to display.
-                                searchResults.map((principal) => (
-                                  <li key={principal.id} className="list-none">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handlePrincipalSelect(principal)
-                                      }
-                                      className="w-full text-left px-4 py-3 hover:bg-gray-100 border-b last:border-0"
-                                    >
-                                      <p className="font-semibold text-gray-800">
-                                        {principal.first_name}{" "}
-                                        {principal.last_name}
-                                      </p>
-                                      <p className="text-sm text-gray-500">
-                                        Principal -{" "}
-                                        {principal.spouse
-                                          ? `Spouse: ${principal.spouse.first_name}`
-                                          : "No spouse"}
-                                      </p>
-                                    </button>
-                                  </li>
-                                ))
-                              ) : (
-                                // C) Case 3: The initial list has members, but the current search term found none.
-                                <div className="p-4 text-center text-sm text-gray-500">
-                                  No members match your search.
-                                </div>
-                              )}
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <h4 className="text-xs font-semibold text-gray-600 mb-2">
+                            Spouse Covered:
+                          </h4>
+                          {selectedPrincipal.spouse ? (
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-white border rounded-lg">
+                              <FiUser className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm font-medium text-gray-800">
+                                {selectedPrincipal.spouse.first_name}{" "}
+                                {selectedPrincipal.spouse.last_name}
+                              </span>
                             </div>
+                          ) : (
+                            <span className="text-sm text-gray-500 italic">
+                              No spouse linked.
+                            </span>
                           )}
-                        </>
-                      )}
-                    </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="text"
+                          placeholder="Start typing a name or phone number..."
+                          className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                          value={searchTerm}
+                          onChange={handleSearchChange}
+                          onFocus={() => {
+                            if (searchTerm === "") {
+                              setSearchResults(principals);
+                            }
+                          }}
+                        />
+                        {searchResults?.length > 0 && (
+                          <ul className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-60 overflow-auto border border-gray-200">
+                            {searchResults.map((principal) => (
+                              <li key={principal.id}>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handlePrincipalSelect(principal)
+                                  }
+                                  className="w-full text-left px-4 py-3 hover:bg-gray-100"
+                                >
+                                  <p className="font-semibold text-gray-800">
+                                    {principal.first_name} {principal.last_name}
+                                  </p>
+                                  <p className="text-sm text-gray-500">
+                                    Principal -{" "}
+                                    {principal.spouse
+                                      ? `Spouse: ${principal.spouse.first_name}`
+                                      : "No spouse"}
+                                  </p>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    )}
                   </div>
+                </div>
 
-                  {/* Col 2: Contribution Type or Penalty Month */}
-                  <div>
+                {!selectedPrincipal && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-100 text-gray-600 text-sm rounded-lg">
+                    <FiInfo className="flex-shrink-0" size={32} />
+                    <p>
+                      Please select a principal. The form below will activate
+                      once a principal is selected.
+                    </p>
+                  </div>
+                )}
+
+                <div
+                  className={`transition-opacity duration-300 space-y-6 ${
+                    selectedPrincipal
+                      ? "opacity-100"
+                      : "opacity-40 pointer-events-none"
+                  }`}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* DYNAMIC FIELD: Contribution Type or Penalty Month */}
                     {type === "automatically" ? (
                       <InputField
                         label="Contribution Type"
@@ -701,7 +718,6 @@ export default function ContributionTemplate({
                         inputProps={{
                           value: ContributionType?.name || "",
                           disabled: true,
-                          className: "bg-gray-200 cursor-not-allowed",
                         }}
                       />
                     ) : (
@@ -733,20 +749,7 @@ export default function ContributionTemplate({
                         }
                       />
                     )}
-                  </div>
-                </div>
 
-                {/* Wrapper div to control the enabled/disabled state of lower form rows */}
-                <div
-                  className={`transition-opacity duration-300 space-y-6 ${
-                    selectedPrincipal
-                      ? "opacity-100"
-                      : "opacity-40 pointer-events-none"
-                  }`}
-                >
-                  {/* --- Row 2: Amount and Date --- */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Col 1: Amount */}
                     <InputField
                       label="Amount"
                       name="paid_amount"
@@ -760,7 +763,7 @@ export default function ContributionTemplate({
                         required: true,
                         readOnly:
                           isAmountLocked ||
-                          (type === "manually" && !!ContributionType?.amount),
+                          (type === "manually" && !!ContributionType?.amount), // Lock for penalties and fixed contributions
                         className:
                           isAmountLocked ||
                           (type === "manually" && !!ContributionType?.amount)
@@ -768,7 +771,9 @@ export default function ContributionTemplate({
                             : "",
                       }}
                     />
-                    {/* Col 2: Payment Date */}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <InputField
                       label="Payment Date"
                       name="payment_date"
@@ -777,47 +782,44 @@ export default function ContributionTemplate({
                       error={errors.payment_date}
                       inputProps={{ required: true }}
                     />
-                  </div>
-
-                  {/* --- Row 3: Method and Upload --- */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Col 1: Payment Method */}
                     <SelectField
                       label="Payment Method"
                       name="payment_method"
                       register={register}
                       error={errors.payment_method}
                       options={[
+                        { value: "", label: "Select payment method" },
                         { value: "Cash", label: "Cash" },
                         { value: "Bank", label: "Bank" },
                         { value: "Mobile banking", label: "Mobile banking" },
                       ]}
+                      selectProps={{
+                        className:
+                          "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500",
+                      }}
                     />
-                    {/* Col 2: Upload File (Conditional) */}
-                    <div>
-                      {paymentMethod !== "Cash" && (
-                        <UploadFile
-                          text="receipt"
-                          getImageUrl={getImageUrl}
-                          setImageReady={setImageReady}
-                        />
-                      )}
-                    </div>
                   </div>
                 </div>
-
-                {/* --- Form Buttons --- */}
+                {paymentMethod !== "Cash" && (
+                  <div className=" w-56">
+                    <UploadFile
+                      text="receipt"
+                      getImageUrl={getImageUrl}
+                      setImageReady={setImageReady}
+                    />
+                  </div>
+                )}
                 <div className="flex justify-end gap-3 pt-6 border-t">
                   <button
                     type="button"
                     onClick={resetValues}
                     className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    Close
+                    Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium  bg-green-600 text-white  hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={!selectedPrincipal || loading || !imageReady}
                   >
                     {loading ? "Processing..." : "Save Payment"}
@@ -890,3 +892,9 @@ function PlusIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+// =================================================================================
+// --- Helper Components ---
+// =================================================================================
+// (All helper components: TableHeader, TableCell, Badge, PlusIcon)
+// ...

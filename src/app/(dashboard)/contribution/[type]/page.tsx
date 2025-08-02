@@ -1,8 +1,7 @@
 export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
-import Penalty from "../../../../components/Systempenalty";
-import { getMembersWithPenalties } from "@/lib/actions";
+import Penalty from "../../../../components/Systempenalty"; // Assuming this is for a different route now
 import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 
@@ -16,39 +15,41 @@ interface PageProps {
     query?: string;
   };
 }
+
+// Your convertDecimalsToNumbers function remains the same.
 function convertDecimalsToNumbers(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj !== "object") return obj;
-
   if (obj instanceof Date) return obj;
-
-  // Handle Decimal.js or Prisma Decimal
   if (typeof obj.toNumber === "function") return obj.toNumber();
-
-  if (Array.isArray(obj)) {
-    return obj.map(convertDecimalsToNumbers);
-  }
-
+  if (Array.isArray(obj)) return obj.map(convertDecimalsToNumbers);
   const result: any = {};
   for (const key in obj) {
     result[key] = convertDecimalsToNumbers(obj[key]);
   }
   return result;
 }
+
 export default async function ContributionPage({
   params,
   searchParams = {},
 }: PageProps) {
   const decodedType = decodeURIComponent(params.type).replace(/%20/g, " ");
+  
+  // Assuming the 'penalties' page is now handled by the ManualPenaltyManagement component/route.
+  // This page is now solely for contribution payments.
   const isPenaltiesPage = decodedType.toLowerCase() === "penalties";
+  if (isPenaltiesPage) {
+    // Or handle it differently if this route can still manage penalties.
+    // For now, we assume it's a separate page and redirect or show notFound.
+    notFound(); 
+  }
 
-  const contributionType = isPenaltiesPage
-    ? null
-    : await prisma.contributionType.findUnique({
-        where: { name: decodedType },
-      });
+  const contributionType = await prisma.contributionType.findUnique({
+    where: { name: decodedType },
+  });
 
-  if (!isPenaltiesPage && !contributionType) {
+  if (!contributionType) {
     notFound();
   }
 
@@ -61,31 +62,26 @@ export default async function ContributionPage({
 
     const { year, month, query } = searchParams;
 
-    if (isPenaltiesPage) {
-      const membersRaw = await getMembersWithPenalties();
-      const members = convertDecimalsToNumbers(membersRaw);
-      return (
-        <div className="contribution-page">
-          <Penalty members={members} />
-        </div>
-      );
-    }
-
-    const memberFilter: any = {
+    // --- Base Filters ---
+    
+    // Filter for the list of principals to be passed to the payment modal
+    const principalFilter: any = {
+      isPrincipal: true,
       status: "Active",
       Contribution: {
-        some: { type_name: contributionType!.name },
+        some: { type_name: contributionType.name },
       },
     };
 
+    // Filter for the list of existing payment records to display in the table
     const paymentFilter: any = {
-      contribution_Type_id: contributionType!.id,
-      penalty_type_payed_for: "automatically",
+      contribution_Type_id: contributionType.id,
+      penalty_type_payed_for: "automatically", // Assuming this is correct for your logic
     };
 
+    // --- Date Filtering (remains the same) ---
     let dateStart: Date | undefined;
     let dateEnd: Date | undefined;
-
     if (year && month) {
       dateStart = new Date(`${year}-${month}-01`);
       dateEnd = new Date(dateStart);
@@ -102,13 +98,35 @@ export default async function ContributionPage({
       };
     }
 
+    // --- CORRECTED: Separated Search Logic ---
     if (query) {
-      const terms = query
-        .split(" ")
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0);
+      const terms = query.split(" ").map((t) => t.trim()).filter(Boolean);
 
-      const filterConditions = terms.map((term) => ({
+      // Logic 1: SMART search for the PRINCIPAL list (for the modal)
+      // This searches principals OR their spouses.
+      const principalSearchConditions = terms.map((term) => ({
+        OR: [
+          { first_name: { contains: term, mode: "insensitive" } },
+          { second_name: { contains: term, mode: "insensitive" } },
+          { last_name: { contains: term, mode: "insensitive" } },
+          { phone_number: { contains: term, mode: "insensitive" } },
+          { custom_id: { contains: term, mode: "insensitive" } },
+          {
+            spouse: {
+              OR: [
+                { first_name: { contains: term, mode: "insensitive" } },
+                { second_name: { contains: term, mode: "insensitive" } },
+                { last_name: { contains: term, mode: "insensitive" } },
+              ],
+            },
+          },
+        ],
+      }));
+      principalFilter.AND = principalSearchConditions;
+
+      // Logic 2: SIMPLE search for the PAYMENT list (for the table)
+      // This only searches the direct member linked to the payment.
+      const paymentSearchConditions = terms.map((term) => ({
         OR: [
           { first_name: { contains: term, mode: "insensitive" } },
           { second_name: { contains: term, mode: "insensitive" } },
@@ -117,20 +135,19 @@ export default async function ContributionPage({
           { custom_id: { contains: term, mode: "insensitive" } },
         ],
       }));
-
-      memberFilter.AND = [
-        { Contribution: { some: { type_name: contributionType!.name } } },
-        ...filterConditions,
-      ];
-
-      paymentFilter.member = { AND: filterConditions };
+      paymentFilter.member = {
+        AND: paymentSearchConditions,
+      };
     }
 
-    const membersRaw = await prisma.member.findMany({
-      where: memberFilter,
+    // --- Data Fetching ---
+
+    const principalsRaw = await prisma.member.findMany({
+      where: principalFilter,
       include: {
         Contribution: true,
         Balance: true,
+        spouse: true,
       },
     });
 
@@ -146,15 +163,15 @@ export default async function ContributionPage({
       },
     });
 
-    const members = convertDecimalsToNumbers(membersRaw);
+    const principals = convertDecimalsToNumbers(principalsRaw);
     const payments = convertDecimalsToNumbers(paymentsRaw);
     const updatedContributionType = convertDecimalsToNumbers(contributionType);
 
     return (
       <div className="contribution-page">
         <ContributionTemplate
-          ContributionType={updatedContributionType!}
-          members={members}
+          ContributionType={updatedContributionType}
+          principals={principals}
           payments={payments}
           type="automatically"
         />
@@ -164,13 +181,13 @@ export default async function ContributionPage({
     console.error("ContributionPage failed:", error);
     return (
       <div className="min-h-screen flex items-center justify-center text-center p-8">
-        <div className="space-y-4 max-w-md">
+        <div className="space-y-4 max-w-md bg-white p-8 rounded-lg shadow-lg">
           <h1 className="text-2xl font-bold text-red-600">
-            Connection Timeout
+            Error Loading Page
           </h1>
           <p className="text-gray-600">
-            Something went wrong while loading the contribution page. Please
-            check your internet connection or try refreshing.
+            Something went wrong while loading the contribution data. Please
+            check the server logs or try refreshing the page.
           </p>
         </div>
       </div>

@@ -7,13 +7,14 @@ interface SelectFieldProps {
   name: string;
   register: UseFormRegister<any>;
   error?: FieldError;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; disabled?: boolean }[]; // Options can also be individually disabled
   selectProps?: React.SelectHTMLAttributes<HTMLSelectElement>;
   defaultValue?: string;
   containerClass?: string;
   required?: boolean;
   icon?: ReactNode;
   registerOptions?: Parameters<UseFormRegister<any>>[1];
+  disabled?: boolean; // <-- 1. ADDED: The new top-level disabled prop
 }
 
 export default function SelectField({
@@ -28,6 +29,7 @@ export default function SelectField({
   required = false,
   icon,
   registerOptions,
+  disabled = false, // <-- 2. ADDED: Destructure the prop with a default value
 }: SelectFieldProps) {
   return (
     <div className={`flex flex-col gap-1 ${containerClass}`}>
@@ -47,17 +49,24 @@ export default function SelectField({
           id={name}
           {...register(name, registerOptions)}
           {...selectProps}
+          disabled={disabled} // <-- 2. ADDED: Pass the disabled prop to the HTML select element
           defaultValue={defaultValue}
           className={`w-full px-3 py-2 border ${
             error ? "border-red-500" : "border-gray-300"
           } rounded-md shadow-sm focus:outline-none focus:ring-2 focus:${
             error ? "ring-red-500" : "ring-blue-500"
           } focus:border-${error ? "red-500" : "blue-500"} bg-white ${
-            icon ? "pl-2" : ""
-          } ${selectProps.className ? selectProps.className : ""}`}
+            icon ? "pl-10" : "pl-3" // Adjusted padding for icon
+          } ${
+            selectProps.className || ""
+          } disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed`} // <-- 3. ADDED: Tailwind classes for disabled state
         >
           {options.map((option) => (
-            <option key={option.value} value={option.value}>
+            <option
+              key={option.value}
+              value={option.value}
+              disabled={option.disabled} // Allows disabling individual options
+            >
               {option.label}
             </option>
           ))}
