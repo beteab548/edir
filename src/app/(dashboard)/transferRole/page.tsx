@@ -2,9 +2,16 @@
 
 import prisma from "@/lib/prisma";
 import { TransferActionRow } from "@/components/TransferActionRow"; // A new client component
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export default async function PendingTransfersPage() {
-  // Query for all principals who are deceased/left AND have an active spouse.
+    const user = await currentUser();
+      if (!user) return redirect("/sign-in");
+  
+      const role = user.publicMetadata?.role;
+      if (role !== "chairman"&&role!=="admin") return redirect("/dashboard");
+  
   const eligiblePrincipals = await prisma.member.findMany({
     where: {
       isPrincipal: true,

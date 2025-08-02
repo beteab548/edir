@@ -2,7 +2,6 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { FiBell } from "react-icons/fi";
 
 interface NavbarClientProps {
   fullName: string;

@@ -33,7 +33,7 @@ export default async function PenaltyPage({ searchParams }: SearchParams) {
     return redirect("/sign-in");
   }
   const role = user.publicMetadata?.role;
-  if (role !== "chairman") {
+  if (role !== "chairman"&&role!=="admin") {
     return redirect("/dashboard");
   }
   const { year, month, query } = searchParams;

@@ -39,7 +39,7 @@ const Loading = () => {
 
           {/* Table Body Placeholder Rows (Repeating 5 times) */}
           <div className="divide-y divide-gray-100">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(6)].map((_, i) => (
               <div key={i} className="flex items-center px-5 py-2">
                 {/* ID Column */}
                 <div className="w-16 h-4 bg-gray-200 rounded-md"></div>

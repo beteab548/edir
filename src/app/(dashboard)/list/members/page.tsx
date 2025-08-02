@@ -46,7 +46,7 @@ const MemberListPage = async ({
     const user = await currentUser();
 
     if (!user) return redirect("/sign-in");
-    if (user.publicMetadata?.role !== "secretary")
+    if (user.publicMetadata?.role !== "secretary" && user.publicMetadata?.role !== "admin")
       return redirect("/dashboard");
 
     const itemsPerPage = searchParams.perPage

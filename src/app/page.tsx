@@ -81,11 +81,11 @@ export default function PublicPage() {
       setIsAuthenticating(true);
       switch (role) {
         case "secretary":
-          router.push("/dashboard");
-          break;
         case "chairman":
+        case "admin":
           router.push("/dashboard");
           break;
+      
         default:
           router.push("/unauthoried");
           break;

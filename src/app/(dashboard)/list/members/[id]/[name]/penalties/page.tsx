@@ -51,7 +51,7 @@ export default function MemberPenaltiesPage({
     if (!isSignedIn) {
       router.push("/sign-in");
     }
-    if (user && user.publicMetadata?.role !== "chairman") {
+    if (user && user.publicMetadata?.role !== "chairman"&&user.publicMetadata?.role !== "admin") {
       router.push("/dashboard");
     }
 

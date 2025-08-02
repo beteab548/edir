@@ -30,7 +30,7 @@ export default function TabSwitcher() {
     }
 
     const role = user?.publicMetadata?.role;
-    if (role !== "chairman") {
+    if (role !== "chairman" && role !== "admin") {
       router.push("/dashboard");
     }
   }, [isLoaded, isSignedIn, user, router]);
@@ -55,7 +55,10 @@ export default function TabSwitcher() {
   };
 
   useEffect(() => {
-    if (isLoaded && isSignedIn && user?.publicMetadata?.role === "chairman") {
+    if (
+      (isLoaded && isSignedIn && user?.publicMetadata?.role === "chairman") ||
+      user?.publicMetadata?.role === "admin"
+    ) {
       fetchData();
     }
   }, [isLoaded, isSignedIn, user]);
@@ -64,7 +67,12 @@ export default function TabSwitcher() {
     return null;
   }
 
-  if (!isLoaded || !isSignedIn || user?.publicMetadata?.role !== "chairman") {
+  if (
+    !isLoaded ||
+    !isSignedIn ||
+    user?.publicMetadata?.role !== "chairman" &&
+    user?.publicMetadata?.role !== "admin"
+  ) {
     return null;
   }
 
@@ -78,19 +86,21 @@ export default function TabSwitcher() {
 
       <div className="border-b">
         <nav className="-mb-px flex space-x-8 justify-center">
-          {(["System Generated", "Admin Generated"] as Tab[]).map((tab:any) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                activeTab === tab
-                  ? "border-blue-500 text-blue-600"
-                  : "border-transparent text-gray-800 hover:text-gray-900 hover:border-gray-300"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+          {(["System Generated", "Admin Generated"] as Tab[]).map(
+            (tab: any) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
+                  activeTab === tab
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-800 hover:text-gray-900 hover:border-gray-300"
+                }`}
+              >
+                {tab}
+              </button>
+            )
+          )}
         </nav>
       </div>
 

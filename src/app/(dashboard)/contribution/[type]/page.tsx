@@ -58,7 +58,7 @@ export default async function ContributionPage({
     if (!user) return redirect("/sign-in");
 
     const role = user.publicMetadata?.role;
-    if (role !== "chairman") return redirect("/dashboard");
+    if (role !== "chairman"&&role!=="admin") return redirect("/dashboard");
 
     const { year, month, query } = searchParams;
 

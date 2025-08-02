@@ -16,7 +16,7 @@ export default async function ContributionPage() {
     }
 
     const role = user.publicMetadata?.role;
-    if (role !== "chairman") {
+    if (role !== "chairman" && role !== "admin") {
       return redirect("/dashboard");
     }
 

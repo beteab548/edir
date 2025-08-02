@@ -13,7 +13,7 @@ const AddNewMember = async () => {
     }
 
     const role = user.publicMetadata?.role;
-    if (role !== "secretary") {
+    if (role !== "secretary"&&role!=="admin") {
       return redirect("/dashboard");
     }
     await generateContributionSchedulesForAllActiveMembers();
