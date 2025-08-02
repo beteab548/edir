@@ -1,12 +1,12 @@
 "use client";
-import { deleteMember } from "@/lib/actions";
+import { deleteFamily } from "@/lib/actions";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Dispatch, SetStateAction, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { FormContainerProps } from "./FormContainer";
-const deleteActionMap = { member: deleteMember };
+const deleteActionMap = { member: deleteFamily };
 const MemberForm = dynamic(() => import("./form/MemberForm"), {
   loading: () => <h1>Loading...</h1>,
 });
@@ -36,7 +36,6 @@ const FormModal = ({
       : type === "update"
       ? "bg-sky-200"
       : "bg-purple-200";
-
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

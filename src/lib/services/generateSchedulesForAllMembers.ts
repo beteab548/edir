@@ -59,7 +59,7 @@ interface GenerateSchedulesOptions {
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
-  const { simulate = true, simulationMonths = 3 } = options;
+  const { simulate = true, simulationMonths = 4 } = options;
   const now = simulate
     ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
@@ -477,22 +477,35 @@ export async function generateContributionSchedulesForAllActiveMembers(
         scheduleMonthStart
       );
       const calculatedPenaltyAmount = penaltyBase * monthsLate;
-      const existingUnpaidPenalty = schedule.penalties.find((p) => !p.is_paid);
+      const existingPenaltyForMonth = await prisma.penalty.findUnique({
+        where: {
+          member_id_contribution_id_missed_month: {
+            member_id: schedule.member_id,
+            contribution_id: schedule.contribution_id,
+            missed_month: schedule.month,
+          },
+        },
+      });
 
-      if (existingUnpaidPenalty) {
+      if (existingPenaltyForMonth) {
+        // A penalty for this month already exists. We should only UPDATE it if the amount has increased.
         if (
-          Number(existingUnpaidPenalty.expected_amount) <
-          calculatedPenaltyAmount
+          Number(existingPenaltyForMonth.expected_amount) <
+            calculatedPenaltyAmount &&
+          !existingPenaltyForMonth.is_paid
         ) {
           await prisma.penalty.update({
-            where: { id: existingUnpaidPenalty.id },
+            where: { id: existingPenaltyForMonth.id },
             data: {
               expected_amount: calculatedPenaltyAmount,
               applied_at: new Date(),
             },
           });
         }
+        // If the existing penalty is already paid, or the amount hasn't increased, we do nothing.
       } else {
+        // No penalty has ever been created for this missed month for this member.
+        // It is safe to create a new one.
         penaltiesToCreate.push({
           member_id: schedule.member_id,
           contribution_id: schedule.contribution_id,

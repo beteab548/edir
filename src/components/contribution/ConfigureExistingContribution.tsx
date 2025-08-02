@@ -55,6 +55,7 @@ export default function ConfigureExistingContribution({
   const [selectedMemberIds, setSelectedMemberIds] = useState<number[]>([]);
   const [existingMemberIds, setExistingMemberIds] = useState<number[]>([]);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const [isLoadingDelete, setIsLoadingDelete] = useState(false);
   const [isForAllLocal, setIsForAllLocal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toDelete, setToDelete] = useState<ContributionType | null>(null);
@@ -153,6 +154,7 @@ export default function ConfigureExistingContribution({
   const handleDelete = async () => {
     if (!toDelete) return;
     try {
+      setIsLoadingDelete(true);
       await deleteContributionType(toDelete.id);
       router.push("/contribution");
       mutateData();
@@ -160,6 +162,7 @@ export default function ConfigureExistingContribution({
     } catch (err) {
       toast.error("Something went wrong");
     } finally {
+      setIsLoadingDelete(false);
       setShowDeleteModal(false);
       setToDelete(null);
     }
@@ -301,10 +304,11 @@ export default function ConfigureExistingContribution({
                         Close
                       </button>
                       <button
+                        disabled={isLoadingDelete}
                         className="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-red-600 hover:bg-red-700"
                         onClick={handleDelete}
                       >
-                        Delete
+                        {isLoadingDelete ? "Deleting..." : " Delete"}
                       </button>
                     </div>
                   </div>

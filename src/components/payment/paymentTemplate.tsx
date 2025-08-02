@@ -302,6 +302,7 @@ export default function ContributionTemplate({
     if (state.success && !formStateRef.current.success) {
       toast.success("Payment created successfully!");
       setLoading(false);
+
       resetValues();
       router.refresh(); // It's now safe to refresh
     }
@@ -427,6 +428,7 @@ export default function ContributionTemplate({
                   <TableHeader>Amount</TableHeader>
                   <TableHeader>Date</TableHeader>
                   <TableHeader>Method</TableHeader>
+                  <TableHeader>Balance</TableHeader>
                   <TableHeader>Actions</TableHeader>
                 </tr>
               </thead>
@@ -447,6 +449,7 @@ export default function ContributionTemplate({
                             <div>
                               <p className="font-medium text-gray-900">
                                 {payment.member.first_name}{" "}
+                                {payment.member.second_name}{" "}
                                 {payment.member.last_name}
                               </p>
                             </div>
@@ -468,6 +471,17 @@ export default function ContributionTemplate({
                           >
                             {payment.payment_method}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`${
+                              (payment?.remaining_balance ?? 0) > 0
+                                ? " text-red-800 bg-red-100  "
+                                : " text-green-800 bg-green-100 "
+                            } rounded-full font-semibold p-1`}
+                          >
+                            {payment.remaining_balance}
+                          </span>
                         </TableCell>
                         <TableCell onclick={(e) => e.stopPropagation()}>
                           <DeletePaymentButton
@@ -530,6 +544,9 @@ export default function ContributionTemplate({
                                           <p className="font-medium text-gray-800">
                                             {p.payment_type === "penalty"
                                               ? "Penalty Payment"
+                                              : p.payment_type ===
+                                                "Registration"
+                                              ? "Registration Fee"
                                               : "Monthly Contribution"}
                                           </p>
                                           <p className="font-semibold">
@@ -667,12 +684,12 @@ export default function ContributionTemplate({
                                     >
                                       <p className="font-semibold text-gray-800">
                                         {principal.first_name}{" "}
-                                        {principal.last_name}
+                                        {principal.second_name}{" "}
+                                        {principal.last_name} (Principal)
                                       </p>
                                       <p className="text-sm text-gray-500">
-                                        Principal -{" "}
                                         {principal.spouse
-                                          ? `Spouse: ${principal.spouse.first_name}`
+                                          ? `Spouse: ${principal.spouse.first_name} ${principal.spouse.second_name}`
                                           : "No spouse"}
                                       </p>
                                     </button>

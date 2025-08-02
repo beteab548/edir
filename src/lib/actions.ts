@@ -149,18 +149,70 @@ export const createFamily = async (
         }
 
         // --- STEP 6: Apply Financial Logic to the Principal ---
-        // This logic remains unchanged as it operates on the principal member.
+
         const today = new Date();
+
+        // Find all contribution types that should be applied to all members.
         const activeContributionTypes = await tx.contributionType.findMany({
-          /* ... */
+          where: {
+            is_active: true,
+            is_for_all: true,
+            // Ensure the contribution period is current
+            OR: [{ end_date: null }, { end_date: { gte: today } }],
+          },
         });
-        // ... (rest of your existing financial logic) ...
+
+        // Filter out the "Registration" fee if the member is not "New".
+        const filteredContributionTypes = activeContributionTypes.filter(
+          (type) => {
+            if (
+              type.name === "Registration" &&
+              principalMember.member_type !== "New"
+            ) {
+              return false;
+            }
+            return true;
+          }
+        );
+
+        // Prepare the data for creating the Contribution records.
+        const contributionsToCreate = filteredContributionTypes.map((type) => ({
+          contribution_type_id: type.id,
+          member_id: principalMember.id, // Link to the new principal
+          type_name: type.name,
+          amount: type.amount,
+          start_date: type.start_date || new Date(),
+          end_date: type.end_date,
+        }));
+
+        // Specifically handle the "Registration" fee for "New" members
+        // if it wasn't already included in the `is_for_all` query.
+        if (principalMember.member_type === "New") {
+          const hasRegistration = contributionsToCreate.some(
+            (c) => c.type_name === "Registration"
+          );
+          if (!hasRegistration) {
+            const registrationType = await tx.contributionType.findFirst({
+              where: { name: "Registration", is_active: true },
+            });
+            if (registrationType) {
+              contributionsToCreate.push({
+                contribution_type_id: registrationType.id,
+                member_id: principalMember.id,
+                type_name: registrationType.name,
+                amount: registrationType.amount,
+                start_date: registrationType.start_date || new Date(),
+                end_date: registrationType.end_date,
+              });
+            }
+          }
+        }
         const contributionsData: string | any[] = []; // Your logic to build this array
         // ...
         if (contributionsData.length > 0) {
           await tx.contribution.createMany({ data: contributionsData });
         }
-
+        await generateInitialSchedulesForMember(principalMember.id, tx);
         return principalMember;
       },
       { timeout: 20000 }
@@ -366,35 +418,87 @@ export const updateFamily = async (
   }
 };
 
-export const deleteMember = async (
+// In your actions.ts file
+export const deleteFamily = async (
   currentState: CurrentState,
-  data: FormData
+  formData: FormData
 ) => {
-  const id = parseInt(data.get("id") as string);
+  // We get the ID of the member whose delete button was clicked.
+  // It could be the principal or any other member, it just serves as an entry point.
+  const memberId = parseInt(formData.get("id") as string);
+
+  if (isNaN(memberId)) {
+    return {
+      success: false,
+      error: true,
+      message: "Invalid Member ID provided.",
+    };
+  }
+
   try {
-    const member = await prisma.member.findUnique({
-      where: { id },
-      select: {
-        document_file_id: true,
-        image_file_id: true,
-      },
-    });
-    if (member) {
-      if (member.document_file_id) {
-        await deleteImageFromImageKit(member.document_file_id);
+    await prisma.$transaction(async (tx) => {
+      // --- STEP 1: Find the Member to get their Family ID ---
+      const memberToDelete = await tx.member.findUnique({
+        where: { id: memberId },
+        select: { familyId: true },
+      });
+
+      if (!memberToDelete || !memberToDelete.familyId) {
+        // This could happen if the member was already deleted or isn't in a family.
+        // We can treat this as a success since the goal is for them to be gone.
+        console.warn(
+          `Attempted to delete a member (ID: ${memberId}) who has no family link.`
+        );
+        return; // Exit the transaction gracefully.
       }
-      if (member.image_file_id) {
-        await deleteImageFromImageKit(member.image_file_id);
+
+      const familyId = memberToDelete.familyId;
+
+      // --- STEP 2: Find ALL Members of the Family to Clean Up Images ---
+      const allFamilyMembers = await tx.member.findMany({
+        where: { familyId: familyId },
+        select: {
+          document_file_id: true,
+          image_file_id: true,
+          identification_file_id: true,
+        },
+      });
+
+      // --- STEP 3: Delete All Associated Images from ImageKit ---
+      for (const member of allFamilyMembers) {
+        if (member.document_file_id) {
+          await deleteImageFromImageKit(member.document_file_id);
+        }
+        if (member.image_file_id) {
+          await deleteImageFromImageKit(member.image_file_id);
+        }
+        if (member.identification_file_id) {
+          await deleteImageFromImageKit(member.identification_file_id);
+        }
       }
-    }
-    await prisma.member.delete({
-      where: { id },
-    });
+      await tx.family.delete({
+        where: { id: familyId },
+      });
+    }); // End of transaction
 
     return { success: true, error: false };
-  } catch (err) {
-    console.error(err);
-    return { success: false, error: true };
+  } catch (err: any) {
+    console.error("Delete family failed:", err);
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2025"
+    ) {
+      return {
+        success: true,
+        error: false,
+        message: "Family was not found. It may have already been deleted.",
+      };
+    }
+    return {
+      success: false,
+      error: true,
+      message: "A database error occurred while deleting the family.",
+    };
   }
 };
 
@@ -527,7 +631,7 @@ export const updateContribution = async (
 
     // 7. Handle schedule updates if amount changed (same logic for both is_for_all true and false)
     if (amountChanged && updatedType.name !== "Registration") {
-      const today = startOfMonth(addMonths(new Date(), 2)); // Using your adjusted date
+      const today = startOfMonth(addMonths(new Date(), 0)); // Using your adjusted date
       const contributionIds = contributionsToUpdate.map((c) => c.id);
 
       if (contributionIds.length > 0) {
@@ -630,6 +734,7 @@ export const updateContribution = async (
       const membersToAdd = await prisma.member.findMany({
         where: {
           status: "Active",
+          isPrincipal: true,
           ...(updatedType.name === "Registration" && { member_type: "New" }),
           id: {
             notIn: currentContributions.map((c) => c.member_id),
@@ -795,7 +900,7 @@ export const createContributionType = async (data: {
 
         if (data.is_for_all) {
           const activeMembers = await tx.member.findMany({
-            where: { status: "Active" },
+            where: { status: "Active",isPrincipal:true },
             select: { id: true },
           });
           memberIds = activeMembers.map((m) => m.id);
@@ -905,7 +1010,7 @@ export const paymentActionforAutomatic = async (
       paymentMethod,
       documentReference: paymentReceipt || "-",
       simulate: true,
-      simulationMonths: 2,
+      simulationMonths: 4,
     });
     return { success: true, error: false };
   } catch (error) {
@@ -1722,50 +1827,42 @@ export const transferPrincipalRole = async (
   }
 
   try {
-    // Use a transaction to ensure all steps succeed or the entire operation is rolled back.
     await prisma.$transaction(
       async (tx) => {
-        // --- STEP 1: Find the Outgoing Principal and their Spouse ---
+        // --- STEP 1 & 2: Find Principals and Validate ---
         const outgoingPrincipal = await tx.member.findUnique({
-          where: {
-            id: outgoingPrincipalId,
-            isPrincipal: true, // Safety check: ensure they are actually a principal
-          },
-          select: {
-            spouseId: true,
-          },
+          where: { id: outgoingPrincipalId, isPrincipal: true },
+          select: { spouseId: true, familyId: true },
         });
 
-        // --- STEP 2: Validate the Transfer Conditions ---
-        if (!outgoingPrincipal) {
+        if (
+          !outgoingPrincipal ||
+          !outgoingPrincipal.spouseId ||
+          !outgoingPrincipal.familyId
+        ) {
           throw new Error(
-            `No active principal found with ID: ${outgoingPrincipalId}`
-          );
-        }
-        if (!outgoingPrincipal.spouseId) {
-          throw new Error(
-            `Principal with ID ${outgoingPrincipalId} has no spouse to transfer the role to.`
+            `Validation failed: Principal, spouse, or family link not found.`
           );
         }
 
         const incomingPrincipalId = outgoingPrincipal.spouseId;
+        const familyId = outgoingPrincipal.familyId;
 
         // --- STEP 3: Perform the Role Swap ---
-        // Demote the old principal
         await tx.member.update({
           where: { id: outgoingPrincipalId },
           data: { isPrincipal: false },
         });
-
-        // Promote the new principal (the spouse)
         await tx.member.update({
           where: { id: incomingPrincipalId },
           data: { isPrincipal: true },
         });
 
-        // --- STEP 4 (CRITICAL): Transfer ALL Financial Records ---
-        // This is the core of the inheritance process. We update the foreign key
-        // on all related financial models from the old ID to the new one.
+        // ===================================================================
+        // === STEP 4 (CORRECTED): Transfer ALL Financial Records ===
+        // ===================================================================
+        // This block now ensures a complete transfer of all financial history,
+        // both paid and unpaid, to the new principal.
 
         await tx.payment.updateMany({
           where: { member_id: outgoingPrincipalId },
@@ -1777,6 +1874,7 @@ export const transferPrincipalRole = async (
           data: { member_id: incomingPrincipalId },
         });
 
+        // CRITICAL FIX: Remove the 'is_paid: false' filter. Transfer ALL penalties.
         await tx.penalty.updateMany({
           where: { member_id: outgoingPrincipalId },
           data: { member_id: incomingPrincipalId },
@@ -1786,6 +1884,8 @@ export const transferPrincipalRole = async (
           where: { member_id: outgoingPrincipalId },
           data: { member_id: incomingPrincipalId },
         });
+
+        // CRITICAL ADDITION: Transfer all ContributionSchedule records.
         await tx.contributionSchedule.updateMany({
           where: { member_id: outgoingPrincipalId },
           data: { member_id: incomingPrincipalId },
@@ -1796,15 +1896,37 @@ export const transferPrincipalRole = async (
           data: { member_id: incomingPrincipalId },
         });
 
-        // Note: ContributionSchedule does not need to be updated here if it's
-        // linked via contribution_id and member_id, as the parent Contribution
-        // record has already been updated. If it has a direct memberId link that
-        // is independent, you would add an updateMany for it here as well.
-        // Based on your schema, it seems linked through Contribution, so this is fine.
+        // --- STEP 5: Re-map Family Relatives ---
+        // (Your existing, correct relative re-mapping logic goes here)
+        await tx.relative.deleteMany({
+          where: {
+            familyId: familyId,
+            relation_type: { in: ["Mother", "Father", "Brother", "Sister"] },
+          },
+        });
+        const relativesToUpdate = await tx.relative.findMany({
+          where: {
+            familyId: familyId,
+            relation_type: {
+              in: [
+                "Spouse_Mother",
+                "Spouse_Father",
+                "Spouse_Brother",
+                "Spouse_Sister",
+              ],
+            },
+          },
+        });
+        for (const relative of relativesToUpdate) {
+          const newRelationType = relative.relation_type.replace("Spouse_", "");
+          await tx.relative.update({
+            where: { id: relative.id },
+            data: { relation_type: newRelationType },
+          });
+        }
       },
       { timeout: 20000 }
-    ); // End of transaction
-
+    );
     return { success: true, error: false };
   } catch (err: any) {
     console.error("Failed to transfer principal role:", err);
@@ -1839,3 +1961,104 @@ export const getPendingTransfersCount = async (): Promise<number> => {
     return 0;
   }
 };
+
+export async function generateInitialSchedulesForMember(
+  memberId: number,
+  tx: Prisma.TransactionClient
+) {
+  // STEP 1: Fetch the new member and their contributions that need schedules.
+  const member = await tx.member.findUnique({
+    where: { id: memberId },
+    include: {
+      Contribution: {
+        include: {
+          contributionType: true,
+        },
+      },
+    },
+  });
+
+  if (!member) {
+    console.error(
+      `generateInitialSchedules: Member with ID ${memberId} not found.`
+    );
+    return;
+  }
+
+  // STEP 2: Loop through contributions and build the schedule data.
+  const allNewSchedules = [];
+  const contributionsToUpdate: number[] = [];
+  const nowForOpenEnded = normalizeToMonthStart(new Date());
+
+  for (const contribution of member.Contribution) {
+    const { contributionType } = contribution;
+    if (!contributionType?.is_active) continue;
+
+    let startDate = contributionType.start_date ?? contribution.start_date;
+    if (!startDate) continue;
+
+    const contributionAmount = Number(contributionType.amount);
+    if (contributionAmount <= 0) continue;
+
+    // Handle 'OneTimeWindow' contributions
+    if (contributionType.mode === "OneTimeWindow") {
+      allNewSchedules.push({
+        member_id: member.id,
+        contribution_id: contribution.id,
+        month: startDate,
+        paid_amount: 0,
+        is_paid: false,
+        expected_amount: contributionAmount,
+      });
+      contributionsToUpdate.push(contribution.id);
+      continue;
+    }
+
+    // Handle 'Recurring' and 'OpenEndedRecurring' contributions
+    let recurringStart = normalizeToMonthStart(
+      contribution.start_date ?? startDate
+    );
+    let recurringEnd: Date;
+
+    if (contributionType.mode === "Recurring") {
+      if (!contributionType.end_date) continue;
+      recurringEnd = normalizeToMonthStart(contributionType.end_date);
+    } else {
+      // OpenEndedRecurring
+      recurringEnd = addMonths(nowForOpenEnded, 11);
+    }
+
+    const months = generateMonthlyDates(recurringStart, recurringEnd);
+
+    // --- YOUR OPTIMIZATION APPLIED HERE ---
+    // Since this is for a new member, we know no schedules exist.
+    // We can directly create schedules for all generated months without
+    // checking the database for duplicates first.
+    for (const month of months) {
+      allNewSchedules.push({
+        member_id: member.id,
+        contribution_id: contribution.id,
+        month,
+        paid_amount: 0,
+        is_paid: false,
+        expected_amount: contributionAmount,
+      });
+    }
+
+    // We still need to mark the parent contribution as processed.
+    if (months.length > 0) {
+      contributionsToUpdate.push(contribution.id);
+    }
+  }
+
+  // STEP 3: Perform the database operations (unchanged).
+  if (allNewSchedules.length > 0) {
+    await tx.contributionSchedule.createMany({
+      data: allNewSchedules,
+    });
+
+    console.log(
+      `Generated ${allNewSchedules.length} initial schedules for member #${memberId}.`
+    );
+  }
+}

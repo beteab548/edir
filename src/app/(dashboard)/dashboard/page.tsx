@@ -84,7 +84,7 @@ const AdminPage = async () => {
                           <FiUsers className="w-5 h-5" />
                         </div>
                         <div>
-                          <h2 className="text-sm font-semibold text-gray-800">
+                          <h2 className="text-md font-semibold text-gray-800">
                             Member Distribution
                           </h2>
                           <p className="text-xs text-gray-500">By gender</p>

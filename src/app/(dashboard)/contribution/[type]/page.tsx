@@ -35,14 +35,14 @@ export default async function ContributionPage({
   searchParams = {},
 }: PageProps) {
   const decodedType = decodeURIComponent(params.type).replace(/%20/g, " ");
-  
+
   // Assuming the 'penalties' page is now handled by the ManualPenaltyManagement component/route.
   // This page is now solely for contribution payments.
   const isPenaltiesPage = decodedType.toLowerCase() === "penalties";
   if (isPenaltiesPage) {
     // Or handle it differently if this route can still manage penalties.
     // For now, we assume it's a separate page and redirect or show notFound.
-    notFound(); 
+    notFound();
   }
 
   const contributionType = await prisma.contributionType.findUnique({
@@ -63,7 +63,7 @@ export default async function ContributionPage({
     const { year, month, query } = searchParams;
 
     // --- Base Filters ---
-    
+
     // Filter for the list of principals to be passed to the payment modal
     const principalFilter: any = {
       isPrincipal: true,
@@ -100,7 +100,10 @@ export default async function ContributionPage({
 
     // --- CORRECTED: Separated Search Logic ---
     if (query) {
-      const terms = query.split(" ").map((t) => t.trim()).filter(Boolean);
+      const terms = query
+        .split(" ")
+        .map((t) => t.trim())
+        .filter(Boolean);
 
       // Logic 1: SMART search for the PRINCIPAL list (for the modal)
       // This searches principals OR their spouses.
@@ -186,8 +189,8 @@ export default async function ContributionPage({
             Error Loading Page
           </h1>
           <p className="text-gray-600">
-            Something went wrong while loading the contribution data. Please
-            check the server logs or try refreshing the page.
+            Something went wrong while loading the contribution data. Please try
+            refreshing the page.
           </p>
         </div>
       </div>

@@ -10,7 +10,7 @@ export async function GET() {
       by: ["penalty_type"],
     });
     const members = await prisma.member.findMany({
-      where: { status: "Active" },
+      where: { status: "Active", isPrincipal: true },
     });
 
     return NextResponse.json({

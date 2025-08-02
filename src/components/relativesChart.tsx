@@ -88,7 +88,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({ apiUrl 
           </div>
           <div>
             {/* --- STEP 3: UPDATE THE TITLE --- */}
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-md font-semibold text-gray-900">
               Relatives Distribution (Active Families)
             </h2>
             <p className="text-xs text-gray-500">

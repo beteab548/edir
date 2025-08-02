@@ -255,11 +255,11 @@ const MemberForm = ({
     { success: false, error: false }
   );
 
-   useEffect(() => {
+  useEffect(() => {
     if (data) {
       const formattedData = getFormattedFormValues(data);
       reset(formattedData);
-     
+
       setRelatives(data.relatives || []);
     }
   }, [data, reset]);
@@ -627,7 +627,7 @@ const MemberForm = ({
   return (
     <div
       className={`${
-        type === "update" ? "h-[570px] w-[770px]" : ""
+        type === "update" ? "h-[570px] w-[850px]" : ""
       } overflow-y-hidden rounded-lg bg-white`}
     >
       <div className="sticky top-0  pt-4 pb-2 z-10 border-b border-gray-200">
@@ -835,11 +835,13 @@ const MemberForm = ({
               </div>
               <PhoneInputField
                 value={phone ?? ""}
+                 containerClassName={type === 'update' ? 'md:w-auto' : 'w-full'}
                 onChange={(val) => setPhone(val)}
                 error={errors?.principal?.phone_number?.message}
               />
 
               <PhoneInputField
+                 containerClassName={type === 'update' ? 'md:w-auto' : 'w-full'}
                 value={phone2 ?? ""}
                 onChange={(val) => setPhone2(val)}
                 error={errors?.principal?.phone_number_2?.message}
@@ -1334,11 +1336,12 @@ const MemberForm = ({
               {/* NOTE: You will need separate state (e.g., spousePhone, setSpousePhone) for these fields */}
               <PhoneInputField
                 value={phone3 ?? ""}
-                onChange={(val) => setPhone3(val)}
+ containerClassName={type === 'update' ? 'md:w-12' : 'w-full'}                onChange={(val) => setPhone3(val)}
                 error={errors?.spouse?.phone_number?.message} // Changed from errors.member
               />
               <PhoneInputField
                 value={phone4 ?? ""}
+                containerClassName={type === "update" ? "md:w-12" : "w-full"}
                 onChange={(val) => setPhone4(val)}
                 error={errors?.spouse?.phone_number_2?.message} // Changed from errors.member
               />
@@ -1385,7 +1388,7 @@ const MemberForm = ({
                 options={[
                   { value: "", label: "Select Green Area Number" },
                   { value: "1", label: "1" },
-                 { value: "2", label: "2" },
+                  { value: "2", label: "2" },
                   { value: "3", label: "3" },
                   { value: "4", label: "4" },
                   { value: "5", label: "5" },
@@ -1994,22 +1997,35 @@ const MemberForm = ({
   );
 };
 
+// --- STEP 1: UPDATE THE PROPS INTERFACE ---
+// Remove 'type' and add 'containerClassName'.
 interface PhoneInputFieldProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  containerClassName?: string; // This will control the outer div's classes
 }
 
-const PhoneInputField = ({ value, onChange, error }: PhoneInputFieldProps) => {
+const PhoneInputField = ({
+  value,
+  onChange,
+  error,
+  // Provide a default value. If no class is passed, it will be full-width.
+  containerClassName = "w-full",
+}: PhoneInputFieldProps) => {
   return (
-    <div className="flex flex-col gap-1 w-full">
+    // --- STEP 2: APPLY THE containerClassName TO THE TOP-LEVEL DIV ---
+    // This div now controls the overall width and layout of the component.
+    <div className={`flex flex-col gap-1 ${containerClassName}`}>
       <label className="text-sm font-medium text-gray-700">Phone Number</label>
       <div className="relative w-full">
         <PhoneInput
           country={"et"}
           value={value}
           onChange={onChange}
-          containerClass="w-full"
+          containerClass="w-full" // This should always be w-full to fill its parent
+          // --- STEP 3: SIMPLIFY THE inputClass ---
+          // The width is now controlled by the parent, so this class becomes simpler.
           inputClass={`w-full px-3 py-2 border ${
             error ? "border-red-500" : "border-gray-300"
           } rounded-md shadow-sm focus:outline-none focus:ring-2 ${
