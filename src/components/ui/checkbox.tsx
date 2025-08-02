@@ -1,12 +1,22 @@
+"use client";
+
 import { FieldError, UseFormRegister } from "react-hook-form";
 import React from "react";
 
+// --- STEP 1: UPDATE THE PROPS INTERFACE ---
 interface CheckboxFieldProps {
   name: string;
   label: string;
-  register: UseFormRegister<any>;
+  
+  // Make RHF props OPTIONAL, as they won't be used in the FilterBar
+  register?: UseFormRegister<any>;
   error?: FieldError;
-  defaultChecked?: boolean;
+  
+  // Add standard "controlled component" props, also OPTIONAL
+  checked?: boolean;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  
+  // Keep other props for flexibility
   inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
 }
 
@@ -15,38 +25,46 @@ export default function SmallCheckbox({
   label,
   register,
   error,
-  defaultChecked = false,
+  checked,
+  onChange,
   inputProps = {},
 }: CheckboxFieldProps) {
   
-  // Determine if the checkbox should be disabled from the inputProps.
+  // If the register function is provided, spread its props. Otherwise, do nothing.
+  const registrationProps = register ? register(name) : {};
   const isDisabled = inputProps.disabled || inputProps.readOnly;
 
   return (
     <>
-      {/* 
-        If disabled, we render a hidden input to ensure the value is submitted.
-        This is because disabled inputs are not sent with form submissions.
-        We use String() to be safe, and z.coerce.boolean() will handle it.
-      */}
+      {/* This logic for a disabled/readonly state is still useful */}
       {isDisabled && (
-        <input type="hidden" {...register(name)} value={String(defaultChecked)} />
+        <input
+          type="hidden"
+          {...registrationProps}
+          name={name}
+          value={String(checked)}
+        />
       )}
 
       <label className="inline-flex items-center text-sm cursor-pointer">
         <input
           type="checkbox"
-          // We only register the input if it's NOT disabled.
-          // The hidden input handles submission for disabled fields.
-          {...(isDisabled ? {} : register(name))}
-          // Apply any other inputProps, like className.
+          id={name}
+          
+          // --- STEP 2: APPLY PROPS CORRECTLY ---
+          
+          // 1. Spread any props from React Hook Form's register function
+          {...registrationProps}
+          
+          // 2. Apply the controlled component props. If provided, `checked` and `onChange`
+          //    from here will correctly control the input's state.
+          checked={checked}
+          onChange={onChange}
+          
+          // 3. Spread any other native input props like disabled, className, etc.
           {...inputProps}
-          // Set the default checked state.
-          defaultChecked={defaultChecked}
-          // *** THE CRITICAL FIX ***
-          // Explicitly apply the 'disabled' attribute AFTER the register spread.
-          // This guarantees that our 'disabled' prop wins and is not overridden.
           disabled={isDisabled}
+          
           className={`w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 ${
             isDisabled ? "cursor-not-allowed opacity-70" : ""
           } ${inputProps.className || ""}`}

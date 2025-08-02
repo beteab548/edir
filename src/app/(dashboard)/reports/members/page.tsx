@@ -20,6 +20,7 @@ interface SearchParams {
     green_area?: string;
     block?: string;
     marital_status?: string;
+    onlyPrincipals?:string
   };
 }
 
@@ -39,6 +40,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
     block: searchParams.block,
     title: searchParams.title,
     marital_status: searchParams.marital_status,
+    onlyPrincipals:searchParams.onlyPrincipals,
   });
   const processedData = members.map((m: any) => ({
     ID: m.custom_id,

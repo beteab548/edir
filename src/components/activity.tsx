@@ -90,7 +90,7 @@ export default function Activity({ type }: { type: string }) {
   if (error) {
     return (
       <div className="max-w-md mx-auto p-6 bg-red-50 border border-red-300 rounded text-red-700 font-semibold">
-        Error: {error}
+        Connection Timed Out Try refreshing.
       </div>
     );
   }

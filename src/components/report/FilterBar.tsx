@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { startOfMonth, endOfMonth, format } from "date-fns";
 import { ContributionMode } from "@prisma/client";
+import SmallCheckbox from "../ui/checkbox";
 
 // Enums
 enum Status {
@@ -61,6 +62,7 @@ export default function FilterBar({
     penalty_type: searchParams.get("penalty_type") || "",
     contribution_type: searchParams.get("contribution_type") || "",
     type: searchParams.get("type") || "",
+     onlyPrincipals: searchParams.get("onlyPrincipals") === "true",
   });
 
   useEffect(() => {
@@ -79,17 +81,36 @@ export default function FilterBar({
   }, [type]);
 
   useEffect(() => {
+    // This effect runs only once on the initial mount to set default URL params
+    // if none exist.
     if (!hasMounted.current) {
       hasMounted.current = true;
 
       const currentParams = new URLSearchParams(window.location.search);
       const hasParams = Array.from(currentParams.keys()).length > 0;
 
+      // If the URL has no search parameters, we build them from our initial state.
       if (!hasParams) {
         const params = new URLSearchParams();
+
+        // Loop through the initial filters state
         Object.entries(filters).forEach(([key, value]) => {
-          if (value) params.set(key, value);
+          
+          // --- THIS IS THE FIX, IDENTICAL TO THE OTHER useEffect ---
+          
+          // Handle the boolean 'onlyPrincipals' case separately
+          if (key === 'onlyPrincipals') {
+            // Only add the param to the URL if the checkbox is checked (true)
+            if (value === true) {
+              params.set(key, 'true');
+            }
+          } else if (value) { // Handle all other non-boolean, truthy values
+            // Safely convert to a string before setting
+            params.set(key, String(value));
+          }
         });
+        
+        // Now, update the URL with the correctly formatted initial parameters
         router.replace(`/reports/${type}?${params.toString()}`);
       }
 
@@ -98,19 +119,31 @@ export default function FilterBar({
 
     const params = new URLSearchParams();
     Object.entries(filters).forEach(([key, value]) => {
-      if (value) params.set(key, value);
+      if (key === 'onlyPrincipals') {
+        if (value === true) {
+          params.set(key, 'true');
+        }
+      } else if (value) {
+        params.set(key, String(value));
+      }
     });
     router.push(`/reports/${type}?${params.toString()}`);
-  }, [filters, router, type]);
 
-  const handleChange = (key: keyof typeof filters, value: string) => {
+}, [filters, router, type]);
+
+    const handleChange = (
+    key: keyof typeof filters,
+    value: string | boolean // <-- `value` can now be a string OR a boolean
+  ) => {
     setFilters((prev) => {
-      if (key === "to" && value < prev.from) {
+      // Your existing date logic is still correct.
+      if (key === "to" && typeof value === 'string' && value < prev.from) {
         return { ...prev, to: prev.from };
       }
-      if (key === "from" && value > prev.to) {
+      if (key === "from" && typeof value === 'string' && value > prev.to) {
         return { ...prev, from: value, to: value };
       }
+      // This will now correctly handle setting both string and boolean values in the state.
       return { ...prev, [key]: value };
     });
   };
@@ -250,6 +283,15 @@ export default function FilterBar({
               <option value="widowed">Widowed</option>
             </select>
           </div>
+                <div className="flex items-end pb-2">
+          <SmallCheckbox
+            name="onlyPrincipals"
+            label="Principals Only"
+            checked={filters.onlyPrincipals}
+            onChange={(e) => handleChange("onlyPrincipals", e.target.checked)}
+          />
+        </div>
+
 
           {/* Dates */}
           <div>

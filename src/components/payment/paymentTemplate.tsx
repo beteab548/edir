@@ -478,7 +478,7 @@ export default function ContributionTemplate({
                               (payment?.remaining_balance ?? 0) > 0
                                 ? " text-red-800 bg-red-100  "
                                 : " text-green-800 bg-green-100 "
-                            } rounded-full font-semibold p-1`}
+                            } rounded-full  px-2 `}
                           >
                             {payment.remaining_balance}
                           </span>
