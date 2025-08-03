@@ -63,7 +63,9 @@ const getFormattedFormValues = (rawData: any) => {
     formattedSpouse = {
       ...rawData.spouse,
       birth_date: formatDate(rawData.spouse?.birth_date),
-      registered_date: formatDate(rawData.spouse?.registered_date),
+      registered_date: formatDate(
+        rawData.spouse?.registered_date ?? new Date()
+      ),
       end_date: formatDate(rawData.spouse?.end_date),
     };
   }
@@ -101,12 +103,14 @@ const MemberForm = ({
     defaultValues: getFormattedFormValues(data),
   });
   useEffect(() => {
-    if (data) {
-      // When data arrives, format it and then reset the form
+    if (type === "update" && data?.principal?.id) {
       const formattedData = getFormattedFormValues(data);
       reset(formattedData);
+      if (data.relatives) {
+        setRelatives(data.relatives);
+      }
     }
-  }, [data, reset]);
+  }, [data?.principal?.id, type, reset]);
   const maritalStatus = useWatch({
     control,
     name: "principal.marital_status",
@@ -115,10 +119,11 @@ const MemberForm = ({
     control,
     name: "principal.sex",
   });
-
+  console.log("maritalStatus", maritalStatus);
   const [tabs, setTabs] = useState(initialTabs);
 
   useEffect(() => {
+    console.log("use Effect runnnig");
     // --- LOGIC FOR A MARRIED PRINCIPAL ---
     if (maritalStatus === "married") {
       // 1. Show the spouse tabs.
@@ -132,31 +137,22 @@ const MemberForm = ({
 
       // 2. Check if a spouse object already exists in the form's state.
       const existingSpouse = getValues("spouse");
+      console.log("exisstingSpouse", existingSpouse);
 
-      // 3. If NO spouse data exists, set all the defaults in one go.
-      // This block will run for a NEW form, or if the user switches from "single" to "married".
-      // It will NOT run when loading an existing married couple for an update.
-      if (!existingSpouse) {
+      if (!existingSpouse?.first_name) {
         setValue("spouse", {
-          // --- Required Fields from Your Schema ---
           first_name: "",
           second_name: "",
           birth_date: new Date(),
-          identification_type: "FAYDA",
+          identification_type: null,
           sex: principalSex === "Male" ? "Female" : "Male",
-          bank_name: "Commercial Bank of Ethiopia",
-          green_area: "1",
+          bank_name: "",
+          green_area: "",
           block: "",
-          phone_number: "", // <-- THIS IS THE FIX. Added the missing required field.
-
-          // --- Your Other Defaults ---
-          registered_date: new Date(),
           member_type: "New",
           status: "Active",
           marital_status: "married",
           isPrincipal: false,
-
-          // --- Optional Fields (Good practice to set them explicitly) ---
           last_name: undefined,
           profession: undefined,
           title: undefined,
@@ -167,6 +163,7 @@ const MemberForm = ({
           zone_or_district: undefined,
           kebele: undefined,
           house_number: undefined,
+          phone_number: undefined,
           phone_number_2: undefined,
           bank_account_number: undefined,
           bank_account_name: undefined,
@@ -212,7 +209,7 @@ const MemberForm = ({
     data?.spouse?.phone_number_2
   );
   const [phone3, setPhone3] = useState<string | undefined>(
-    data?.principal?.phone_number
+    data?.spouse?.phone_number
   );
   const [phone4, setPhone4] = useState<string | undefined>(
     data?.spouse?.phone_number_2
@@ -254,7 +251,10 @@ const MemberForm = ({
     type === "create" ? createFamily : updateFamily,
     { success: false, error: false }
   );
-
+  const spouseIdType = useWatch({
+    control,
+    name: "spouse.identification_type",
+  });
   useEffect(() => {
     if (data) {
       const formattedData = getFormattedFormValues(data);
@@ -417,61 +417,69 @@ const MemberForm = ({
       // formData is { principal, spouse, relatives }
       setIsLoading(true);
 
-      // --- Attach file data to the PRINCIPAL object ---
+      // 1. Create your submission object. We will modify THIS object directly.
+      const submissionData = JSON.parse(JSON.stringify(formData));
+
+      // 2. Conditionally clean the spouse data from THIS object.
+      if (submissionData.principal.marital_status !== "married") {
+        delete submissionData.spouse;
+      } else {
+        // Also clean the birth date if it's an empty string
+        if (
+          submissionData.spouse &&
+          typeof submissionData.spouse.birth_date === "string" &&
+          submissionData.spouse.birth_date === ""
+        ) {
+          submissionData.spouse.birth_date = undefined;
+        }
+      }
+
+      // 3. Attach all file data to the SAME submissionData object.
       if (principalImage) {
-        formData.principal.image_url = principalImage.Url;
-        formData.principal.image_file_id = principalImage.fileId;
+        submissionData.principal.image_url = principalImage.Url;
+        submissionData.principal.image_file_id = principalImage.fileId;
       }
       if (principalDocument) {
-        formData.principal.document = principalDocument.Url;
-        formData.principal.document_file_id = principalDocument.fileId;
+        submissionData.principal.document = principalDocument.Url;
+        submissionData.principal.document_file_id = principalDocument.fileId;
       }
       if (principalIdentificationImage) {
-        formData.principal.identification_image =
+        submissionData.principal.identification_image =
           principalIdentificationImage.Url;
-        formData.principal.identification_file_id =
+        submissionData.principal.identification_file_id =
           principalIdentificationImage.fileId;
       }
 
-      // --- Attach file data to the SPOUSE object (if a spouse exists) ---
-      if (formData.spouse) {
+      if (submissionData.spouse) {
         if (spouseImage) {
-          formData.spouse.image_url = spouseImage.Url;
-          formData.spouse.image_file_id = spouseImage.fileId;
+          submissionData.spouse.image_url = spouseImage.Url;
+          submissionData.spouse.image_file_id = spouseImage.fileId;
         }
         if (spouseDocument) {
-          formData.spouse.document = spouseDocument.Url;
-          formData.spouse.document_file_id = spouseDocument.fileId;
+          submissionData.spouse.document = spouseDocument.Url;
+          submissionData.spouse.document_file_id = spouseDocument.fileId;
         }
         if (spouseIdentificationImage) {
-          formData.spouse.identification_image = spouseIdentificationImage.Url;
-          formData.spouse.identification_file_id =
+          submissionData.spouse.identification_image =
+            spouseIdentificationImage.Url;
+          submissionData.spouse.identification_file_id =
             spouseIdentificationImage.fileId;
         }
       }
 
-      const submissionData = {
-        ...formData,
-        relatives: relatives,
-      };
+      submissionData.relatives = relatives;
 
       console.log("Submitting prepared data:", submissionData);
       formAction(submissionData);
     },
-    // This is the onInvalid callback for handleSubmit
-    // This is the onInvalid callback for handleSubmit
     (errors) => {
-      // Helper function to extract and prefix error messages.
       const extractErrorMessages = (
         errorObject: Record<string, any> | undefined,
         prefix: string
       ): string[] => {
-        // If the errorObject is invalid or doesn't exist, return an empty array.
         if (!errorObject || typeof errorObject !== "object") {
           return [];
         }
-
-        // Otherwise, extract, filter, and prefix the messages.
         return Object.values(errorObject)
           .filter(
             (error): error is FieldError =>
@@ -479,11 +487,7 @@ const MemberForm = ({
           )
           .map((error) => `${prefix} ${error.message as string}`);
       };
-
-      // Get the form's current state to check the marital status.
       const currentFormValues = getValues();
-
-      // Extract and prefix the errors for both principal and spouse.
       const principalErrorMessages = extractErrorMessages(
         errors.principal,
         "Principal:"
@@ -492,39 +496,22 @@ const MemberForm = ({
         errors.spouse,
         "Spouse:"
       );
-
-      // Start building the list of all messages to display.
       let allErrorMessages = [...principalErrorMessages];
 
-      // Only add spouse errors to the list if the principal is married.
       if (currentFormValues.principal?.marital_status === "married") {
         allErrorMessages = [...allErrorMessages, ...spouseErrorMessages];
       }
-
-      // Display the toasts if there are any errors to show.
       if (allErrorMessages.length > 0) {
-        // Display a summary toast.
-        toast.error("Please fix the following errors:", {
-          toastId: "form-error-summary", // Prevents this from being dismissed by other toasts
-          // The autoClose property is removed to restore default behavior.
-        });
-
-        // Display a toast for each specific validation error.
         allErrorMessages.forEach((msg) => {
           toast.error(msg, {
-            toastId: msg, // Uses the message itself as an ID to prevent duplicates
-            // The autoClose property is removed to restore default behavior.
+            toastId: msg, 
           });
         });
       } else if (Object.keys(errors).length > 0) {
-        // Fallback for any other unexpected errors that didn't have a message.
         toast.error("Please correct the highlighted errors in the form.", {
           toastId: "generic-form-error",
-          // The autoClose property is removed to restore default behavior.
         });
       }
-
-      // Always log the full, raw error object to the console for easier debugging.
       console.error("Validation errors:", errors);
     }
   );
@@ -621,8 +608,8 @@ const MemberForm = ({
   useEffect(() => {
     setValue("principal.phone_number", phone ?? "");
     setValue("principal.phone_number_2", phone2 ?? "");
-    setValue("spouse.phone_number", phone3 ?? "");
-    setValue("spouse.phone_number_2", phone4 ?? "");
+    setValue("spouse.phone_number", phone3 || undefined);
+    setValue("spouse.phone_number_2", phone4 || undefined);
   }, [phone, setValue, phone2, phone3, phone4]);
   return (
     <div
@@ -777,8 +764,8 @@ const MemberForm = ({
               <div className="flex items-center gap-2 mt-6">
                 <input
                   type="checkbox"
-                  checked={true} // Always checked
-                  disabled={true} // Always disabled
+                  checked={true}
+                  disabled={true}
                   className="w-4 h-4 text-blue-600 bg-gray-200 border-gray-300 rounded cursor-not-allowed focus:ring-blue-500"
                 />
                 <label className="text-sm font-medium text-gray-700">
@@ -834,13 +821,11 @@ const MemberForm = ({
               </div>
               <PhoneInputField
                 value={phone ?? ""}
-                 containerClassName={type === 'update' ? 'md:w-auto' : 'w-full'}
                 onChange={(val) => setPhone(val)}
                 error={errors?.principal?.phone_number?.message}
               />
 
               <PhoneInputField
-                 containerClassName={type === 'update' ? 'md:w-auto' : 'w-full'}
                 value={phone2 ?? ""}
                 onChange={(val) => setPhone2(val)}
                 error={errors?.principal?.phone_number_2?.message}
@@ -1218,6 +1203,10 @@ const MemberForm = ({
               name="spouse.registered_date" // Changed from member.registered_date
               type="date"
               register={register}
+              defaultValue={
+                data?.spouse?.registered_date ??
+                formatDate(new Date().toString())
+              }
               error={errors.spouse?.registered_date} // Changed from errors.member
             />
 
@@ -1330,48 +1319,41 @@ const MemberForm = ({
                   </p>
                 )}
               </div>
-
               {/* NOTE: You will need separate state (e.g., spousePhone, setSpousePhone) for these fields */}
               <PhoneInputField
                 value={phone3 ?? ""}
- containerClassName={type === 'update' ? 'md:w-12' : 'w-full'}                onChange={(val) => setPhone3(val)}
+                onChange={(val) => setPhone3(val)}
                 error={errors?.spouse?.phone_number?.message} // Changed from errors.member
               />
               <PhoneInputField
                 value={phone4 ?? ""}
-                containerClassName={type === "update" ? "md:w-12" : "w-full"}
                 onChange={(val) => setPhone4(val)}
                 error={errors?.spouse?.phone_number_2?.message} // Changed from errors.member
               />
-
               <InputField
                 label="Email"
                 name="spouse.email" // Changed from member.email
                 register={register}
                 error={errors.spouse?.email} // Changed from errors.member
               />
-
               <InputField
                 label="Second Email"
                 name="spouse.email_2" // Changed from member.email_2
                 register={register}
                 error={errors.spouse?.email_2} // Changed from errors.member
               />
-
               <InputField
                 label="Wereda"
                 name="spouse.wereda" // Changed from member.wereda
                 register={register}
                 error={errors.spouse?.wereda} // Changed from errors.member
               />
-
               <InputField
                 label="Zone / District"
                 name="spouse.zone_or_district" // Changed from member.zone_or_district
                 register={register}
                 error={errors.spouse?.zone_or_district} // Changed from errors.member
               />
-
               <InputField
                 label="Kebele"
                 name="spouse.kebele" // Changed from member.kebele
@@ -1411,7 +1393,6 @@ const MemberForm = ({
                 register={register}
                 error={errors.spouse?.house_number} // Changed from errors.member
               />
-
               <SelectField
                 label="Bank Name"
                 name="spouse.bank_name"
@@ -1469,21 +1450,18 @@ const MemberForm = ({
                     "w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white",
                 }}
               />
-
               <InputField
                 label="Bank Account Number"
                 name="spouse.bank_account_number" // Changed from member.bank_account_number
                 register={register}
                 error={errors.spouse?.bank_account_number} // Changed from errors.member
               />
-
               <InputField
                 label="Bank Account Name"
                 name="spouse.bank_account_name" // Changed from member.bank_account_name
                 register={register}
                 error={errors.spouse?.bank_account_name} // Changed from errors.member
               />
-
               {/* NOTE: You need separate state for spouse images */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1510,7 +1488,6 @@ const MemberForm = ({
                   accept="image/*"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Document
@@ -1547,20 +1524,20 @@ const MemberForm = ({
                   required
                 />
               </div>
-
               {/* NOTE: This needs to watch 'spouse.identification_type' */}
-              {selectedIdType && (
+              // In the "Spouse Detail" JSX
+              {spouseIdType && (
                 <InputField
                   label={
-                    selectedIdType === "FAYDA"
+                    spouseIdType === "FAYDA"
                       ? "Fayda ID Number"
-                      : selectedIdType === "KEBELE_ID"
+                      : spouseIdType === "KEBELE_ID"
                       ? "Kebele ID Number"
                       : "Passport Number"
                   }
-                  name="spouse.identification_number" // Changed from member.identification_number
+                  name="spouse.identification_number"
                   register={register}
-                  error={errors.spouse?.identification_number} // Changed from errors.member
+                  error={errors.spouse?.identification_number}
                   inputProps={{
                     placeholder: "Enter ID number",
                   }}
@@ -1996,48 +1973,45 @@ const MemberForm = ({
 };
 
 // --- STEP 1: UPDATE THE PROPS INTERFACE ---
-// Remove 'type' and add 'containerClassName'.
+// Add 'containerClassName' to allow custom styling on the wrapper div.
 interface PhoneInputFieldProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
-  containerClassName?: string; // This will control the outer div's classes
+  containerClassName?: string;
 }
 
 const PhoneInputField = ({
   value,
   onChange,
   error,
-  // Provide a default value. If no class is passed, it will be full-width.
+  // Provide a default value for the container.
   containerClassName = "w-full",
 }: PhoneInputFieldProps) => {
   return (
     // --- STEP 2: APPLY THE containerClassName TO THE TOP-LEVEL DIV ---
     // This div now controls the overall width and layout of the component.
-    <div className={`flex flex-col gap-1 ${containerClassName}`}>
+    <div className={`flex flex-col gap-1 ${containerClassName} mt-1`}>
       <label className="text-sm font-medium text-gray-700">Phone Number</label>
       <div className="relative w-full">
         <PhoneInput
           country={"et"}
           value={value}
           onChange={onChange}
-          containerClass="w-full" // This should always be w-full to fill its parent
-          // --- STEP 3: SIMPLIFY THE inputClass ---
-          // The width is now controlled by the parent, so this class becomes simpler.
-          inputClass={`w-full px-3 py-2 border ${
+          // The container and input should fill their parent div.
+          containerClass="w-full"
+          inputClass={`!w-full px-3 py-2 border ${
             error ? "border-red-500" : "border-gray-300"
           } rounded-md shadow-sm focus:outline-none focus:ring-2 ${
             error
               ? "focus:ring-red-500 focus:border-red-500"
               : "focus:ring-blue-500 focus:border-blue-500"
           } bg-white text-sm`}
-          buttonClass="border border-gray-300 rounded-l-md"
-          dropdownClass="z-20"
+          buttonClass="border-gray-300 rounded-l-md"
         />
       </div>
       {error && <span className="text-xs text-red-500 mt-1">{error}</span>}
     </div>
   );
 };
-
 export default MemberForm;

@@ -13,18 +13,27 @@ export const memberSchema = z.object({
   profession: z.string().optional(),
   title: z.string().optional(),
   job_business: z.string().optional(),
+
   identification_type: z
-    .enum(["FAYDA", "KEBELE_ID", "PASSPORT"], {
-      errorMap: () => ({
-        message: "Please select a valid identification type",
-      }),
-    })
+    .string()
+    .nullable()
     .optional()
-    .nullable(),
+    .transform((val) => (val === "" ? null : val))
+    .refine(
+      (val) => {
+        if (val === null || val === undefined) {
+          return true;
+        }
+        return ["FAYDA", "KEBELE_ID", "PASSPORT"].includes(val);
+      },
+      {
+        message: "Please select a valid identification type",
+      }
+    ),
   identification_number: z.string().optional().nullable(),
   identification_image: z.string().optional().nullable(),
   identification_file_id: z.string().optional().nullable(),
-  birth_date: z.coerce.date({ message: "Birth date is required!" }),
+  birth_date: z.coerce.date({ message: "Birth date is required!" }).optional(),
   citizen: z
     .string()
     .min(1, { message: "Citizenship is required!" })
@@ -56,7 +65,7 @@ export const memberSchema = z.object({
     .refine((val) => !val || isValidPhoneNumber("+" + val), {
       message: "Invalid phone number",
     }),
-  bank_name: z.string(),
+  bank_name: z.string().optional(),
   bank_account_number: z.string().optional(),
   bank_account_name: z.string().optional(),
   email: z
@@ -89,7 +98,7 @@ export const memberSchema = z.object({
   member_type: z.enum(["New", "Existing"], {
     message: "member status is required!",
   }),
-  familyId: z.coerce.number().optional(), 
+  familyId: z.coerce.number().optional(),
   isPrincipal: z.coerce.boolean().optional(),
   spouseId: z.coerce.number().optional(),
 });
@@ -121,14 +130,49 @@ export const relativeSchema = z.object({
     message: "Relative status is required!",
   }),
 });
-export const familyMemberSchema = z.object({
-  principal: memberSchema,
-  spouse: memberSchema.optional(),
-  relatives: z.array(relativeSchema).optional(),
-});
-export type FamilyMemberSchema = z.infer<typeof familyMemberSchema>;
-export type RelativeSchema = z.infer<typeof relativeSchema>;
+// In formValidationSchemas.ts
 
+// memberSchema and relativeSchema remain the same.
+
+// In your lib/formValidationSchemas.ts
+
+// The memberSchema and relativeSchema remain exactly as they are.
+
+export const familyMemberSchema = z
+  .object({
+    principal: memberSchema,
+    // STEP 1: Make the spouse schema lenient by default.
+    // .partial() makes all fields in the memberSchema optional.
+    // This stops Zod from throwing errors on an incomplete spouse object
+    // before our superRefine has a chance to run.
+    spouse: memberSchema.partial().optional(),
+    relatives: z.array(relativeSchema).optional(),
+  })
+  .superRefine((data, ctx) => {
+    // STEP 2: Enforce the STRICT rules only when the condition is met.
+    if (data.principal.marital_status === "married") {
+      // Validate the spouse data against the ORIGINAL, STRICT memberSchema.
+      const spouseValidation = memberSchema.safeParse(data.spouse);
+
+      if (!spouseValidation.success) {
+        // If validation fails, add the specific errors to the form context.
+        spouseValidation.error.errors.forEach((err) => {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: err.message,
+            // This is critical for attaching the error to the correct UI field.
+            path: ["spouse", ...err.path],
+          });
+        });
+      }
+    }
+  });
+
+// Your exported types remain the same.
+export type FamilyMemberSchema = z.infer<typeof familyMemberSchema>;
+
+// ... (rest of your schemas)
+export type RelativeSchema = z.infer<typeof relativeSchema>;
 export const ContributionSchema = z
   .object({
     amount: z.union([

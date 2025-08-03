@@ -71,19 +71,15 @@ export const createFamily = async (
   try {
     const { principal, spouse, relatives } = data;
 
-    // The transaction ensures that all these steps succeed or none of them do.
+    // --- STEP 1: DEFINE THE SIMULATION'S EFFECTIVE DATE ---
+    const effectiveDate = addMonths(new Date(), 2);
+
     const result = await prisma.$transaction(
       async (tx) => {
-        // --- STEP 1: Create the Family Record ---
-        // Create an empty family record first to get its unique integer ID.
-        // We use a placeholder for the familyId string for now.
+        // --- STEPS 2-5 are correct and unchanged ---
         const newFamily = await tx.family.create({
-          data: {
-            familyId: "FAM-TEMP",
-          },
+          data: { familyId: "FAM-TEMP" },
         });
-
-        // --- STEP 2: Update the Family Record with the Human-Readable ID ---
         const humanReadableFamilyId = `FAM-${newFamily.id
           .toString()
           .padStart(4, "0")}`;
@@ -92,18 +88,16 @@ export const createFamily = async (
           data: { familyId: humanReadableFamilyId },
         });
 
-        // --- STEP 3: Create the Principal Member ---
         const principalData = prepareMemberData(principal);
+        principalData.registered_date = effectiveDate;
         const principalMember = await tx.member.create({
           data: {
             ...principalData,
             isPrincipal: true,
-            familyId: newFamily.id, // Link to the new Family's integer ID
-            custom_id: `EDM-TEMP`, // Placeholder for custom ID
+            familyId: newFamily.id,
+            custom_id: `EDM-TEMP`,
           },
         });
-
-        // Update the principal's custom ID
         await tx.member.update({
           where: { id: principalMember.id },
           data: {
@@ -111,19 +105,18 @@ export const createFamily = async (
           },
         });
 
-        // --- STEP 4: Conditionally Create and Link the Spouse ---
         if (spouse) {
           const spouseData = prepareMemberData(spouse);
+          spouseData.registered_date = effectiveDate;
           const spouseMember = await tx.member.create({
             data: {
               ...spouseData,
               isPrincipal: false,
-              familyId: newFamily.id, // Link to the same Family's integer ID
-              spouseId: principalMember.id, // Link to the principal
+              familyId: newFamily.id,
+              spouseId: principalMember.id,
               custom_id: "EDM-TEMP",
             },
           });
-          // Update spouse's custom ID and link principal back to them
           await tx.member.update({
             where: { id: spouseMember.id },
             data: {
@@ -136,58 +129,68 @@ export const createFamily = async (
           });
         }
 
-        // --- STEP 5: Create All Relatives for the Family ---
         if (relatives && relatives.length > 0) {
-          // Use createMany for efficiency
           await tx.relative.createMany({
             data: relatives.map((relative: RelativeSchema) => ({
               ...relative,
-              id: undefined, // Ensure ID is not passed for creation
-              familyId: newFamily.id, // Link each relative to the new Family's integer ID
+              id: undefined,
+              familyId: newFamily.id,
             })),
           });
         }
 
-        // --- STEP 6: Apply Financial Logic to the Principal ---
+        // --- STEP 6: Apply Financial Logic with Dynamic End Dates (CORRECTED) ---
+        const contributionsToCreate = [];
 
-        const today = new Date();
-
-        // Find all contribution types that should be applied to all members.
-        const activeContributionTypes = await tx.contributionType.findMany({
+        const forAllTypes = await tx.contributionType.findMany({
           where: {
             is_active: true,
             is_for_all: true,
-            // Ensure the contribution period is current
-            OR: [{ end_date: null }, { end_date: { gte: today } }],
+            OR: [{ end_date: null }, { end_date: { gte: effectiveDate } }],
           },
         });
 
-        // Filter out the "Registration" fee if the member is not "New".
-        const filteredContributionTypes = activeContributionTypes.filter(
-          (type) => {
-            if (
-              type.name === "Registration" &&
-              principalMember.member_type !== "New"
-            ) {
-              return false;
-            }
-            return true;
+        for (const type of forAllTypes) {
+          if (type.name === "Registration" && principal.member_type !== "New") {
+            continue;
           }
-        );
 
-        // Prepare the data for creating the Contribution records.
-        const contributionsToCreate = filteredContributionTypes.map((type) => ({
-          contribution_type_id: type.id,
-          member_id: principalMember.id, // Link to the new principal
-          type_name: type.name,
-          amount: type.amount,
-          start_date: type.start_date || new Date(),
-          end_date: type.end_date,
-        }));
+          // Determine the actual start date for THIS member's obligation
+          const memberObligationStartDate = new Date(
+            Math.max(
+              (type.start_date || effectiveDate).getTime(),
+              effectiveDate.getTime()
+            )
+          );
 
-        // Specifically handle the "Registration" fee for "New" members
-        // if it wasn't already included in the `is_for_all` query.
-        if (principalMember.member_type === "New") {
+          // --- DYNAMIC END DATE CALCULATION (THE FIX) ---
+          let calculatedEndDate = type.end_date; // Default to the type's end date
+
+          // If it's a windowed contribution with a set period, calculate the end date.
+          if (
+            type.mode === "OneTimeWindow" &&
+            type.period_months &&
+            type.period_months > 0
+          ) {
+            calculatedEndDate = addMonths(
+              memberObligationStartDate,
+              type.period_months
+            );
+          }
+          // ------------------------------------------------
+
+          contributionsToCreate.push({
+            contribution_type_id: type.id,
+            member_id: principalMember.id,
+            type_name: type.name,
+            amount: type.amount,
+            start_date: memberObligationStartDate,
+            end_date: calculatedEndDate, // <-- Use the correctly calculated end date
+          });
+        }
+
+        // Handle Registration separately to ensure its logic is clear
+        if (principal.member_type === "New") {
           const hasRegistration = contributionsToCreate.some(
             (c) => c.type_name === "Registration"
           );
@@ -195,24 +198,44 @@ export const createFamily = async (
             const registrationType = await tx.contributionType.findFirst({
               where: { name: "Registration", is_active: true },
             });
+
             if (registrationType) {
+              let registrationEndDate = registrationType.end_date;
+              // Also apply window logic to Registration if applicable
+              if (
+                registrationType.mode === "OneTimeWindow" &&
+                registrationType.period_months &&
+                registrationType.period_months > 0
+              ) {
+                registrationEndDate = addMonths(
+                  effectiveDate,
+                  registrationType.period_months
+                );
+              }
+
               contributionsToCreate.push({
                 contribution_type_id: registrationType.id,
                 member_id: principalMember.id,
                 type_name: registrationType.name,
                 amount: registrationType.amount,
-                start_date: registrationType.start_date || new Date(),
-                end_date: registrationType.end_date,
+                start_date: effectiveDate, // Registration always starts on join date
+                end_date: registrationEndDate,
               });
             }
           }
         }
-        const contributionsData: string | any[] = []; // Your logic to build this array
-        // ...
-        if (contributionsData.length > 0) {
-          await tx.contribution.createMany({ data: contributionsData });
+
+        if (contributionsToCreate.length > 0) {
+          await tx.contribution.createMany({ data: contributionsToCreate });
         }
-        await generateInitialSchedulesForMember(principalMember.id, tx);
+
+        // --- STEP 7: Generate Initial Payment Schedules (No changes needed here) ---
+        await generateInitialSchedulesForMember(
+          principalMember.id,
+          tx,
+          effectiveDate
+        );
+
         return principalMember;
       },
       { timeout: 20000 }
@@ -229,7 +252,6 @@ export const createFamily = async (
   }
 };
 
-// Helper function to prepare member data for an UPDATE operation.
 const prepareMemberUpdateData = (memberInput: any) => {
   // We don't include fields that should not be changed directly, like id or familyId.
   const data: any = {
@@ -284,96 +306,131 @@ export const updateFamily = async (
 
         const familyId = existingPrincipal.familyId;
 
-        // --- STEP 2: Update the Principal Member ---
-        const principalUpdateData = prepareMemberUpdateData(principal);
+        // --- STEP 2: Update the Principal Member (WITH THE CRITICAL FIX) ---
+        const principalUpdatePayload = prepareMemberUpdateData(principal);
+
+        // --- THIS IS THE FIX ---
+        // Create a new object for the update that explicitly excludes `spouseId`.
+        // This prevents the foreign key error by deferring the link until after the spouse is created.
+        const { spouseId, ...principalDataForFirstUpdate } =
+          principalUpdatePayload;
+        // --------------------
+
+        // Your existing logic for status updates is preserved
         if (existingPrincipal.status !== principal.status) {
-          principalUpdateData.status_updated_at = new Date();
+          principalDataForFirstUpdate.status_updated_at = new Date();
         }
+
+        // Perform the first, safe update on the principal's own data
         await tx.member.update({
           where: { id: principal.id },
-          data: principalUpdateData,
+          data: principalDataForFirstUpdate, // Use the cleaned data WITHOUT spouseId
         });
 
         // --- STEP 3: Handle the Spouse (Update, Create, or Unlink) ---
+        // This block now runs without error because the principal update was successful.
         const oldSpouseId = existingPrincipal.spouseId;
-        if (spouse) {
+
+        if (principal.marital_status === "married" && spouse) {
+          // SCENARIO A: The principal is now married.
           const spouseUpdateData = prepareMemberUpdateData(spouse);
+
           if (spouse.id) {
+            // Case 1: Update an existing spouse that was already linked.
             await tx.member.update({
               where: { id: spouse.id },
               data: spouseUpdateData,
             });
           } else {
+            // Case 2: Create a brand new spouse (the scenario that was failing).
             const newSpouse = await tx.member.create({
               data: {
                 ...spouseUpdateData,
                 isPrincipal: false,
                 familyId: familyId,
-                spouseId: principal.id,
-                custom_id: `EDM-TEMP`,
               },
+            });
+
+            // Now that BOTH records exist in the DB, establish the two-way link.
+            await tx.member.update({
+              where: { id: principal.id },
+              data: { spouseId: newSpouse.id }, // Link principal to new spouse
             });
             await tx.member.update({
               where: { id: newSpouse.id },
               data: {
+                spouseId: principal.id, // Link new spouse back to principal
                 custom_id: `EDM-${newSpouse.id.toString().padStart(4, "0")}`,
               },
             });
-            await tx.member.update({
-              where: { id: principal.id },
-              data: { spouseId: newSpouse.id },
-            });
           }
         } else if (oldSpouseId) {
+          // SCENARIO B: The principal is now single/divorced/widowed, but was married before.
+          // We need to unlink and delete the old spouse.
           await tx.member.update({
             where: { id: principal.id },
-            data: { spouseId: null },
+            data: { spouseId: null }, // Break the link from the principal first
           });
-          await tx.member.update({
-            where: { id: oldSpouseId },
-            data: { spouseId: null },
+
+          await tx.member.delete({
+            where: { id: oldSpouseId }, // Now safely delete the old spouse
+          });
+
+          // Also remove any relatives associated with the old spouse
+          await tx.relative.deleteMany({
+            where: {
+              familyId: familyId,
+              relation_type: {
+                in: [
+                  "Spouse_Mother",
+                  "Spouse_Father",
+                  "Spouse_Sister",
+                  "Spouse_Brother",
+                ],
+              },
+            },
           });
         }
 
-        // --- STEP 4 (CORRECTED): Synchronize Relatives by Family ID ---
-        const existingRelatives = await tx.relative.findMany({
-          where: { familyId: familyId }, // <-- CORRECTED
-        });
-        const existingRelativeMap = new Map(
-          existingRelatives.map((r) => [r.id, r])
-        );
-        const inputRelatives = relatives || [];
-        const inputRelativeIds = inputRelatives
-          .map((r) => r.id)
-          .filter((id): id is number => typeof id === "number");
+        // --- STEP 4: Synchronize Relatives by Family ID (Your existing logic) ---
+        if (relatives) {
+          const existingRelatives = await tx.relative.findMany({
+            where: { familyId: familyId },
+          });
+          const inputRelativeIds = relatives
+            .map((r) => r.id)
+            .filter((id): id is number => id !== undefined && id !== null);
 
-        await tx.relative.deleteMany({
-          where: {
-            familyId: familyId, // <-- CORRECTED
-            id: { notIn: inputRelativeIds },
-          },
-        });
+          // Delete relatives that are in the DB but not in the form submission
+          await tx.relative.deleteMany({
+            where: {
+              familyId: familyId,
+              id: { notIn: inputRelativeIds },
+            },
+          });
 
-        for (const relative of inputRelatives) {
-          const relativeData = {
-            first_name: relative.first_name,
-            second_name: relative.second_name,
-            last_name: relative.last_name,
-            relation_type: relative.relation_type,
-            status: relative.status,
-          };
-          if (relative.id && existingRelativeMap.has(relative.id)) {
-            await tx.relative.update({
-              where: { id: relative.id },
-              data: relativeData,
-            });
-          } else {
-            await tx.relative.create({
-              data: {
-                ...relativeData,
-                familyId: familyId, // <-- CORRECTED
-              },
-            });
+          // Update existing relatives or create new ones
+          for (const relative of relatives) {
+            const relativeData = {
+              first_name: relative.first_name,
+              second_name: relative.second_name,
+              last_name: relative.last_name,
+              relation_type: relative.relation_type,
+              status: relative.status,
+            };
+            if (relative.id) {
+              await tx.relative.update({
+                where: { id: relative.id },
+                data: relativeData,
+              });
+            } else {
+              await tx.relative.create({
+                data: {
+                  ...relativeData,
+                  familyId: familyId,
+                },
+              });
+            }
           }
         }
 
@@ -900,7 +957,7 @@ export const createContributionType = async (data: {
 
         if (data.is_for_all) {
           const activeMembers = await tx.member.findMany({
-            where: { status: "Active",isPrincipal:true },
+            where: { status: "Active", isPrincipal: true },
             select: { id: true },
           });
           memberIds = activeMembers.map((m) => m.id);
@@ -1010,7 +1067,7 @@ export const paymentActionforAutomatic = async (
       paymentMethod,
       documentReference: paymentReceipt || "-",
       simulate: true,
-      simulationMonths: 4,
+      simulationMonths: 3,
     });
     return { success: true, error: false };
   } catch (error) {
@@ -1203,7 +1260,7 @@ export const paymentActionforManual = async (
 export async function getPenaltyTypes() {
   return await prisma.penaltyTypeModel.findMany({ orderBy: { name: "asc" } });
 }
-export async function addPenaltyType(name: string,amount:number) {
+export async function addPenaltyType(name: string, amount: number) {
   const trimmedName = name.trim();
   if (!trimmedName) throw new Error("Penalty type cannot be empty");
   const existing = await prisma.penaltyTypeModel.findUnique({
@@ -1212,14 +1269,14 @@ export async function addPenaltyType(name: string,amount:number) {
   if (existing) return existing;
   try {
     return await prisma.penaltyTypeModel.create({
-      data: { name: trimmedName,amount },
+      data: { name: trimmedName, amount },
     });
   } catch (err) {
     console.log(err);
   }
 }
-export async function addPenaltyTypeModel(name: string,amount:number) {
-  return prisma.penaltyTypeModel.create({ data: { name,amount } });
+export async function addPenaltyTypeModel(name: string, amount: number) {
+  return prisma.penaltyTypeModel.create({ data: { name, amount } });
 }
 
 // Get all
@@ -1228,8 +1285,15 @@ export async function getPenaltyTypesModel() {
 }
 
 // Update
-export async function updatePenaltyType(id: number, name: string,amount:number) {
-  return prisma.penaltyTypeModel.update({ where: { id }, data: { name ,amount} });
+export async function updatePenaltyType(
+  id: number,
+  name: string,
+  amount: number
+) {
+  return prisma.penaltyTypeModel.update({
+    where: { id },
+    data: { name, amount },
+  });
 }
 
 // Delete
@@ -1319,7 +1383,6 @@ interface GenerateSchedulesOptions {
   simulate?: boolean;
   simulationMonths?: number;
 }
-
 
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
@@ -1963,9 +2026,11 @@ export const getPendingTransfersCount = async (): Promise<number> => {
 
 export async function generateInitialSchedulesForMember(
   memberId: number,
-  tx: Prisma.TransactionClient
+  tx: Prisma.TransactionClient,
+  // --- FIX #1: Accept the effectiveDate from the calling function ---
+  effectiveDate: Date
 ) {
-  // STEP 1: Fetch the new member and their contributions that need schedules.
+  // STEP 1: Fetch the new member and their contributions.
   const member = await tx.member.findUnique({
     where: { id: memberId },
     include: {
@@ -1987,13 +2052,17 @@ export async function generateInitialSchedulesForMember(
   // STEP 2: Loop through contributions and build the schedule data.
   const allNewSchedules = [];
   const contributionsToUpdate: number[] = [];
-  const nowForOpenEnded = normalizeToMonthStart(new Date());
+
+  // --- FIX #2: Use the effectiveDate as the "current time" for calculations ---
+  const nowForOpenEnded = normalizeToMonthStart(effectiveDate);
 
   for (const contribution of member.Contribution) {
     const { contributionType } = contribution;
     if (!contributionType?.is_active) continue;
 
-    let startDate = contributionType.start_date ?? contribution.start_date;
+    // This correctly uses the contribution's start date, which was already
+    // set to the effectiveDate in the `createFamily` function.
+    const startDate = contribution.start_date;
     if (!startDate) continue;
 
     const contributionAmount = Number(contributionType.amount);
@@ -2004,7 +2073,7 @@ export async function generateInitialSchedulesForMember(
       allNewSchedules.push({
         member_id: member.id,
         contribution_id: contribution.id,
-        month: startDate,
+        month: startDate, // The start date is the single due date
         paid_amount: 0,
         is_paid: false,
         expected_amount: contributionAmount,
@@ -2014,9 +2083,7 @@ export async function generateInitialSchedulesForMember(
     }
 
     // Handle 'Recurring' and 'OpenEndedRecurring' contributions
-    let recurringStart = normalizeToMonthStart(
-      contribution.start_date ?? startDate
-    );
+    let recurringStart = normalizeToMonthStart(startDate);
     let recurringEnd: Date;
 
     if (contributionType.mode === "Recurring") {
@@ -2024,15 +2091,13 @@ export async function generateInitialSchedulesForMember(
       recurringEnd = normalizeToMonthStart(contributionType.end_date);
     } else {
       // OpenEndedRecurring
+      // --- FIX #3: Calculate the end date based on the simulated effectiveDate ---
       recurringEnd = addMonths(nowForOpenEnded, 11);
     }
 
+    // Generate all monthly dates within the calculated range
     const months = generateMonthlyDates(recurringStart, recurringEnd);
 
-    // --- YOUR OPTIMIZATION APPLIED HERE ---
-    // Since this is for a new member, we know no schedules exist.
-    // We can directly create schedules for all generated months without
-    // checking the database for duplicates first.
     for (const month of months) {
       allNewSchedules.push({
         member_id: member.id,
@@ -2044,16 +2109,16 @@ export async function generateInitialSchedulesForMember(
       });
     }
 
-    // We still need to mark the parent contribution as processed.
     if (months.length > 0) {
       contributionsToUpdate.push(contribution.id);
     }
   }
 
-  // STEP 3: Perform the database operations (unchanged).
+  // STEP 3: Perform the database operations.
   if (allNewSchedules.length > 0) {
     await tx.contributionSchedule.createMany({
       data: allNewSchedules,
+      skipDuplicates: true, // Good practice to keep this
     });
 
     console.log(

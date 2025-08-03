@@ -172,6 +172,7 @@ body {
 
   /* This tells the browser to show a vertical scrollbar ONLY when the content exceeds the max-height. */
   overflow-y: auto;
+  overflow-x: hidden;
   
   /* These are optional but highly recommended for better aesthetics */
   /* This makes the scrollbar itself less intrusive */

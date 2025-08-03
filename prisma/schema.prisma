@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  // output   = "./node_modules/@prisma/client"
+  output   = "./node_modules/@prisma/client"
 }
 datasource db {
   provider = "postgresql"
@@ -21,10 +21,7 @@ model Family {
 }
 
 
-// ===================================================================
-// === 2. THE UPDATED MEMBER MODEL ===
-// Now links to the 'Family' model via a foreign key.
-// ===================================================================
+
 model Member {
   id                    Int      @id @default(autoincrement())
   custom_id             String?  @unique
@@ -71,7 +68,7 @@ model Member {
   // --- Family & Spouse Relations ---
   isPrincipal           Boolean   @default(false)
   spouseId              Int?      @unique
-  spouse                Member?   @relation("SpouseRelation", fields: [spouseId], references: [id], onDelete: Cascade)
+  spouse                Member?   @relation("SpouseRelation", fields: [spouseId], references: [id])
   spousedBy             Member?   @relation("SpouseRelation")
 
   // --- LINK TO THE FAMILY MODEL ---
