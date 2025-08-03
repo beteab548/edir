@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-async function main() {
+export default async function main() {
   console.log(`Start seeding ...`);
 
   // --- Family 1: A standard married couple ---
