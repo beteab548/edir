@@ -11,8 +11,6 @@ export async function GET() {
     const femalesCount = await prisma.member.count({
       where: { sex: "Female", status: "Active" },
     });
-    console.log("malesCount is", malesCount);
-    console.log("femalesCount is", femalesCount);
     return NextResponse.json({
       males: malesCount,
       females: femalesCount,

@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/@prisma/client"
+  // output   = "./node_modules/@prisma/client"
 }
 datasource db {
   provider = "postgresql"
@@ -8,20 +8,11 @@ datasource db {
 }
 model Family {
   id        Int      @id @default(autoincrement())
-  // This is the human-readable, unique ID for the family (e.g., FAM-0001)
   familyId  String   @unique
-
-  // A family can have many members (principal, spouse, children, etc.)
   members   Member[]
-
-  // A family has one set of relatives.
   relatives Relative[]
-
   created_at DateTime @default(now())
 }
-
-
-
 model Member {
   id                    Int      @id @default(autoincrement())
   custom_id             String?  @unique

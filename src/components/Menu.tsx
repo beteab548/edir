@@ -20,6 +20,7 @@ import {
   FiMenu,
   FiFileText,
 } from "react-icons/fi";
+import { FaPeopleArrows } from "react-icons/fa";
 import { LuUsers } from "react-icons/lu";
 
 const menuItems = [
@@ -54,7 +55,7 @@ const menuItems = [
         hasDropdown: true,
       },
       {
-        icon: <FiAlertCircle size={20} />,
+        icon: <FaPeopleArrows  size={20} />,
         label: "Transfer Role",
         href: "/transferRole",
         visible: ["admin", "secretary"],

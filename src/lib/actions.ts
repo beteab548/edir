@@ -62,7 +62,7 @@ export const createFamily = async (
     const { principal, spouse, relatives } = data;
 
     // --- STEP 1: DEFINE THE SIMULATION'S EFFECTIVE DATE ---
-    const effectiveDate = addMonths(new Date(), 2);
+    const effectiveDate = addMonths(new Date(), 0);
 
     const result = await prisma.$transaction(
       async (tx) => {
@@ -1056,8 +1056,8 @@ export const paymentActionforAutomatic = async (
       paidAmount: paymentAmount,
       paymentMethod,
       documentReference: paymentReceipt || "-",
-      simulate: true,
-      simulationMonths: 3,
+      simulate: false,
+      simulationMonths: 0,
     });
     return { success: true, error: false };
   } catch (error) {

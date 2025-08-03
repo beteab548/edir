@@ -280,6 +280,7 @@ export default function ManualPenaltyManagement() {
     penaltyTypes,
     penaltiesWithNumberAmount,
     form.setValue,
+    form,
   ]);
 
   // Modify your handleMemberSelect function to include the penalty calculation
@@ -1221,7 +1222,7 @@ export default function ManualPenaltyManagement() {
                       text="Upload Evidence"
                       getImageUrl={getWaiverEvidence}
                       setImageReady={setWaiverEvidenceReady}
-                  accept="image/*"
+                      accept="image/*"
                     />
                   )}
                   <p className="text-xs text-gray-500 mt-1">

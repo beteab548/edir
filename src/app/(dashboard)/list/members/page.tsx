@@ -334,10 +334,10 @@ const MemberListPage = async ({
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                Household Table
+                Family Table
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {count} {count === 1 ? "Household" : "Households"} found
+                {count} {count === 1 ? "Family" : "Families"} found
               </p>
             </div>
 

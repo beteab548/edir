@@ -111,7 +111,7 @@ const MemberForm = ({
         setRelatives(data.relatives);
       }
     }
-  }, [data?.principal?.id, type, reset]);
+  }, [data?.principal?.id, type, reset,data]);
   const maritalStatus = useWatch({
     control,
     name: "principal.marital_status",

@@ -177,7 +177,7 @@ export default function AddNewPenaltyType() {
                       <h3 className="text-lg font-semibold text-gray-800">
                         No Penalty Types Found
                       </h3>
-                      <p>Click "Add New Type" to get started.</p>
+                      <p>Click &rdquo;Add New Type&rdquo; to get started.</p>
                     </div>
                   </td>
                 </tr>
@@ -284,7 +284,11 @@ export default function AddNewPenaltyType() {
                   type="submit"
                   className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
                 >
-                  {isloading ? "Saving..." : (editingType ? "Save Changes" : "Add Penalty")}
+                  {isloading
+                    ? "Saving..."
+                    : editingType
+                    ? "Save Changes"
+                    : "Add Penalty"}
                 </button>
               </div>
             </form>
@@ -301,8 +305,8 @@ export default function AddNewPenaltyType() {
               Confirm Deletion
             </h2>
             <p className="text-gray-600 mb-6">
-              Are you sure you want to delete the penalty type "
-              {typeToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete the penalty type &quot;
+              {typeToDelete?.name}&quot;? This action cannot be undone.
             </p>
             <div className="flex justify-center gap-4">
               <button
