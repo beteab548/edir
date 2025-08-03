@@ -20,6 +20,7 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 // import "./phone-input.css"; // Let's assume this is the correct path
 import SmallCheckbox from "../ui/checkbox";
+import nProgress from "nprogress";
 
 const initialTabs = [
   "Principal Info",
@@ -504,7 +505,7 @@ const MemberForm = ({
       if (allErrorMessages.length > 0) {
         allErrorMessages.forEach((msg) => {
           toast.error(msg, {
-            toastId: msg, 
+            toastId: msg,
           });
         });
       } else if (Object.keys(errors).length > 0) {
@@ -970,69 +971,6 @@ const MemberForm = ({
                 register={register}
                 error={errors.principal?.bank_account_name}
               />
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Profile Image
-                </label>
-                {data?.principal?.image_url && (
-                  <div className="mb-4 flex items-center gap-4">
-                    <Image
-                      width={50}
-                      height={50}
-                      src={data?.principal?.image_url}
-                      alt="Profile preview"
-                      className="h-10 w-10 object-cover"
-                    />
-                    <span className="text-sm text-gray-500">
-                      Current profile image
-                    </span>
-                  </div>
-                )}
-                <UploadFile
-                  text="Upload new profile image"
-                  getImageUrl={getPrincipalImageUrl}
-                  setImageReady={setPrincipalImageReady}
-                  accept="image/*"
-                />
-              </div>
-
-              {/* Document upload section */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Document
-                </label>
-                {data?.principal?.document && (
-                  <div className="mb-4 flex items-center gap-4">
-                    <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
-                      <Link href={data?.principal?.document} target="blanck">
-                        <svg
-                          className="w-8 h-8 text-gray-400"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                          ></path>
-                        </svg>
-                      </Link>
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      Current document
-                    </span>
-                  </div>
-                )}
-                <UploadFile
-                  text="Upload new document"
-                  getImageUrl={getPrincipalDocument}
-                  setImageReady={setPrincipalDocumentReady}
-                  accept="application/pdf,.pdf"
-                />
-              </div>
               <div>
                 <SelectField
                   label="Identification Type"
@@ -1068,6 +1006,34 @@ const MemberForm = ({
               )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Profile Image
+                </label>
+                {data?.principal?.image_url && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <Image
+                      width={50}
+                      height={50}
+                      src={data?.principal?.image_url}
+                      alt="Profile preview"
+                      className="h-10 w-10 object-cover"
+                    />
+                    <span className="text-sm text-gray-500">
+                      Current profile image
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload new profile image"
+                  getImageUrl={getPrincipalImageUrl}
+                  setImageReady={setPrincipalImageReady}
+                  accept="image/*"
+                />
+              </div>
+
+              {/* Document upload section */}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Identification Image
                 </label>
                 {data?.principal?.identification_image && (
@@ -1096,6 +1062,41 @@ const MemberForm = ({
                     {errors.principal?.identification_image.message}
                   </p>
                 )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Document
+                </label>
+                {data?.principal?.document && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <div className="h-10 w-10 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-gray-200">
+                      <Link href={data?.principal?.document} target="blanck">
+                        <svg
+                          className="w-8 h-8 text-gray-400"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth="2"
+                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                          ></path>
+                        </svg>
+                      </Link>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      Current document
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload new document"
+                  getImageUrl={getPrincipalDocument}
+                  setImageReady={setPrincipalDocumentReady}
+                  accept="application/pdf,.pdf"
+                />
               </div>
               <div className="md:col-span-1 flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">
@@ -1462,7 +1463,39 @@ const MemberForm = ({
                 register={register}
                 error={errors.spouse?.bank_account_name} // Changed from errors.member
               />
-              {/* NOTE: You need separate state for spouse images */}
+              <div>
+                <SelectField
+                  label="Identification Type"
+                  name="spouse.identification_type" // Changed from member.identification_type
+                  register={register}
+                  error={errors.spouse?.identification_type} // Changed from errors.member
+                  options={[
+                    { value: "", label: "Select ID Type" },
+                    { value: "FAYDA", label: "Fayda" },
+                    { value: "KEBELE_ID", label: "Kebel ID" },
+                    { value: "PASSPORT", label: "Passport" },
+                  ]}
+                  required
+                />
+              </div>
+              {/* NOTE: This needs to watch 'spouse.identification_type' */}
+              {spouseIdType && (
+                <InputField
+                  label={
+                    spouseIdType === "FAYDA"
+                      ? "Fayda ID Number"
+                      : spouseIdType === "KEBELE_ID"
+                      ? "Kebele ID Number"
+                      : "Passport Number"
+                  }
+                  name="spouse.identification_number"
+                  register={register}
+                  error={errors.spouse?.identification_number}
+                  inputProps={{
+                    placeholder: "Enter ID number",
+                  }}
+                />
+              )}{" "}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Profile Image
@@ -1488,61 +1521,6 @@ const MemberForm = ({
                   accept="image/*"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Document
-                </label>
-                {data?.spouse?.document && (
-                  <div className="mb-4 flex items-center gap-4">
-                    <Link href={data.spouse.document} target="blanck">
-                      {/* ... SVG Icon ... */}
-                    </Link>
-                    <span className="text-sm text-gray-500">
-                      Current document
-                    </span>
-                  </div>
-                )}
-                <UploadFile
-                  text="Upload new document"
-                  getImageUrl={getSpouseDocument}
-                  setImageReady={setSpouseDocumentReady}
-                  accept="application/pdf,.pdf"
-                />
-              </div>
-              <div>
-                <SelectField
-                  label="Identification Type"
-                  name="spouse.identification_type" // Changed from member.identification_type
-                  register={register}
-                  error={errors.spouse?.identification_type} // Changed from errors.member
-                  options={[
-                    { value: "", label: "Select ID Type" },
-                    { value: "FAYDA", label: "Fayda" },
-                    { value: "KEBELE_ID", label: "Kebel ID" },
-                    { value: "PASSPORT", label: "Passport" },
-                  ]}
-                  required
-                />
-              </div>
-              {/* NOTE: This needs to watch 'spouse.identification_type' */}
-              // In the "Spouse Detail" JSX
-              {spouseIdType && (
-                <InputField
-                  label={
-                    spouseIdType === "FAYDA"
-                      ? "Fayda ID Number"
-                      : spouseIdType === "KEBELE_ID"
-                      ? "Kebele ID Number"
-                      : "Passport Number"
-                  }
-                  name="spouse.identification_number"
-                  register={register}
-                  error={errors.spouse?.identification_number}
-                  inputProps={{
-                    placeholder: "Enter ID number",
-                  }}
-                />
-              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Identification Image
@@ -1573,6 +1551,27 @@ const MemberForm = ({
                     {errors.spouse?.identification_image.message}
                   </p>
                 )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Document
+                </label>
+                {data?.spouse?.document && (
+                  <div className="mb-4 flex items-center gap-4">
+                    <Link href={data.spouse.document} target="blanck">
+                      {/* ... SVG Icon ... */}
+                    </Link>
+                    <span className="text-sm text-gray-500">
+                      Current document
+                    </span>
+                  </div>
+                )}
+                <UploadFile
+                  text="Upload new document"
+                  getImageUrl={getSpouseDocument}
+                  setImageReady={setSpouseDocumentReady}
+                  accept="application/pdf,.pdf"
+                />
               </div>
               <div className="md:col-span-1 flex flex-col gap-2">
                 <label className="text-sm font-medium text-gray-700">
@@ -1940,6 +1939,7 @@ const MemberForm = ({
               if (type === "update") {
                 return setOpen && setOpen(false);
               } else {
+                nProgress.start();
                 return router.back();
               }
             }}

@@ -37,7 +37,7 @@ export default function Loading() {
       </div>
 
       {/* Bottom Buttons */}
-      <div className="flex justify-end gap-4 mt-10">
+      <div className="flex justify-end gap-4 mt-16">
         <div className="h-10 w-24 bg-gray-300 rounded animate-pulse" />
         <div className="h-10 w-36 bg-blue-400 rounded animate-pulse" />
       </div>

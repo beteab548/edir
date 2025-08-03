@@ -1221,7 +1221,7 @@ export default function ManualPenaltyManagement() {
                       text="Upload Evidence"
                       getImageUrl={getWaiverEvidence}
                       setImageReady={setWaiverEvidenceReady}
-                      accept="image/*,.pdf"
+                  accept="image/*"
                     />
                   )}
                   <p className="text-xs text-gray-500 mt-1">

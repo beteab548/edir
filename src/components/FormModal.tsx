@@ -102,12 +102,6 @@ const FormModal = ({
             }`}
           >
             <Form />
-            <div
-              className="absolute top-4 right-4 cursor-pointer"
-              onClick={() => setOpen(false)}
-            >
-              <Image src="/close.png" alt="" width={14} height={14} />
-            </div>
           </div>
         </div>
       )}

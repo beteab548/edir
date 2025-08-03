@@ -33,7 +33,7 @@ export const memberSchema = z.object({
   identification_number: z.string().optional().nullable(),
   identification_image: z.string().optional().nullable(),
   identification_file_id: z.string().optional().nullable(),
-  birth_date: z.coerce.date({ message: "Birth date is required!" }).optional(),
+  birth_date: z.coerce.date({ message: "Birth date is required!" }),
   citizen: z
     .string()
     .min(1, { message: "Citizenship is required!" })

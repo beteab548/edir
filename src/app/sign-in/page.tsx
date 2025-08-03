@@ -140,7 +140,7 @@ const LoginPage = () => {
                             </svg>
                           </div>
                         </div>
-                        <Clerk.FieldError className="block text-sm text-red-400 mt-1" />
+                        <Clerk.FieldError className="block text-sm text-red-300 mt-1" />
                       </Clerk.Field>
 
                       <Clerk.Field name="password" className="space-y-2">
@@ -172,7 +172,7 @@ const LoginPage = () => {
                             </svg>
                           </div>
                         </div>
-                        <Clerk.FieldError className="block text-sm text-red-400 mt-1" />
+                        <Clerk.FieldError className="block text-sm text-red-300 mt-1" />
                       </Clerk.Field>
 
                       <SignIn.Action

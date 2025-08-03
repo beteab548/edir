@@ -1,18 +1,29 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+import prisma from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
   try {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
     const recentMembers = await prisma.member.findMany({
-      orderBy: { created_at: "desc" },
+      where: {
+        created_at: {
+          gte: thirtyDaysAgo,
+        },
+      },
+      orderBy: {
+        created_at: "desc",
+      },
       take: 5,
       select: {
         id: true,
         first_name: true,
+        last_name: true,
+        image_url: true,
         created_at: true,
       },
     });

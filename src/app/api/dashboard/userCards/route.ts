@@ -1,12 +1,22 @@
+// In src/app/api/dashboard/userCards/route.ts
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+// --- FIX #1: REMOVE the direct import of PrismaClient ---
+// import { PrismaClient } from "@prisma/client";
+
+// --- FIX #2: IMPORT the shared singleton instance instead ---
+import prisma from "@/lib/prisma";
+
+// --- FIX #3: DELETE the line that creates a new client ---
+// const prisma = new PrismaClient(); // <-- DELETE THIS LINE
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const type = searchParams.get("type")?.toLowerCase();
+
   if (!type) {
     return NextResponse.json(
       { error: "Missing type parameter" },
@@ -29,6 +39,7 @@ export async function GET(req: NextRequest) {
 
     let currentCount = 0;
 
+ 
     switch (type) {
       case "active members":
         currentCount = await prisma.member.count({
@@ -47,10 +58,7 @@ export async function GET(req: NextRequest) {
           where: {
             member_type: "New",
             status: "Active",
-            created_at: {
-              gte: startOfMonth,
-              lte: endOfMonth,
-            },
+            created_at: { gte: startOfMonth, lte: endOfMonth },
           },
         });
         break;
@@ -59,10 +67,7 @@ export async function GET(req: NextRequest) {
         currentCount = await prisma.member.count({
           where: {
             status: "Left",
-            status_updated_at: {
-              gte: startOfMonth,
-              lte: endOfMonth,
-            },
+            status_updated_at: { gte: startOfMonth, lte: endOfMonth },
           },
         });
         break;
@@ -72,57 +77,41 @@ export async function GET(req: NextRequest) {
         break;
 
       case "deceased members":
-        const [memberCount] = await Promise.all([
-          prisma.member.count({
-            where: {
-              status: "Deceased",
-              status_updated_at: {
-                gte: startOfMonth,
-                lte: endOfMonth,
-              },
-            },
-          }),
-        ]);
-        currentCount = memberCount;
+        currentCount = await prisma.member.count({
+          where: {
+            status: "Deceased",
+            status_updated_at: { gte: startOfMonth, lte: endOfMonth },
+          },
+        });
         break;
+
       case "deceased relative":
-        const [relativecount] = await Promise.all([
-          prisma.member.count({
-            where: {
-              status: "Deceased",
-              status_updated_at: {
-                gte: startOfMonth,
-                lte: endOfMonth,
-              },
-            },
-          }),
-        ]);
-        currentCount = relativecount;
+        // Assuming you meant to count relatives here. If you meant members, the above logic is fine.
+        // If you actually have a `relative` table, the query would be:
+        currentCount = await prisma.relative.count({
+          where: {
+            status: "Deceased",
+            status_updated_at: { gte: startOfMonth, lte: endOfMonth },
+          },
+        });
         break;
+
       case "role transfer pending":
-        const [roleTransferCount] = await Promise.all([
-          prisma.member.count({
-            where: {
-              isPrincipal: true,
-              status: { in: ["Deceased", "Left"] },
-              spouseId: { not: null },
-              spouse: {
-                status: "Active",
-              },
-            },
-          }),
-        ]);
-        currentCount = roleTransferCount;
+        currentCount = await prisma.member.count({
+          where: {
+            isPrincipal: true,
+            status: { in: ["Deceased", "Left"] },
+            spouseId: { not: null },
+            spouse: { status: "Active" },
+          },
+        });
         break;
 
       case "penalized members":
         const penalized = await prisma.penalty.findMany({
           where: {
             is_paid: false,
-            applied_at: {
-              gte: startOfMonth,
-              lte: endOfMonth,
-            },
+            applied_at: { gte: startOfMonth, lte: endOfMonth },
           },
           select: { member_id: true },
           distinct: ["member_id"],
@@ -134,60 +123,41 @@ export async function GET(req: NextRequest) {
         const fullyPaidMembers = await prisma.balance.findMany({
           where: {
             amount: 0,
-            updated_at: {
-              gte: startOfMonth,
-              lte: endOfMonth,
-            },
+            updated_at: { gte: startOfMonth, lte: endOfMonth },
           },
           select: { member_id: true },
           distinct: ["member_id"],
         });
-
-        const paidMembers = await prisma.member.findMany({
+        currentCount = await prisma.member.count({
           where: {
             id: { in: fullyPaidMembers.map((b) => b.member_id) },
             status: "Active",
           },
         });
-
-        currentCount = paidMembers.length;
         break;
 
       case "unpaid members":
         const unpaidMembers = await prisma.balance.findMany({
           where: {
-            amount: {
-              gt: 0,
-            },
-            updated_at: {
-              gte: startOfMonth,
-              lte: endOfMonth,
-            },
+            amount: { gt: 0 },
+            updated_at: { gte: startOfMonth, lte: endOfMonth },
           },
-          select: {
-            member_id: true,
-          },
+          select: { member_id: true },
           distinct: ["member_id"],
         });
-
-        const unpaidActive = await prisma.member.count({
+        currentCount = await prisma.member.count({
           where: {
             id: { in: unpaidMembers.map((b) => b.member_id) },
             status: "Active",
           },
         });
-
-        currentCount = unpaidActive;
         break;
 
       case "inactivated members":
         currentCount = await prisma.member.count({
           where: {
             status: "Inactive",
-            status_updated_at: {
-              gte: startOfMonth,
-              lte: endOfMonth,
-            },
+            status_updated_at: { gte: startOfMonth, lte: endOfMonth },
             remark: "Inactivated due to missed contributions",
           },
         });
@@ -204,7 +174,10 @@ export async function GET(req: NextRequest) {
       { error: "Internal Server Error" },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
+  // --- FIX #4: DELETE the entire 'finally' block ---
+  // The global instance should never be disconnected.
+  // finally {
+  //   await prisma.$disconnect();
+  // }
 }

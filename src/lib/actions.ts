@@ -7,15 +7,11 @@ import { deleteImageFromImageKit } from "./deleteImageFile";
 import {
   ContributionSchedule,
   Prisma,
-  PrismaClient,
   Member,
   Contribution,
-  PenaltyType,
 } from "@prisma/client";
 import { addMonths, isAfter, startOfMonth } from "date-fns";
-
-const prisma = new PrismaClient();
-
+import prisma from "./prisma";
 type Payment = {
   amount?: number;
   paid_amount?: Number;
@@ -39,13 +35,7 @@ type Penalty = {
 };
 
 type CurrentState = { success: boolean; error: boolean; message?: string };
-// Import necessary libraries and types
 
-// Helper function to prepare member data for Prisma.
-// This centralizes data formatting and keeps the main transaction logic clean.
-
-// Helper function to prepare member data for Prisma.
-// It centralizes data formatting and keeps the main logic clean.
 const prepareMemberData = (memberInput: any) => {
   const data: any = { ...memberInput };
   // Remove fields that will be set manually or are relations

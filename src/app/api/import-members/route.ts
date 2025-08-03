@@ -1,10 +1,10 @@
 export const dynamic = "force-dynamic"; 
 export const revalidate = 0; 
+import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
 import * as XLSX from "xlsx";
 
-const prisma = new PrismaClient();
+
 
 function parseFullName(fullName: string) {
   const parts = fullName.trim().split(/\s+/); // split on any whitespace

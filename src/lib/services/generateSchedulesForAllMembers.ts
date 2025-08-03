@@ -6,19 +6,13 @@ import {
   Contribution,
 } from "@prisma/client";
 import { addMonths, isAfter, differenceInMonths, startOfMonth } from "date-fns";
+import prisma from "../prisma";
 
-const prisma = new PrismaClient();
-
-/**
- * Normalizes a date to the beginning of its month in UTC.
- */
 function normalizeToMonthStart(date: Date): Date {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
 }
 
-/**
- * Generates an array of monthly start dates between a start and end date.
- */
+
 function generateMonthlyDates(start: Date, end: Date): Date[] {
   const dates: Date[] = [];
   let current = normalizeToMonthStart(start);

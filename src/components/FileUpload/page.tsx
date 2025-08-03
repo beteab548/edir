@@ -21,7 +21,47 @@ export default function UploadFile({
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
+  /**
+   * Converts a file input 'accept' string into a human-readable format.
+   * @param {string} accept - The accept attribute string (e.g., "image/*,.pdf").
+   * @returns {string} A user-friendly string (e.g., "images or PDF files").
+   */
+  const formatAcceptTypes = (accept?: string): string => {
+    if (!accept) {
+      return "any file"; // Default case if no accept prop is provided
+    }
 
+    const parts = accept
+      .split(",")
+      .map((part) => part.trim())
+      .map((part) => {
+        if (part.endsWith("/*")) {
+          // Handles "image/*", "video/*", etc.
+          return part.slice(0, -2) + "s"; // "images", "videos"
+        }
+        if (part.startsWith(".")) {
+          // Handles ".pdf", ".docx", etc.
+          return part.slice(1).toUpperCase() + " files"; // "PDF files"
+        }
+        if (part.includes("/")) {
+          // Handles "application/pdf", "image/png"
+          const subType = part.split("/")[1];
+          return subType.toUpperCase() + " files"; // "PDF files", "PNG files"
+        }
+        return part; // Fallback for any other format
+      });
+
+    // Join the parts into a natural-sounding list
+    if (parts.length === 1) {
+      return parts[0];
+    }
+    if (parts.length === 2) {
+      return parts.join(" or ");
+    }
+    // For 3 or more items, format as "A, B, or C"
+    const lastPart = parts.pop();
+    return `${parts.join(", ")}, or ${lastPart}`;
+  };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.length) return;
 
@@ -38,7 +78,9 @@ export default function UploadFile({
     });
 
     if (!isValidType) {
-      toast.error(`Invalid file type. Accepted types: ${accept}`);
+      toast.error(
+        `Invalid file type. Only Accepts ${formatAcceptTypes(accept)}`
+      );
       e.target.value = "";
       return;
     }
@@ -138,8 +180,13 @@ export default function UploadFile({
       {selectedFile && (
         <p className="text-sm text-gray-600 mt-1">
           Ready to upload:{" "}
-          <span className="font-medium">{selectedFile.name}</span> (
-          {(selectedFile.size / 1024).toFixed(1)} KB)
+          <span
+            className="font-medium inline-block max-w-[200px] truncate align-bottom"
+            title={selectedFile.name} 
+          >
+            {selectedFile.name}
+          </span>{" "}
+          ({(selectedFile.size / 1024).toFixed(1)} KB)
         </p>
       )}
 

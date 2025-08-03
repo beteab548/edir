@@ -168,7 +168,7 @@ body {
 
 .scrollable-toast-container {
   /* This is the most important part. It limits the maximum height of the toast area. */
-  max-height: 400px; /* You can adjust this pixel value to your liking */
+  max-height: 600px; /* You can adjust this pixel value to your liking */
 
   /* This tells the browser to show a vertical scrollbar ONLY when the content exceeds the max-height. */
   overflow-y: auto;

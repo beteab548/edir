@@ -107,8 +107,8 @@ export default function ReportsPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto ">
-      <h1 className="text-3xl font-bold mb-6">Reports</h1>
-      <p className="m-4">Choose Reports to View or To Export</p>
+      <h1 className="text-3xl font-bold mb-6 text-gray-600">Reports</h1>
+      <p className="m-4 text-gray-600">Choose Reports to View or To Export</p>
       <div className="grid md:grid-cols-3 gap-6">
         {reports.map((report, idx) => (
           <Link href={report.href} key={idx} onClick={() => nProgress.start()}>
@@ -118,7 +118,7 @@ export default function ReportsPage() {
               className="cursor-pointer border border-gray-200 rounded-2xl p-5 shadow-sm bg-white hover:shadow-lg transition-all"
             >
               <div className="mb-4">{report.icon}</div>
-              <h2 className="text-xl font-semibold mb-1">{report.title}</h2>
+              <h2 className="text-xl font-semibold mb-1 text-gray-600">{report.title}</h2>
               <p className="text-gray-600 text-sm">{report.description}</p>
             </motion.div>
           </Link>

@@ -1,6 +1,5 @@
+import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
 
 // Your enums can remain here or be imported.
 
