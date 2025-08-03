@@ -23,6 +23,7 @@ import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
 import DateTimeDisplay from "@/components/ui/datetimeshower";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
+import AuditActivity from "@/components/auditAcivity";
 
 // --- NEW COMPONENT: Recently Joined Members ---
 async function RecentMembers() {
@@ -337,6 +338,7 @@ const AdminPage = async () => {
               </div>
               {isAdmin && <Activity type="secretary" />}
               {isAdmin && <Activity type="chairman" />}
+              {isAdmin && <AuditActivity  />}
             </div>
           </div>
         </div>

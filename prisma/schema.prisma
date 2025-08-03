@@ -1,6 +1,6 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "./node_modules/@prisma/client"
+  // output   = "./node_modules/@prisma/client"
 }
 datasource db {
   provider = "postgresql"
@@ -228,6 +228,58 @@ model ContributionSchedule {
   Payment Payment[]
 }
 
+enum ActionStatus {
+  SUCCESS
+  FAILURE
+}
+
+enum ActionType {
+  MEMBER_CREATE
+  MEMBER_UPDATE
+  MEMBER_DELETE
+  FAMILY_CREATE
+  FAMILY_UPDATE
+  PENALTY_CREATE
+  PENALTY_DELETE
+  PENALTY_WAIVE
+  PAYMENT_CREATE
+  PAYMENT_DELETE
+  ROlE_TRANSFER
+  CONTRIBUTION_CREATE
+  CONTRIBUTION_UPDATE
+  CONTRIBUTION_DELETE
+  PENALTY_TYPE_CREATE
+  PENALTY_TYPE_UPDATE
+  PENALTY_TYPE_DELETE
+  USER_LOGIN // Example for later
+  // Add more action types as you need them
+}
+
+model AuditLog {
+  id          Int          @id @default(autoincrement())
+  timestamp   DateTime     @default(now())
+  
+  // The WHO
+  userId      String       // Clerk User ID
+  userFullName String      // e.g., "John Doe". Stored for easy display without joins.
+
+  // The WHAT
+  actionType  ActionType   // The type of action performed
+  details     String       // A human-readable description, e.g., "Waived penalty for member Samuel Dubois (EDM-0008)"
+  
+  // The RESULT
+  status      ActionStatus // Was the action successful or did it fail?
+  
+  // Optional extra context
+  targetId    String?      // e.g., The ID of the member who was created/updated
+  error       String?      // If status is FAILURE, store the error message
+  
+  createdAt   DateTime     @default(now())
+
+  @@index([userId])
+  @@index([actionType])
+  @@index([timestamp])
+}
 enum Sex {
   Male   
   Female 

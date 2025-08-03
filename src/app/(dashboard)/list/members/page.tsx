@@ -333,11 +333,11 @@ const MemberListPage = async ({
         <div className="p-6 pb-4 border-b border-gray-100">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Family Table
+              <h1 className="text-2xl font-bold text-gray-600">
+                Member Table
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                {count} {count === 1 ? "Family" : "Families"} found
+                {count} {count === 1 ? "Member" : "Members"} found
               </p>
             </div>
 

@@ -1,4 +1,6 @@
 "use server";
+import { currentUser } from "@clerk/nextjs/server";
+import { logAction } from "./audit";
 import { Decimal } from "@prisma/client/runtime/library";
 import { FamilyMemberSchema, RelativeSchema } from "./formValidationSchemas";
 import { applyCatchUpPayment } from "./services/paymentService";
@@ -9,6 +11,8 @@ import {
   Prisma,
   Member,
   Contribution,
+  ActionStatus,
+  ActionType,
 } from "@prisma/client";
 import { addMonths, isAfter, startOfMonth } from "date-fns";
 import prisma from "./prisma";
@@ -58,6 +62,12 @@ export const createFamily = async (
   currentState: CurrentState,
   data: FamilyMemberSchema
 ) => {
+  const user = await currentUser();
+
+  if (!user) {
+    // You should also handle this case, maybe log it as a system action
+    throw new Error("User not authenticated");
+  }
   try {
     const { principal, spouse, relatives } = data;
 
@@ -94,7 +104,16 @@ export const createFamily = async (
             custom_id: `EDM-${principalMember.id.toString().padStart(4, "0")}`,
           },
         });
-
+        if (!spouse) {
+          await logAction({
+            userId: user.id,
+            userFullName: `${user.firstName} ${user.lastName}`,
+            actionType: ActionType.MEMBER_CREATE,
+            status: ActionStatus.SUCCESS,
+            details: `Successfully created Member: ${principal.first_name} ${principal.last_name}`,
+            targetId: `${principalMember.custom_id}`,
+          });
+        }
         if (spouse) {
           const spouseData = prepareMemberData(spouse);
           spouseData.registered_date = effectiveDate;
@@ -116,6 +135,14 @@ export const createFamily = async (
           await tx.member.update({
             where: { id: principalMember.id },
             data: { spouseId: spouseMember.id },
+          });
+          await logAction({
+            userId: user.id,
+            userFullName: `${user.firstName} ${user.lastName}`,
+            actionType: ActionType.FAMILY_CREATE,
+            status: ActionStatus.SUCCESS,
+            details: `Successfully created family for principal member: ${principal.first_name} ${principal.last_name}`,
+            targetId: `${principalMember.custom_id}`,
           });
         }
 
@@ -233,7 +260,17 @@ export const createFamily = async (
 
     return { success: true, error: false };
   } catch (err) {
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
     console.error("Failed to create family:", err);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.FAMILY_CREATE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to create family for principal: ${data.principal.first_name} ${data.principal.last_name}`,
+      error: error.message,
+    });
     return {
       success: false,
       error: true,
@@ -269,6 +306,15 @@ export const updateFamily = async (
   currentState: CurrentState,
   data: FamilyMemberSchema
 ) => {
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
   const { principal, spouse, relatives } = data;
 
   if (!principal.id) {
@@ -285,7 +331,15 @@ export const updateFamily = async (
         // --- STEP 1: Fetch the Current State of the Principal and their Family ID ---
         const existingPrincipal = await tx.member.findUnique({
           where: { id: principal.id },
-          select: { status: true, spouseId: true, familyId: true },
+          select: {
+            status: true,
+            spouseId: true,
+            familyId: true,
+            first_name: true,
+            second_name: true,
+            last_name: true,
+            custom_id: true,
+          },
         });
 
         if (!existingPrincipal || !existingPrincipal.familyId) {
@@ -312,11 +366,21 @@ export const updateFamily = async (
         }
 
         // Perform the first, safe update on the principal's own data
-        await tx.member.update({
+        const updatedPrinipal = await tx.member.update({
           where: { id: principal.id },
           data: principalDataForFirstUpdate, // Use the cleaned data WITHOUT spouseId
         });
 
+        if (existingPrincipal.status !== updatedPrinipal.status) {
+          await logAction({
+            userId: user.id,
+            userFullName,
+            actionType: ActionType.MEMBER_UPDATE,
+            status: ActionStatus.SUCCESS,
+            details: `Changed status of member ${principal.first_name} ${principal.last_name} from '${existingPrincipal.status}' to '${principal.status}'.`,
+            targetId: `${existingPrincipal.custom_id}`,
+          });
+        }
         // --- STEP 3: Handle the Spouse (Update, Create, or Unlink) ---
         // This block now runs without error because the principal update was successful.
         const oldSpouseId = existingPrincipal.spouseId;
@@ -353,10 +417,22 @@ export const updateFamily = async (
                 custom_id: `EDM-${newSpouse.id.toString().padStart(4, "0")}`,
               },
             });
+            await logAction({
+              userId: user.id,
+              userFullName,
+              actionType: ActionType.MEMBER_CREATE,
+              status: ActionStatus.SUCCESS,
+              details: `created spouse member ${newSpouse.first_name} ${newSpouse.last_name} for family of ${existingPrincipal.first_name} ${existingPrincipal.second_name}.`,
+              targetId: `${existingPrincipal.custom_id}`,
+            });
           }
         } else if (oldSpouseId) {
           // SCENARIO B: The principal is now single/divorced/widowed, but was married before.
           // We need to unlink and delete the old spouse.
+          const oldSpouse = await tx.member.findUnique({
+            where: { id: oldSpouseId },
+            select: { first_name: true, last_name: true },
+          });
           await tx.member.update({
             where: { id: principal.id },
             data: { spouseId: null }, // Break the link from the principal first
@@ -365,7 +441,16 @@ export const updateFamily = async (
           await tx.member.delete({
             where: { id: oldSpouseId }, // Now safely delete the old spouse
           });
-
+          if (oldSpouse) {
+            await logAction({
+              userId: user.id,
+              userFullName,
+              actionType: ActionType.MEMBER_DELETE,
+              status: ActionStatus.SUCCESS,
+              details: `Deleted spouse member ${oldSpouse.first_name} ${oldSpouse.last_name} from family of ${existingPrincipal.first_name}.`,
+              targetId: `${existingPrincipal.custom_id}`,
+            });
+          }
           // Also remove any relatives associated with the old spouse
           await tx.relative.deleteMany({
             where: {
@@ -456,6 +541,24 @@ export const updateFamily = async (
 
     return { success: true, error: false };
   } catch (err) {
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    const existingPrincipal = await prisma.member.findUnique({
+      where: { id: principal.id },
+      select: {
+        custom_id: true,
+      },
+    });
+    await logAction({
+      userId: user.id,
+      userFullName,
+      actionType: ActionType.FAMILY_UPDATE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to update family for principal: ${principal.first_name} ${principal.last_name}`,
+      targetId: `MEMBER-${existingPrincipal?.custom_id}`,
+      error: error.message,
+    });
+
     console.error("Update family failed:", err);
     return {
       success: false,

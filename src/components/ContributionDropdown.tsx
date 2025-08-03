@@ -28,7 +28,7 @@ export default function ContributionDropdown({
   const pathname = usePathname();
 
   // Check if any contribution type matches the current pathname, using encoded names
-  const isAnyTypeActive = contributionTypes.some(
+  const isAnyTypeActive = contributionTypes?.some(
     (type) => pathname === `/contribution/${encodeURIComponent(type.name)}`
   );
 

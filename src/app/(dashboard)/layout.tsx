@@ -19,11 +19,12 @@ export default async function DashboardLayout({
           className="flex items-center justify-center lg:justify-start gap-2"
         >
           <Image
-            src="/edirlogo.jpg"
+            src="/edirlogo2.jpg"
             alt="logo"
             width={42}
             height={42}
             className="mb-6"
+            unoptimized
           />
           <span className="hidden lg:block font-bold text-lg">Edir</span>
         </Link>

@@ -95,7 +95,7 @@ const LoginPage = () => {
                         className="relative w-24 h-24 mb-4"
                       >
                         <NextImage
-                          src="/edirlogo.jpg"
+                          src="/edirlogo2.jpg"
                           alt="Edir Logo"
                           fill
                           className="object-cover rounded-full border-4 border-white/50 shadow-lg"
