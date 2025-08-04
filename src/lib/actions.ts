@@ -2244,7 +2244,6 @@ export const transferPrincipalRole = async (
 ): Promise<CurrentState> => {
   const user = await currentUser();
   if (!user) {
-    // This case should be handled by your auth middleware, but it's a good safeguard.
     console.error(
       "CRITICAL: updateFamily action called without authenticated user."
     );
@@ -2258,16 +2257,13 @@ export const transferPrincipalRole = async (
       message: "Outgoing principal ID was not provided.",
     };
   }
-
   try {
     await prisma.$transaction(
       async (tx) => {
-        // --- STEP 1 & 2: Find Principals and Validate ---
         const outgoingPrincipal = await tx.member.findUnique({
           where: { id: outgoingPrincipalId, isPrincipal: true },
           select: { spouseId: true, familyId: true },
         });
-
         if (
           !outgoingPrincipal ||
           !outgoingPrincipal.spouseId ||
@@ -2277,7 +2273,6 @@ export const transferPrincipalRole = async (
             `Validation failed: Principal, spouse, or family link not found.`
           );
         }
-
         const incomingPrincipalId = outgoingPrincipal.spouseId;
         const familyId = outgoingPrincipal.familyId;
 
@@ -2290,12 +2285,6 @@ export const transferPrincipalRole = async (
           where: { id: incomingPrincipalId },
           data: { isPrincipal: true },
         });
-
-        // ===================================================================
-        // === STEP 4 (CORRECTED): Transfer ALL Financial Records ===
-        // ===================================================================
-        // This block now ensures a complete transfer of all financial history,
-        // both paid and unpaid, to the new principal.
 
         await tx.payment.updateMany({
           where: { member_id: outgoingPrincipalId },

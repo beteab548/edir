@@ -244,12 +244,28 @@ export default function ManualPenaltyManagement() {
   // Modify the function to accept a baseAmount
   const calculatePenaltyAmount = (
     unpaidCount: number,
-    baseAmount: number
+    baseAmount: number,
+    selectedMemberId: number,
+    selectedPenaltyType: string,
+    penalties: any[]
   ): number => {
     if (baseAmount <= 0) return 0;
-    if (unpaidCount === 0) return baseAmount;
-    if (unpaidCount >= 5) return baseAmount * 5;
-    return baseAmount * (unpaidCount + 1);
+
+    // Filter out existing penalties of the same type
+    const existingSameTypePenalties = penalties.filter(
+      (p: Penalty) =>
+        p.member.id === selectedMemberId &&
+        p.penalty_type === selectedPenaltyType &&
+        !p.is_paid &&
+        !p.waived
+    );
+
+    const sameTypePenaltiesCount = existingSameTypePenalties.length;
+
+    if (sameTypePenaltiesCount === 0) return baseAmount; // First penalty of this type
+    if (sameTypePenaltiesCount >= 5) return baseAmount * 5; // Max out at 5x base amount
+
+    return baseAmount * (sameTypePenaltiesCount + 1); // Increment by base amount for each same type penalty up to 5
   };
   const watchedPenaltyType = form.watch("penalty_type");
   useEffect(() => {
@@ -260,16 +276,13 @@ export default function ManualPenaltyManagement() {
       );
 
       if (penaltyType) {
-        // Find the number of existing unpaid penalties for the selected member
-        const unpaidPenalties = penaltiesWithNumberAmount.filter(
-          (p: Penalty) =>
-            p.member.id === selectedMember.id && !p.is_paid && !p.waived
-        );
-
         // Calculate the final amount using the penalty type's amount as the base
         const finalAmount = calculatePenaltyAmount(
-          unpaidPenalties.length,
-          penaltyType.amount
+          0, // This is not needed since the `calculatePenaltyAmount` function calculates the number of penalties so it should be zero.
+          penaltyType.amount,
+          selectedMember.id,
+          watchedPenaltyType,
+          penaltiesWithNumberAmount
         );
 
         // Update the form's amount field
