@@ -573,8 +573,16 @@ export const deleteFamily = async (
   currentState: CurrentState,
   formData: FormData
 ) => {
-  // We get the ID of the member whose delete button was clicked.
-  // It could be the principal or any other member, it just serves as an entry point.
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
+
   const memberId = parseInt(formData.get("id") as string);
 
   if (isNaN(memberId)) {
@@ -630,10 +638,46 @@ export const deleteFamily = async (
         where: { id: familyId },
       });
     }); // End of transaction
-
+    const memberToDelete = await prisma.member.findUnique({
+      where: { id: memberId },
+      select: {
+        familyId: true,
+        first_name: true,
+        second_name: true,
+        custom_id: true,
+      },
+    });
+    await logAction({
+      userId: user.id,
+      userFullName,
+      actionType: ActionType.MEMBER_DELETE,
+      status: ActionStatus.SUCCESS,
+      details: `successfully deleted family for principal: ${memberToDelete?.first_name} ${memberToDelete?.second_name}`,
+      targetId: `MEMBER-${memberToDelete?.custom_id}`,
+    });
     return { success: true, error: false };
   } catch (err: any) {
-    console.error("Delete family failed:", err);
+    const userFullName = `${user.firstName} ${user.lastName}`;
+    const memberToDelete = await prisma.member.findUnique({
+      where: { id: memberId },
+      select: {
+        familyId: true,
+        first_name: true,
+        second_name: true,
+        custom_id: true,
+      },
+    });
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    await logAction({
+      userId: user.id,
+      userFullName,
+      actionType: ActionType.MEMBER_DELETE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to update family for principal: ${memberToDelete?.first_name} ${memberToDelete?.second_name}`,
+      targetId: `MEMBER-${memberToDelete?.custom_id}`,
+      error: error.message,
+    });
     if (
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2025"
@@ -668,6 +712,15 @@ export const updateContribution = async (
     period_months?: number | null;
   }
 ) => {
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
   try {
     // 1. Get current contribution type and existing contributions
     const currentType = await prisma.contributionType.findUnique({
@@ -972,8 +1025,25 @@ export const updateContribution = async (
       await prisma.$transaction(transactionOps);
     }
 
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.CONTRIBUTION_UPDATE,
+      status: ActionStatus.SUCCESS,
+      details: `Successfully Updated Contribution: ${data.type_name}`,
+    });
     return { success: true, error: false };
   } catch (err) {
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.CONTRIBUTION_UPDATE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to Update Contribution: ${data.type_name}`,
+      error: error.message,
+    });
     console.error("Contribution update failed:", err);
     return { success: false, error: true };
   }
@@ -991,6 +1061,15 @@ export const createContributionType = async (data: {
   is_active?: boolean;
   mode: ContributionMode;
 }) => {
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
   try {
     let startDate: Date;
     let endDate: Date | null = null;
@@ -1091,19 +1170,68 @@ export const createContributionType = async (data: {
       },
       { timeout: 20000 }
     );
-
+    await logAction({
+      userId: user.id,
+      userFullName,
+      actionType: ActionType.CONTRIBUTION_CREATE,
+      status: ActionStatus.SUCCESS,
+      details: `Successfully Created New Contribution :${data.type_name}`,
+    });
     return { success: true, error: false, contributionType: result };
   } catch (err) {
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    await logAction({
+      userId: user.id,
+      userFullName,
+      actionType: ActionType.CONTRIBUTION_CREATE,
+      status: ActionStatus.FAILURE,
+      details: `failed to Create New Contribution :${data.type_name}`,
+    });
     console.error("Create contribution type failed:", err);
     return { success: false, error: true };
   }
 };
 
 export const deleteContributionType = async (id: number) => {
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
   try {
+    const contributionToDelete = await prisma.contributionType.findUnique({
+      where: { id },
+      select: { name: true },
+    });
     await prisma.contributionType.delete({ where: { id } });
+
+    await logAction({
+      userId: user.id,
+      userFullName,
+      actionType: ActionType.CONTRIBUTION_DELETE,
+      status: ActionStatus.SUCCESS,
+      details: `Successfully Deleted Contribution :${contributionToDelete?.name}`,
+    });
     return { success: true };
   } catch (err) {
+    const contributionToDelete = await prisma.contributionType.findUnique({
+      where: { id },
+      select: { name: true },
+    });
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    await logAction({
+      userId: user.id,
+      userFullName,
+      actionType: ActionType.CONTRIBUTION_UPDATE,
+      status: ActionStatus.FAILURE,
+      details: `failed to Create New Contribution :${contributionToDelete?.name}`,
+    });
     console.error(err);
     return { success: false };
   }
@@ -1369,7 +1497,37 @@ export async function addPenaltyType(name: string, amount: number) {
   }
 }
 export async function addPenaltyTypeModel(name: string, amount: number) {
-  return prisma.penaltyTypeModel.create({ data: { name, amount } });
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  try {
+    await prisma.penaltyTypeModel.create({ data: { name, amount } });
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_CREATE,
+      status: ActionStatus.SUCCESS,
+      details: `successfully created penalty type:${name}`,
+    });
+    return;
+  } catch (err) {
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    console.error("Failed to create family:", err);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_CREATE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to create Penalty Type:${name}`,
+      error: error.message,
+    });
+  }
 }
 
 // Get all
@@ -1383,15 +1541,62 @@ export async function updatePenaltyType(
   name: string,
   amount: number
 ) {
-  return prisma.penaltyTypeModel.update({
-    where: { id },
-    data: { name, amount },
-  });
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
+  try {
+    return prisma.penaltyTypeModel.update({
+      where: { id },
+      data: { name, amount },
+    });
+  } catch (err) {}
 }
 
 // Delete
 export async function deletePenaltyType(id: number) {
-  return prisma.penaltyTypeModel.delete({ where: { id } });
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  try {
+    const penaltyType = await prisma.penaltyTypeModel.findUnique({
+      where: { id },
+    });
+    await prisma.penaltyTypeModel.delete({ where: { id } });
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_DELETE,
+      status: ActionStatus.SUCCESS,
+      details: `successfully Deleted Penalty Type:${penaltyType?.name}`,
+    });
+    return;
+  } catch (err) {
+    const penaltyType = await prisma.penaltyTypeModel.findUnique({
+      where: { id },
+    });
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    console.error("Failed to create family:", err);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_DELETE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to Delete Penalty Type:${penaltyType?.name}`,
+      error: error.message,
+    });
+  }
 }
 export async function getMemberBalance(
   memberId: number,
@@ -1672,186 +1877,232 @@ export async function deletePayment(data: {
   memberId: number;
   contributionTypeID: number;
 }) {
-  console.log("payment id", data.paymentId);
-  return await prisma.$transaction(
-    async (tx) => {
-      const paymentRecord = await tx.paymentRecord.findUnique({
-        where: { id: data.paymentId },
-        select: {
-          document_reference: true,
-          total_paid_amount: true,
-          member_id: true,
-        },
-      });
-
-      if (!paymentRecord || paymentRecord.member_id !== data.memberId) {
-        throw new Error(
-          "Payment record not found or does not belong to this member."
-        );
-      }
-
-      const isAutoAllocation =
-        paymentRecord.document_reference === "Automated System Allocation";
-
-      const contribution = await tx.contribution.findUnique({
-        where: {
-          member_id_contribution_type_id: {
-            member_id: data.memberId,
-            contribution_type_id: data.contributionTypeID,
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
+  try {
+    return await prisma.$transaction(
+      async (tx) => {
+        const paymentRecord = await tx.paymentRecord.findUnique({
+          where: { id: data.paymentId },
+          select: {
+            document_reference: true,
+            total_paid_amount: true,
+            member_id: true,
           },
-        },
-      });
-
-      if (!contribution) {
-        throw new Error(
-          "Contribution record not found for this member and contribution type."
-        );
-      }
-
-      // 2. Reverse all allocations as before
-      const allAllocations = await tx.payment.findMany({
-        where: { payment_record_id: data.paymentId },
-      });
-
-      let scheduleAllocatedTotal = new Decimal(0);
-      let penaltyAllocatedTotal = new Decimal(0);
-
-      for (const allocation of allAllocations) {
-        // Using .toLowerCase() to be safe against "Penalty" vs "penalty"
-        if (
-          allocation.payment_type.toLowerCase() === "penalty" &&
-          allocation.penalty_id
-        ) {
-          await tx.penalty.update({
-            where: { id: allocation.penalty_id },
-            data: {
-              paid_amount: { decrement: allocation.paid_amount },
-              is_paid: false,
-              resolved_at: null,
-            },
-          });
-          penaltyAllocatedTotal = penaltyAllocatedTotal.plus(
-            allocation.paid_amount
-          );
-        } else if (allocation.contribution_schedule_id) {
-          await tx.contributionSchedule.update({
-            where: { id: allocation.contribution_schedule_id },
-            data: {
-              paid_amount: { decrement: allocation.paid_amount },
-              is_paid: false,
-              paid_at: null,
-            },
-          });
-          scheduleAllocatedTotal = scheduleAllocatedTotal.plus(
-            allocation.paid_amount
-          );
-        }
-      }
-
-      // 3. Determine how to handle the unallocated amount based on payment type
-      let amountToRestoreToUnallocated = new Decimal(0);
-      let amountToWithdrawFromUnallocated = new Decimal(0);
-
-      if (isAutoAllocation) {
-        amountToRestoreToUnallocated = paymentRecord.total_paid_amount;
-      } else {
-        const totalPaidFromRecord = new Decimal(
-          paymentRecord.total_paid_amount
-        );
-        const originallyUnallocated = totalPaidFromRecord
-          .minus(scheduleAllocatedTotal)
-          .minus(penaltyAllocatedTotal);
-        if (originallyUnallocated.isNegative()) {
-          throw new Error(
-            "Data integrity issue: Reversal calculation resulted in a negative value."
-          );
-        }
-        amountToWithdrawFromUnallocated = originallyUnallocated;
-      }
-
-      // 4. Update the balance with the corrected logic
-      const currentBalance = await tx.balance.findUnique({
-        where: {
-          member_id_contribution_id: {
-            member_id: data.memberId,
-            contribution_id: contribution.id,
-          },
-        },
-      });
-
-      if (!currentBalance) {
-        throw new Error(
-          "Balance record not found for this member's contribution."
-        );
-      }
-
-      if (
-        currentBalance.unallocated_amount.lessThan(
-          amountToWithdrawFromUnallocated
-        )
-      ) {
-        throw new Error(
-          `Cannot revert payment. Reversal requires withdrawing ${amountToWithdrawFromUnallocated} from unallocated credit, but the member only has ${currentBalance.unallocated_amount}. This credit may have already been used.`
-        );
-      }
-
-      const allSchedulesForContribution =
-        await tx.contributionSchedule.findMany({
-          where: { contribution_id: contribution.id },
-          select: { expected_amount: true, paid_amount: true },
         });
 
-      const totalExpected = allSchedulesForContribution.reduce(
-        (sum, s) => sum.plus(s.expected_amount),
-        new Decimal(0)
-      );
-      const totalPaid = allSchedulesForContribution.reduce(
-        (sum, s) => sum.plus(s.paid_amount),
-        new Decimal(0)
-      );
-      const newBalanceAmount = totalExpected.minus(totalPaid);
+        if (!paymentRecord || paymentRecord.member_id !== data.memberId) {
+          throw new Error(
+            "Payment record not found or does not belong to this member."
+          );
+        }
 
-      // FIX: Dynamically build the update payload
-      const updateData: any = {
-        amount: newBalanceAmount.isNegative() ? 0 : newBalanceAmount,
-      };
+        const isAutoAllocation =
+          paymentRecord.document_reference === "Automated System Allocation";
 
-      if (amountToRestoreToUnallocated.greaterThan(0)) {
-        updateData.unallocated_amount = {
-          increment: amountToRestoreToUnallocated,
-        };
-      } else if (amountToWithdrawFromUnallocated.greaterThan(0)) {
-        updateData.unallocated_amount = {
-          decrement: amountToWithdrawFromUnallocated,
-        };
-      }
-      // If both are zero, we don't add the 'unallocated_amount' key at all.
-
-      await tx.balance.update({
-        where: {
-          member_id_contribution_id: {
-            member_id: data.memberId,
-            contribution_id: contribution.id,
+        const contribution = await tx.contribution.findUnique({
+          where: {
+            member_id_contribution_type_id: {
+              member_id: data.memberId,
+              contribution_type_id: data.contributionTypeID,
+            },
           },
-        },
-        data: updateData,
-      });
+        });
 
-      // 5. Clean up payment records
-      await tx.payment.deleteMany({
-        where: { payment_record_id: data.paymentId },
-      });
-      await tx.paymentRecord.delete({
-        where: { id: data.paymentId },
-      });
+        if (!contribution) {
+          throw new Error(
+            "Contribution record not found for this member and contribution type."
+          );
+        }
 
-      return { success: true, error: false };
-    },
-    { isolationLevel: "Serializable", timeout: 20000 }
-  );
+        // 2. Reverse all allocations as before
+        const allAllocations = await tx.payment.findMany({
+          where: { payment_record_id: data.paymentId },
+        });
+
+        let scheduleAllocatedTotal = new Decimal(0);
+        let penaltyAllocatedTotal = new Decimal(0);
+
+        for (const allocation of allAllocations) {
+          // Using .toLowerCase() to be safe against "Penalty" vs "penalty"
+          if (
+            allocation.payment_type.toLowerCase() === "penalty" &&
+            allocation.penalty_id
+          ) {
+            await tx.penalty.update({
+              where: { id: allocation.penalty_id },
+              data: {
+                paid_amount: { decrement: allocation.paid_amount },
+                is_paid: false,
+                resolved_at: null,
+              },
+            });
+            penaltyAllocatedTotal = penaltyAllocatedTotal.plus(
+              allocation.paid_amount
+            );
+          } else if (allocation.contribution_schedule_id) {
+            await tx.contributionSchedule.update({
+              where: { id: allocation.contribution_schedule_id },
+              data: {
+                paid_amount: { decrement: allocation.paid_amount },
+                is_paid: false,
+                paid_at: null,
+              },
+            });
+            scheduleAllocatedTotal = scheduleAllocatedTotal.plus(
+              allocation.paid_amount
+            );
+          }
+        }
+
+        // 3. Determine how to handle the unallocated amount based on payment type
+        let amountToRestoreToUnallocated = new Decimal(0);
+        let amountToWithdrawFromUnallocated = new Decimal(0);
+
+        if (isAutoAllocation) {
+          amountToRestoreToUnallocated = paymentRecord.total_paid_amount;
+        } else {
+          const totalPaidFromRecord = new Decimal(
+            paymentRecord.total_paid_amount
+          );
+          const originallyUnallocated = totalPaidFromRecord
+            .minus(scheduleAllocatedTotal)
+            .minus(penaltyAllocatedTotal);
+          if (originallyUnallocated.isNegative()) {
+            throw new Error(
+              "Data integrity issue: Reversal calculation resulted in a negative value."
+            );
+          }
+          amountToWithdrawFromUnallocated = originallyUnallocated;
+        }
+
+        // 4. Update the balance with the corrected logic
+        const currentBalance = await tx.balance.findUnique({
+          where: {
+            member_id_contribution_id: {
+              member_id: data.memberId,
+              contribution_id: contribution.id,
+            },
+          },
+        });
+
+        if (!currentBalance) {
+          throw new Error(
+            "Balance record not found for this member's contribution."
+          );
+        }
+
+        if (
+          currentBalance.unallocated_amount.lessThan(
+            amountToWithdrawFromUnallocated
+          )
+        ) {
+          throw new Error(
+            `Cannot revert payment. Reversal requires withdrawing ${amountToWithdrawFromUnallocated} from unallocated credit, but the member only has ${currentBalance.unallocated_amount}. This credit may have already been used.`
+          );
+        }
+
+        const allSchedulesForContribution =
+          await tx.contributionSchedule.findMany({
+            where: { contribution_id: contribution.id },
+            select: { expected_amount: true, paid_amount: true },
+          });
+
+        const totalExpected = allSchedulesForContribution.reduce(
+          (sum, s) => sum.plus(s.expected_amount),
+          new Decimal(0)
+        );
+        const totalPaid = allSchedulesForContribution.reduce(
+          (sum, s) => sum.plus(s.paid_amount),
+          new Decimal(0)
+        );
+        const newBalanceAmount = totalExpected.minus(totalPaid);
+
+        // FIX: Dynamically build the update payload
+        const updateData: any = {
+          amount: newBalanceAmount.isNegative() ? 0 : newBalanceAmount,
+        };
+
+        if (amountToRestoreToUnallocated.greaterThan(0)) {
+          updateData.unallocated_amount = {
+            increment: amountToRestoreToUnallocated,
+          };
+        } else if (amountToWithdrawFromUnallocated.greaterThan(0)) {
+          updateData.unallocated_amount = {
+            decrement: amountToWithdrawFromUnallocated,
+          };
+        }
+        // If both are zero, we don't add the 'unallocated_amount' key at all.
+
+        await tx.balance.update({
+          where: {
+            member_id_contribution_id: {
+              member_id: data.memberId,
+              contribution_id: contribution.id,
+            },
+          },
+          data: updateData,
+        });
+
+        // 5. Clean up payment records
+        await tx.payment.deleteMany({
+          where: { payment_record_id: data.paymentId },
+        });
+        await tx.paymentRecord.delete({
+          where: { id: data.paymentId },
+        });
+        const paymentRecordToDelete = await prisma.paymentRecord.findUnique({
+          where: { id: data.paymentId },
+          select: {
+            document_reference: true,
+            total_paid_amount: true,
+            member_id: true,
+            custom_id: true,
+          },
+        });
+        await logAction({
+          userId: user.id,
+          userFullName: `${user.firstName} ${user.lastName}`,
+          actionType: ActionType.PAYMENT_DELETE,
+          status: ActionStatus.SUCCESS,
+          details: `Failed to Delete Payment Record for :${paymentRecordToDelete?.custom_id}`,
+          targetId: paymentRecordToDelete?.custom_id,
+        });
+
+        return { success: true, error: false };
+      },
+      { isolationLevel: "Serializable", timeout: 20000 }
+    );
+  } catch (err) {
+    const paymentRecord = await prisma.paymentRecord.findUnique({
+      where: { id: data.paymentId },
+      select: {
+        document_reference: true,
+        total_paid_amount: true,
+        member_id: true,
+        custom_id: true,
+      },
+    });
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PAYMENT_DELETE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to Delete Payment Record for :${paymentRecord?.custom_id}`,
+      error: error.message,
+      targetId: paymentRecord?.custom_id,
+    });
+  }
 }
-
-// --- Balance Recalculation Helper (Unchanged) ---
 
 async function recalculateMemberContributionBalances(
   members: (Member & {
