@@ -1303,6 +1303,13 @@ export async function waivePenalty(
   waiverEvidence?: string,
   waiverEvidenceFileId?: string
 ) {
+  const user = await currentUser();
+  if (!user) {
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
   try {
     const penalty = await prisma.penalty.findUnique({
       where: { id: penaltyId, member_id: memberId },
@@ -1326,9 +1333,30 @@ export async function waivePenalty(
         waived_reason_document_file_id: waiverEvidenceFileId,
       },
     });
-
+    const member = await prisma.member.findUnique({ where: { id: memberId } });
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_WAIVE,
+      status: ActionStatus.SUCCESS,
+      targetId: member?.id.toString(),
+      details: `successfully waived penalty for member ${member?.custom_id} of penalty number ${penaltyId}`,
+    });
     return { success: true };
-  } catch (error) {
+  } catch (err) {
+    const member = await prisma.member.findUnique({ where: { id: memberId } });
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    console.error("Failed to create family:", err);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_WAIVE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to waive for member ${member?.custom_id} of penalty number ${penaltyId}`,
+      error: error.message,
+      targetId: member?.id.toString(),
+    });
     console.error("Error waiving penalty:", error);
     return { success: false, message: "Failed to waive penalty" };
   }
@@ -2060,19 +2088,14 @@ export async function deletePayment(data: {
         });
         const paymentRecordToDelete = await prisma.paymentRecord.findUnique({
           where: { id: data.paymentId },
-          select: {
-            document_reference: true,
-            total_paid_amount: true,
-            member_id: true,
-            custom_id: true,
-          },
+          include: { member: true },
         });
         await logAction({
           userId: user.id,
           userFullName: `${user.firstName} ${user.lastName}`,
           actionType: ActionType.PAYMENT_DELETE,
           status: ActionStatus.SUCCESS,
-          details: `Failed to Delete Payment Record for :${paymentRecordToDelete?.custom_id}`,
+          details: `successfully Deleted Payment Record of :${paymentRecordToDelete?.custom_id} amount:${paymentRecordToDelete?.total_paid_amount} for ${paymentRecordToDelete?.member.custom_id}`,
           targetId: paymentRecordToDelete?.custom_id,
         });
 
@@ -2083,12 +2106,7 @@ export async function deletePayment(data: {
   } catch (err) {
     const paymentRecord = await prisma.paymentRecord.findUnique({
       where: { id: data.paymentId },
-      select: {
-        document_reference: true,
-        total_paid_amount: true,
-        member_id: true,
-        custom_id: true,
-      },
+      include: { member: true },
     });
     const error =
       err instanceof Error ? err : new Error("An unknown error occurred");
@@ -2097,7 +2115,7 @@ export async function deletePayment(data: {
       userFullName: `${user.firstName} ${user.lastName}`,
       actionType: ActionType.PAYMENT_DELETE,
       status: ActionStatus.FAILURE,
-      details: `Failed to Delete Payment Record for :${paymentRecord?.custom_id}`,
+      details: `Failed to Delete Payment Record for :${paymentRecord?.custom_id} amount:${paymentRecord?.total_paid_amount} for ${paymentRecord?.member.custom_id}`,
       error: error.message,
       targetId: paymentRecord?.custom_id,
     });
@@ -2224,6 +2242,15 @@ export async function deletePenalty(penaltyId: number) {
 export const transferPrincipalRole = async (
   outgoingPrincipalId: number
 ): Promise<CurrentState> => {
+  const user = await currentUser();
+  if (!user) {
+    // This case should be handled by your auth middleware, but it's a good safeguard.
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
   if (!outgoingPrincipalId) {
     return {
       success: false,
@@ -2333,9 +2360,34 @@ export const transferPrincipalRole = async (
       },
       { timeout: 20000 }
     );
+    const outgoingPrincipal = await prisma.member.findUnique({
+      where: { id: outgoingPrincipalId, isPrincipal: true },
+      include: { spouse: true },
+    });
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.ROlE_TRANSFER,
+      status: ActionStatus.SUCCESS,
+      details: `successfully transfered role from ${outgoingPrincipal?.custom_id} to${outgoingPrincipal?.spouse?.custom_id}`,
+    });
     return { success: true, error: false };
   } catch (err: any) {
-    console.error("Failed to transfer principal role:", err);
+    const outgoingPrincipal = await prisma.member.findUnique({
+      where: { id: outgoingPrincipalId, isPrincipal: true },
+      include: { spouse: true },
+    });
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    console.error("Failed to create family:", err);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.ROlE_TRANSFER,
+      status: ActionStatus.FAILURE,
+      details: `Failed to transfere role from ${outgoingPrincipal?.custom_id} to${outgoingPrincipal?.spouse?.custom_id}`,
+      error: error.message,
+    });
     return {
       success: false,
       error: true,

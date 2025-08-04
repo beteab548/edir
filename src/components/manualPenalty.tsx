@@ -146,7 +146,7 @@ export default function ManualPenaltyManagement() {
       console.error("Failed to handle waiver evidence:", err);
     }
   };
-  const handleDeletePenalty = async (penaltyId: number) => {
+  const handleDeletePenalty = async (penaltyId: number, memberId: number) => {
     setIsloading(true);
     try {
       const response = await fetch(`/api/penalty`, {
@@ -157,6 +157,7 @@ export default function ManualPenaltyManagement() {
         body: JSON.stringify({
           penaltyId,
           deletePaymentRecord: true,
+          memberId,
         }),
       });
       setIsloading(false);
@@ -174,7 +175,7 @@ export default function ManualPenaltyManagement() {
       };
     }
   };
-  const handleWaivePenalty = async (penaltyId: number) => {
+  const handleWaivePenalty = async (penaltyId: number, memberId: number) => {
     setIsloading(true);
     try {
       const reason = (document.getElementById("reason") as HTMLTextAreaElement)
@@ -190,6 +191,7 @@ export default function ManualPenaltyManagement() {
           reason,
           evidenceUrl: waiverEvidence?.Url || null,
           evidenceFileId: waiverEvidence?.fileId || null,
+          memberId,
         }),
       });
       setIsloading(false);
@@ -1085,7 +1087,8 @@ export default function ManualPenaltyManagement() {
                     if (!selectedPenalty) return;
                     try {
                       const result = await handleDeletePenalty(
-                        selectedPenalty.id
+                        selectedPenalty.id,
+                        selectedPenalty.member.id
                       );
                       if (result.success) {
                         toast.success(
@@ -1255,7 +1258,8 @@ export default function ManualPenaltyManagement() {
 
                     try {
                       const result = await handleWaivePenalty(
-                        selectedPenalty.id
+                        selectedPenalty.id,
+                        selectedPenalty.member.id
                       );
                       if (result.success) {
                         toast.success(

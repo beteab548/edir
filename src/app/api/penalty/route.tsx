@@ -4,6 +4,9 @@ import { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { deletePenalty } from "@/lib/actions";
+import { currentUser } from "@clerk/nextjs/server";
+import { ActionStatus, ActionType } from "@prisma/client";
+import { logAction } from "@/lib/audit";
 
 // app/api/penalty/route.ts
 export async function GET(req: NextRequest) {
@@ -49,9 +52,32 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(request: Request) {
+  const user = await currentUser();
+
+  if (!user) {
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return NextResponse.json(
+      { success: false, error: true, message: "User not authenticated." },
+      { status: 401 }
+    ); // Use 401 for unauthorized
+  }
+
+  let penaltyId: number | undefined;
+  let memberId: number | undefined;
+
   try {
-    const { penaltyId, reason, evidenceUrl, evidenceFileId } =
-      await request.json();
+    const {
+      penaltyId: reqPenaltyId,
+      reason,
+      evidenceUrl,
+      evidenceFileId,
+      memberId: reqMemberId,
+    } = await request.json();
+
+    penaltyId = reqPenaltyId;
+    memberId = reqMemberId;
 
     if (!penaltyId || isNaN(Number(penaltyId))) {
       return NextResponse.json(
@@ -59,6 +85,13 @@ export async function PATCH(request: Request) {
         { status: 400 }
       );
     }
+    if (!memberId) {
+      return NextResponse.json(
+        { error: "Member ID is required" },
+        { status: 400 }
+      );
+    }
+
     const updatedPenalty = await prisma.penalty.update({
       where: { id: Number(penaltyId) },
       data: {
@@ -73,23 +106,67 @@ export async function PATCH(request: Request) {
           select: {
             first_name: true,
             last_name: true,
+            custom_id: true,
           },
         },
       },
     });
 
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_WAIVE,
+      status: ActionStatus.SUCCESS,
+      details: `Successfully waived penalty with id ${penaltyId} for member ${updatedPenalty.member.custom_id} `,
+      targetId: updatedPenalty.member.custom_id?.toString(),
+    });
+
     return NextResponse.json(updatedPenalty);
   } catch (error) {
+    const member = memberId
+      ? await prisma.member.findUnique({ where: { id: memberId } })
+      : null;
     console.error("Error waiving penalty:", error);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_WAIVE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to waive penalty number ${
+        penaltyId || "unknown"
+      } for member ${member?.custom_id}`,
+      error: (error as Error).message,
+      targetId: member?.custom_id?.toString(),
+    });
     return NextResponse.json(
       { error: "Failed to waive penalty" },
       { status: 500 }
     );
   }
 }
+
 export async function DELETE(request: Request) {
+  const user = await currentUser();
+
+  if (!user) {
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return NextResponse.json(
+      { success: false, error: true, message: "User not authenticated." },
+      { status: 401 }
+    ); // Use 401 for unauthorized
+  }
+
+  let penaltyId: number | undefined;
+  let memberId: number | undefined;
+
   try {
-    const { penaltyId } = await request.json();
+    const { penaltyId: reqPenaltyId, memberId: reqMemberId } =
+      await request.json();
+
+    penaltyId = reqPenaltyId;
+    memberId = reqMemberId;
 
     if (!penaltyId) {
       return NextResponse.json(
@@ -98,14 +175,51 @@ export async function DELETE(request: Request) {
       );
     }
 
+    if (!memberId) {
+      return NextResponse.json(
+        { error: "Member ID is required" },
+        { status: 400 }
+      );
+    }
+
     const result = await deletePenalty(penaltyId);
 
     if (!result.success) {
-      return NextResponse.json({ error: "unable to delete" }, { status: 500 });
+      return NextResponse.json({ error: "Unable to delete" }, { status: 500 });
     }
 
+    const member = await prisma.member.findUnique({ where: { id: memberId } });
+
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_DELETE,
+      status: ActionStatus.SUCCESS,
+      details: `Successfully deleted penalty with id ${penaltyId} for member ${member?.custom_id}`,
+      targetId: member?.custom_id?.toString(),
+    });
+
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error) {
+  } catch (err) {
+    // memberId will be available here, even if request.json() fails
+
+    const member = memberId
+      ? await prisma.member.findUnique({ where: { id: memberId } })
+      : null;
+
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_DELETE, // Corrected the action type
+      status: ActionStatus.FAILURE,
+      details: `Failed to delete penalty number ${penaltyId || "unknown"}`, // Use penaltyId if available
+      error: error.message,
+      targetId: member?.custom_id?.toString(), //include the member custom_id if available
+    });
+
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
