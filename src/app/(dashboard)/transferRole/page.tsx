@@ -12,7 +12,7 @@ export default async function PendingTransfersPage() {
     if (!user) return redirect("/sign-in");
 
     const role = user.publicMetadata?.role;
-    if (role !== "chairman" && role !== "admin") return redirect("/dashboard");
+    if (role !== "secretary" && role !== "admin") return redirect("/dashboard");
 
     const eligiblePrincipals = await prisma.member.findMany({
       where: {
