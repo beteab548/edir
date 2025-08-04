@@ -7,9 +7,9 @@ export async function GET() {
   try {
     const logs = await prisma.auditLog.findMany({
       orderBy: {
-        timestamp: "desc", // Show the most recent actions first
+        timestamp: "desc", 
       },
-      take: 20, // Limit to the last 20 actions for performance
+      take: 5, 
     });
     return NextResponse.json(logs);
   } catch (error) {

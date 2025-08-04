@@ -262,30 +262,27 @@ export default function ManualPenaltyManagement() {
 
     const sameTypePenaltiesCount = existingSameTypePenalties.length;
 
-    if (sameTypePenaltiesCount === 0) return baseAmount; // First penalty of this type
-    if (sameTypePenaltiesCount >= 5) return baseAmount * 5; // Max out at 5x base amount
+    if (sameTypePenaltiesCount === 0) return baseAmount; 
+    if (sameTypePenaltiesCount >= 5) return baseAmount * 5; 
 
-    return baseAmount * (sameTypePenaltiesCount + 1); // Increment by base amount for each same type penalty up to 5
+    return baseAmount * (sameTypePenaltiesCount + 1); 
   };
   const watchedPenaltyType = form.watch("penalty_type");
   useEffect(() => {
-    // Only proceed if both a member and a penalty type are selected
     if (selectedMember && watchedPenaltyType) {
       const penaltyType = penaltyTypes.find(
         (p) => p.name === watchedPenaltyType
       );
 
       if (penaltyType) {
-        // Calculate the final amount using the penalty type's amount as the base
         const finalAmount = calculatePenaltyAmount(
-          0, // This is not needed since the `calculatePenaltyAmount` function calculates the number of penalties so it should be zero.
+          0, 
           penaltyType.amount,
           selectedMember.id,
           watchedPenaltyType,
           penaltiesWithNumberAmount
         );
 
-        // Update the form's amount field
         form.setValue("amount", finalAmount);
       }
     }
@@ -298,11 +295,9 @@ export default function ManualPenaltyManagement() {
     form,
   ]);
 
-  // Modify your handleMemberSelect function to include the penalty calculation
   const handleMemberSelect = (member: Member) => {
     setSelectedMember(member);
     form.setValue("member_id", member.id);
-    // The useEffect above will handle the amount calculation
   };
   const onSubmit: SubmitHandler<z.infer<typeof penaltyFormSchema>> = async (
     data
@@ -346,7 +341,6 @@ export default function ManualPenaltyManagement() {
   const sortedPenalties = useMemo(() => {
     let sortableItems = [...penaltiesWithNumberAmount];
 
-    // Apply search filter if search term exists
     if (searchTerm) {
       const searchTermLower = searchTerm.toLowerCase();
 
@@ -370,7 +364,6 @@ export default function ManualPenaltyManagement() {
       });
     }
 
-    // Apply sorting
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
         let aValue, bValue;
@@ -402,14 +395,12 @@ export default function ManualPenaltyManagement() {
     return sortableItems;
   }, [penaltiesWithNumberAmount, sortConfig, searchTerm]);
 
-  // Helper function for status sorting
   function getStatusValue(penalty: Penalty) {
     if (penalty.is_paid) return 2;
     if (penalty.waived) return 1;
     return 0;
   }
 
-  // Sort request function
   const requestSort = (key: string) => {
     let direction: "ascending" | "descending" = "ascending";
     if (sortConfig.key === key && sortConfig.direction === "ascending") {

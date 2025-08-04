@@ -1339,7 +1339,7 @@ export async function waivePenalty(
       userFullName: `${user.firstName} ${user.lastName}`,
       actionType: ActionType.PENALTY_WAIVE,
       status: ActionStatus.SUCCESS,
-      targetId: member?.id.toString(),
+      targetId: member?.custom_id?.toString(),
       details: `successfully waived penalty for member ${member?.custom_id} of penalty number ${penaltyId}`,
     });
     return { success: true };
@@ -1355,7 +1355,7 @@ export async function waivePenalty(
       status: ActionStatus.FAILURE,
       details: `Failed to waive for member ${member?.custom_id} of penalty number ${penaltyId}`,
       error: error.message,
-      targetId: member?.id.toString(),
+      targetId: member?.custom_id?.toString(),
     });
     console.error("Error waiving penalty:", error);
     return { success: false, message: "Failed to waive penalty" };
@@ -1400,6 +1400,13 @@ export const createPenalty = async (
   currentState: CurrentState,
   data: Penalty
 ) => {
+  const user = await currentUser();
+  if (!user) {
+    console.error(
+      "CRITICAL: updateFamily action called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
   if (!data.member_id || !data.amount) {
     console.error("Invalid data for penalty creation", data);
     return { success: false, error: true };
@@ -1435,9 +1442,31 @@ export const createPenalty = async (
     const penalty = await prisma.penalty.create({
       data: penaltyData,
     });
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_CREATE,
+      status: ActionStatus.SUCCESS,
+      targetId: member?.custom_id?.toString(),
+      details: `successfully created Penalty for :${member?.custom_id}`,
+    });
     return { success: true, error: false, penalty };
-  } catch (error) {
-    console.error("Error creating penalty:", error);
+  } catch (err) {
+    const member = await prisma.member.findUnique({
+      where: { id: data.member_id },
+    });
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    console.error("Failed to create family:", err);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PENALTY_CREATE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to create Penalty for :${member?.custom_id}`,
+      targetId: member?.custom_id?.toString(),
+      error: error.message,
+    });
   }
 
   return { success: false, error: true };
@@ -1540,7 +1569,7 @@ export async function addPenaltyTypeModel(name: string, amount: number) {
       userFullName: `${user.firstName} ${user.lastName}`,
       actionType: ActionType.PENALTY_CREATE,
       status: ActionStatus.SUCCESS,
-      details: `successfully created penalty type:${name}`,
+      details: `successfully created penalty type:${name} `,
     });
     return;
   } catch (err) {
