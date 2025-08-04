@@ -1,4 +1,5 @@
 // app/transfers/page.tsx
+export const dynamic = "force-dynamic";
 
 import prisma from "@/lib/prisma";
 import { TransferActionRow } from "@/components/TransferActionRow";

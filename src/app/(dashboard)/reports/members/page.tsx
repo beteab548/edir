@@ -23,6 +23,15 @@ interface SearchParams {
     onlyPrincipals?: string;
   };
 }
+function formatMonthYear(date: Date | string): string {
+  const d = new Date(date);
+  return `${d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+      day: "numeric",
+  })}`;
+
+}
 
 export default async function ReportPage({ searchParams }: SearchParams) {
   try {
@@ -79,30 +88,30 @@ export default async function ReportPage({ searchParams }: SearchParams) {
               m.last_name || ""
             }`.trim() || "N/A",
           Phone: formatPhone(m.phone_number),
-          "Registered Date": formatDate(m.registered_date),
-          status: m.status || "N/A",
-          green_area: m.green_area || "N/A",
-          block: m.block || "N/A",
-          house_number: m.house_number || "N/A",
-          member_type: m.member_type || "N/A",
+          "Registered Date": formatMonthYear(m.registered_date),
+          status: m.status ,
+          green_area: m.green_area ,
+          block: m.block ,
+          house_number: m.house_number ,
+          member_type: m.member_type,
           birth_date: formatDate(m.birth_date),
-          zone_or_district: m.zone_or_district || "N/A",
-          bank_account_name: m.bank_account_name || "N/A",
-          bank_account_number: m.bank_account_number || "N/A",
-          bank_name: m.bank_name || "N/A",
-          email: m.email || "N/A",
-          email_2: m.email_2 || "N/A",
-          job_business: m.job_business || "N/A",
-          id_number: m.identification_number || "N/A",
-          kebele: m.kebele || "N/A",
-          profession: m.profession || "N/A",
-          wereda: m.wereda || "N/A",
-          citizen: m.citizen || "N/A",
+          zone_or_district: m.zone_or_district ,
+          bank_account_name: m.bank_account_name ,
+          bank_account_number: m.bank_account_number ,
+          bank_name: m.bank_name ,
+          email: m.email ,
+          email_2: m.email_2 ,
+          job_business: m.job_business ,
+          id_number: m.identification_number ,
+          kebele: m.kebele ,
+          profession: m.profession ,
+          wereda: m.wereda ,
+          citizen: m.citizen ,
           phone_number_2: formatPhone(m.phone_number_2),
-          sex: m.sex || "N/A",
-          marital_status: m.marital_status || "N/A",
-          title: m.title || "N/A",
-          remark: m.remark || "N/A",
+          sex: m.sex ,
+          marital_status: m.marital_status ,
+          title: m.title ,
+          remark: m.remark ,
         };
       } catch (error) {
         console.error("Error processing member record:", error, m);

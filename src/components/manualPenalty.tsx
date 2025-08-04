@@ -602,7 +602,7 @@ export default function ManualPenaltyManagement() {
                   <tr
                     key={penalty.id}
                     className={`hover:bg-gray-50 transition-colors ${
-                      penalty.waived ? "cursor-pointer hover:bg-purple-200" : ""
+                      penalty.waived ? "cursor-pointer hover:bg-purple-100" : ""
                     }`}
                     onClick={() => {
                       if (penalty.waived) {

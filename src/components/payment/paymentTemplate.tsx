@@ -202,7 +202,7 @@ export default function ContributionTemplate({
       member_id: 1,
       contribution_id: ContributionType?.id?.toString() || "",
     });
-  }, [reset, type, ContributionType,clearSelectedPrincipal]);
+  }, [reset, type, ContributionType, clearSelectedPrincipal]);
 
   const onSubmit = async (
     data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
@@ -557,10 +557,16 @@ export default function ContributionTemplate({
                                           {p.payment_type === "penalty"
                                             ? `For: ${new Date(
                                                 p.payment_month
-                                              ).toLocaleDateString()}`
+                                              ).toLocaleDateString("en-US", {
+                                                year: "numeric",
+                                                month: "short",
+                                              })}`
                                             : `Month: ${new Date(
                                                 p.payment_month
-                                              ).toLocaleDateString()}`}
+                                              ).toLocaleDateString("en-US", {
+                                                year: "numeric",
+                                                month: "short",
+                                              })}`}
                                         </p>
                                       </div>
                                     </div>
@@ -667,7 +673,7 @@ export default function ContributionTemplate({
                                 // A) Case 1: The initial list passed via props is empty.
                                 <div className="p-4 text-center text-sm text-gray-500">
                                   {type === "manually"
-                                    ? "No members with outstanding penalties found."
+                                    ? "No members with unpaid penalties found."
                                     : "No eligible members found for this contribution."}
                                 </div>
                               ) : searchResults.length > 0 ? (

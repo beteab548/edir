@@ -42,46 +42,40 @@ const smoothScroll = (
 };
 
 export default function PublicPage() {
-  try {
-    const [activeTab, setActiveTab] = useState("bylaws");
-    const [metrics, setMetrics] = useState<{
-      members: number;
-      activeSince: Date;
-    }>({ members: 0, activeSince: new Date() });
-    const [language, setLanguage] = useState<"en" | "am">("en");
+  const [activeTab, setActiveTab] = useState("bylaws");
+  const [metrics, setMetrics] = useState<{
+    members: number;
+    activeSince: Date;
+  }>({ members: 0, activeSince: new Date() });
+  const [language, setLanguage] = useState<"en" | "am">("en");
     const [connectionError, setConnectionError] = useState(false);
 
     const toggleLanguage = () => {
       setLanguage((prev) => (prev === "en" ? "am" : "en"));
     };
     const t = translations[language];
-    useEffect(() => {
-      async function fetchData() {
-        try {
-          const [MetricsRes] = await Promise.all([
-            fetch("/api/landingpage", {
-              cache: "no-store",
-              next: { revalidate: 0 },
-            }),
-          ]);
-          if (!MetricsRes.ok) {
-            throw new Error("Failed to fetch data");
-          }
-          const MetricsData = await MetricsRes.json();
-          console.log("MetricsRes", MetricsData);
-          setMetrics(MetricsData);
-          setConnectionError(false);
-        } catch (error) {
-          console.error("Error fetching data:", error);
-          setConnectionError(true);
-        }
+     useEffect(() => {
+    async function fetchMetrics() {
+      try {
+        const res = await fetch("/api/landingpage", {
+          cache: "no-store",
+          next: { revalidate: 0 },
+        });
+        if (!res.ok) throw new Error("Failed to fetch metrics");
+        const data = await res.json();
+        setMetrics(data);
+        setConnectionError(false);
+      } catch (err) {
+        console.error("Failed to fetch landing metrics", err);
+        setConnectionError(true);
       }
-      fetchData();
-    }, []);
+    }
+    fetchMetrics();
+  }, []);
     const { user } = useUser();
     const router = useRouter();
     const [isAuthenticating, setIsAuthenticating] = useState(false);
-
+    
     useEffect(() => {
       const role = user?.publicMetadata.role;
       console.log("role", role);
@@ -93,14 +87,14 @@ export default function PublicPage() {
           case "admin":
             router.push("/dashboard");
             break;
-
-          default:
-            router.push("/unauthoried");
-            break;
-        }
-      }
-    }, [user, router]);
-
+            
+            default:
+              router.push("/unauthoried");
+              break;
+            }
+          }
+        }, [user, router]);
+        
     const handleLoginClick = () => {
       const role = user?.publicMetadata.role;
       if (!role) {
@@ -471,40 +465,4 @@ export default function PublicPage() {
         </footer>
       </div>
     );
-  } catch (error) {
-    console.error("Error in PublicPage component:", error);
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-16 w-16 text-red-500 mx-auto mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-            />
-          </svg>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Connection Error
-          </h2>
-          <p className="text-gray-600 mb-6">
-            We're having trouble connecting to our services. Please check your
-            internet connection and try again later.
-          </p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
   }
-}

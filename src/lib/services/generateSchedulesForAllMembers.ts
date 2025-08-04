@@ -12,7 +12,6 @@ function normalizeToMonthStart(date: Date): Date {
   return new Date(Date.UTC(date.getFullYear(), date.getMonth(), 1));
 }
 
-
 function generateMonthlyDates(start: Date, end: Date): Date[] {
   const dates: Date[] = [];
   let current = normalizeToMonthStart(start);
@@ -53,7 +52,7 @@ interface GenerateSchedulesOptions {
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
-  const { simulate = false, simulationMonths = 0 } = options;
+  const { simulate = true, simulationMonths = 2 } = options;
   const now = simulate
     ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
@@ -504,9 +503,13 @@ export async function generateContributionSchedulesForAllActiveMembers(
           member_id: schedule.member_id,
           contribution_id: schedule.contribution_id,
           contribution_schedule_id: schedule.id,
-          reason: `Missed payment for ${schedule.month
-            .toISOString()
-            .slice(0, 7)}`,
+          reason: `Missed payment for ${schedule.month.toLocaleDateString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "short",
+            }
+          )}`,
           expected_amount: calculatedPenaltyAmount,
           missed_month: schedule.month,
           penalty_type: contributionType.name ?? "Unknown",

@@ -77,8 +77,6 @@ function convertDecimalToNumber(obj: any): any {
   return obj;
 }
 
-
-
 export async function getFilteredMembers({
   name,
   from,
@@ -130,7 +128,7 @@ export async function getFilteredMembers({
   if (member_type && isValidMemberStatus(member_type)) {
     filters.member_type = member_type;
   }
-  
+
   // ... (the rest of your filters for house_number, green_area, block, title)
 
   const now = new Date();
@@ -150,16 +148,16 @@ export async function getFilteredMembers({
   // If performance on large datasets becomes an issue, this part could also be
   // moved into the main Prisma query's `where` clause.
   if (name) {
-      const words = name.trim().split(/\s+/);
-      filters.AND = words.map(word => ({
-          OR: [
-              { first_name: { contains: word, mode: 'insensitive' } },
-              { second_name: { contains: word, mode: 'insensitive' } },
-              { last_name: { contains: word, mode: 'insensitive' } },
-              { custom_id: { contains: word, mode: 'insensitive' } },
-              { phone_number: { contains: word, mode: 'insensitive' } },
-          ]
-      }));
+    const words = name.trim().split(/\s+/);
+    filters.AND = words.map((word) => ({
+      OR: [
+        { first_name: { contains: word, mode: "insensitive" } },
+        { second_name: { contains: word, mode: "insensitive" } },
+        { last_name: { contains: word, mode: "insensitive" } },
+        { custom_id: { contains: word, mode: "insensitive" } },
+        { phone_number: { contains: word, mode: "insensitive" } },
+      ],
+    }));
   }
 
   // Fetch filtered members from Prisma using the completed 'filters' object
@@ -170,8 +168,34 @@ export async function getFilteredMembers({
     select: {
       id: true,
       first_name: true,
-      // ... all other fields you need
+      second_name: true, // Add this
+      last_name: true, // Add this
+      phone_number: true, // Add this
+      registered_date: true, // Add this
+      status: true, // Add this
+      green_area: true,
+      block: true,
+      house_number: true,
+      member_type: true,
+      birth_date: true,
+      zone_or_district: true,
+      bank_account_name: true,
+      bank_account_number: true,
+      bank_name: true,
+      email: true,
+      email_2: true,
+      job_business: true,
+      identification_number: true,
+      kebele: true,
+      profession: true,
+      wereda: true,
+      citizen: true,
+      phone_number_2: true,
+      sex: true,
+      marital_status: true,
+      title: true,
       remark: true,
+      custom_id: true,
     },
   });
 

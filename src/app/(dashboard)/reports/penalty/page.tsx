@@ -17,6 +17,13 @@ interface SearchParams {
     penalty_type?: string;
   };
 }
+function formatMonthYear(date: Date | string): string {
+  const d = new Date(date);
+  return `${d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+  })}`;
+}
 
 export default async function PenaltyReportPage({
   searchParams,
@@ -86,7 +93,7 @@ export default async function PenaltyReportPage({
           Expected_amount: expectedAmount,
           Paid_amount: paidAmount,
           Remaining_Amount: remainingAmount,
-          missed_month: formatDate(p.missed_month),
+          missed_month: formatMonthYear(p.missed_month),
           "Penalty Type": p.penalty_type || "N/A",
           waived: p.waived ? "Yes" : "No",
           "Date Issued": formatDate(p.applied_at),
