@@ -781,7 +781,7 @@ export const updateContribution = async (
 
     // 7. Handle schedule updates if amount changed (same logic for both is_for_all true and false)
     if (amountChanged && updatedType.name !== "Registration") {
-      const today = startOfMonth(addMonths(new Date(), 0)); // Using your adjusted date
+      const today = startOfMonth(addMonths(new Date(), 2)); // Using your adjusted date
       const contributionIds = contributionsToUpdate.map((c) => c.id);
 
       if (contributionIds.length > 0) {

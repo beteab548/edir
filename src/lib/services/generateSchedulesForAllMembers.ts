@@ -52,7 +52,7 @@ interface GenerateSchedulesOptions {
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
-  const { simulate = true, simulationMonths = 2 } = options;
+  const { simulate = true, simulationMonths = 2} = options;
   const now = simulate
     ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
