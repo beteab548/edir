@@ -62,7 +62,7 @@ export default function AuditActivity({ type }: { type?: string }) {
         Recent Activity
       </h3>
       <div className="space-y-4">
-        {logs.map((log: any) => (
+        {logs?.map((log: any) => (
           <div key={log.id} className="flex items-start gap-3">
             <div>
               {log.status === "SUCCESS" ? (

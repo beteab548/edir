@@ -41,13 +41,33 @@ export async function GET(req: NextRequest) {
     if (userId) where.userId = userId;
     if (actionType) where.actionType = actionType;
     if (status) where.status = status;
-    if (startDate)
-      where.timestamp = { ...where.timestamp, gte: new Date(startDate) };
+    if (startDate) {
+      const prevTimestampFilter =
+        typeof where.timestamp === "object" && where.timestamp !== null
+          ? where.timestamp
+          : {};
+
+      where.timestamp = {
+        ...prevTimestampFilter,
+        gte: new Date(startDate),
+      };
+    }
+
     if (endDate) {
       const endOfDay = new Date(endDate);
       endOfDay.setDate(endOfDay.getDate() + 1);
-      where.timestamp = { ...where.timestamp, lt: endOfDay };
+
+      const prevTimestampFilter =
+        typeof where.timestamp === "object" && where.timestamp !== null
+          ? where.timestamp
+          : {};
+
+      where.timestamp = {
+        ...prevTimestampFilter,
+        lt: endOfDay,
+      };
     }
+
     if (searchQuery) {
       where.OR = [
         { details: { contains: searchQuery, mode: "insensitive" } },
