@@ -1288,7 +1288,7 @@ export const paymentActionforAutomatic = async (
       paymentMethod,
       documentReference: paymentReceipt || "-",
       simulate: true,
-      simulationMonths: 2,
+      simulationMonths: 3,
     });
     return { success: true, error: false };
   } catch (error) {
