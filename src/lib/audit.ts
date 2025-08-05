@@ -27,8 +27,7 @@ export async function logAction(params: LogActionParams) {
       },
     });
   } catch (logError) {
-    // Critical: If logging fails, it must not crash the main application.
-    // We just log it to the console.
+   
     console.error("FATAL: Failed to write to audit log:", logError);
     console.error("Original log data:", params);
   }

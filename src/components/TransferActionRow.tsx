@@ -5,20 +5,17 @@ import { transferPrincipalRole } from "@/lib/actions";
 import { Member } from "@prisma/client";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { FiAlertTriangle, FiCheckCircle } from "react-icons/fi"; // Import some nice icons
+import { FiAlertTriangle, FiCheckCircle } from "react-icons/fi"; 
 
-// Define the type for the principal prop, including the nested spouse
 type PrincipalWithSpouse = Member & { spouse: Member | null };
 
 export function TransferActionRow({ principal }: { principal: PrincipalWithSpouse }) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   
-  // --- STEP 1: ADD STATE AND REF FOR THE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
-  // Effect to sync the dialog's state with our React state
   useEffect(() => {
     if (isModalOpen) {
       dialogRef.current?.showModal();
@@ -27,32 +24,28 @@ export function TransferActionRow({ principal }: { principal: PrincipalWithSpous
     }
   }, [isModalOpen]);
 
-  if (!principal.spouse) return null; // Safety check
+  if (!principal.spouse) return null; 
 
-  // --- STEP 2: CREATE THE HANDLER FOR THE FINAL CONFIRMATION ---
   const handleConfirmTransfer = () => {
     startTransition(async () => {
       const result = await transferPrincipalRole(principal.id);
       if (result.success) {
         toast.success("Role transferred successfully!");
-        setIsModalOpen(false); // Close the modal on success
-        router.refresh(); // Refresh the page to remove this row from the list
+        setIsModalOpen(false); 
+        router.refresh(); 
       } else {
         toast.error(result.message || "Failed to transfer the role.");
-        // Optionally keep the modal open on failure to allow retry
       }
     });
   };
 
   return (
     <>
-      {/* This is the table row that is always visible */}
       <tr>
         <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{principal.first_name} {principal.last_name}</td>
         <td className="px-6 py-4 whitespace-nowrap text-gray-500">{principal.status}</td>
         <td className="px-6 py-4 whitespace-nowrap font-medium text-gray-900">{principal.spouse.first_name} {principal.spouse.last_name}</td>
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-          {/* --- STEP 3: THIS BUTTON NOW ONLY OPENS THE MODAL --- */}
           <button
             onClick={() => setIsModalOpen(true)}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-semibold"
@@ -62,9 +55,6 @@ export function TransferActionRow({ principal }: { principal: PrincipalWithSpous
         </td>
       </tr>
 
-      {/* =================================================================== */}
-      {/* === STEP 4: THE CONFIRMATION MODAL (DIALOG ELEMENT) === */}
-      {/* =================================================================== */}
       <dialog ref={dialogRef} className="modal backdrop:bg-black/40 p-0 rounded-lg shadow-xl w-full max-w-md">
         <div className="bg-white rounded-lg">
           <div className="p-6 text-center">

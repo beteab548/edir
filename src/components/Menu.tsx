@@ -233,18 +233,16 @@ const Menu = ({ pendingTransfers }: { pendingTransfers: number }) => {
                   const logoutItem = item.label === "Logout";
                   if (item.label === "Transfer Role") {
                     return (
-                      <motion.div key={item.label} /* ... motion props ... */>
+                      <motion.div key={item.label} >
                         <Link
-                          href={item.href} // Your menuItems object already has the correct href
+                          href={item.href}
                           onClick={() => NProgress.start()}
-                          // Apply the same styling as your other links
                           className={`relative flex items-center justify-between gap-4 rounded-lg px-3 py-3 transition-all duration-300 ${
                             isActive(item.href)
                               ? "bg-lamaSkyLight/80 text-lama font-medium shadow"
                               : "text-gray-600 hover:bg-lamaSkyLight/60 hover:text-gray-800"
                           }`}
                         >
-                          {/* Left side content (icon and label) */}
                           <div className="flex items-center gap-4">
                             {React.cloneElement(item.icon, {
                               className: `opacity-90 ${
@@ -258,8 +256,7 @@ const Menu = ({ pendingTransfers }: { pendingTransfers: number }) => {
                             </span>
                           </div>
 
-                          {/* --- THE NOTIFICATION BADGE --- */}
-                          {/* It's wrapped in a div to help with positioning */}
+                        
                           <div>
                             {pendingTransfers > 0 && (
                               <motion.span

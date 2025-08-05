@@ -21,7 +21,6 @@ export function ViewWaiverModal({
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
             >
-              {/* <XIcon className="h-5 w-5" /> */}
             </button>
           </div>
 

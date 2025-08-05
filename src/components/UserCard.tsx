@@ -3,13 +3,11 @@ import { useState, useEffect } from "react";
 import { FiUsers, FiAlertCircle, FiDollarSign, FiUserCheck, FiUserX, FiUserPlus, FiLogOut, FiShieldOff, FiHeart, FiRepeat, FiTrendingUp, FiAlertOctagon, FiCheckCircle, FiAlertTriangle } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- Types and Interfaces ---
 interface CardData {
   value: number;
   percentageChange?: number;
 }
 
-// --- Helper to select an icon based on the card type ---
 const getIconForType = (type: string) => {
   switch (type.toLowerCase()) {
    case "total members":
@@ -23,17 +21,15 @@ const getIconForType = (type: string) => {
     case "left members":
       return <FiLogOut className="text-gray-500" size={24} />;
 
-    // --- Sensitive & Special Cases ---
     case "deceased members":
       return <FiShieldOff className="text-slate-600" size={24} />;
     case "deceased relative":
       return <FiHeart className="text-red-500" size={24} />;
     case "role transfer pending":
       return <FiRepeat className="text-teal-500" size={24} />;
- case "inactivated members": // Same icon for consistency, different color for subtlety
+ case "inactivated members":
       return <FiUserX className="text-slate-600" size={24} />;
 
-    // --- Financial & Penalty Status ---
     case "penalized members":
       return <FiAlertOctagon className="text-red-600" size={24} />;
     case "paid members":
@@ -46,13 +42,11 @@ const getIconForType = (type: string) => {
   }
 };
 
-// --- The Improved UserCard Component ---
 const UserCard = ({ type }: { type: string }) => {
   const [cardData, setCardData] = useState<CardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetching logic remains unchanged
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -91,7 +85,6 @@ const UserCard = ({ type }: { type: string }) => {
       {...cardAnimation}
       className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-6 flex flex-col justify-between min-h-[160px] min-w-[180px]"
     >
-      {/* --- Card Header --- */}
       <div className="flex justify-between items-center">
         <span className="text-sm font-semibold text-gray-500 dark:text-gray-400 capitalize">
           {type}
@@ -101,7 +94,6 @@ const UserCard = ({ type }: { type: string }) => {
         </div>
       </div>
 
-      {/* --- Card Body (Loading, Error, Data) --- */}
       <div className="flex-grow flex flex-col justify-center items-start mt-4">
         <AnimatePresence mode="wait">
           {loading ? (

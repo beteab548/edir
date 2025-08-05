@@ -15,9 +15,7 @@ import { ActionType } from "@prisma/client";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-// A helper to render different icons based on action type
 const ActionIcon = ({ actionType }: { actionType: ActionType }) => {
-  // You can expand this with more icons
   switch (actionType) {
     case "FAMILY_CREATE":
       return <FiUserPlus className="text-green-500" />;
@@ -29,13 +27,12 @@ const ActionIcon = ({ actionType }: { actionType: ActionType }) => {
 };
 
 export default function AuditActivity({ type }: { type?: string }) {
-  // We will now fetch from the new audit logs endpoint
   const {
     data: logs,
     error,
     isLoading,
   } = useSWR("/api/audit-logs", fetcher, {
-    refreshInterval: 30000, // Refresh every 30 seconds
+    refreshInterval: 30000, 
   });
 
   if (isLoading) {
@@ -62,7 +59,7 @@ export default function AuditActivity({ type }: { type?: string }) {
         Recent Activity
       </h3>
       <div className="space-y-4">
-        {logs?.map((log: any) => (
+        {logs?.slice(0, 5).map((log: any) => (
           <div key={log.id} className="flex items-start gap-3">
             <div>
               {log.status === "SUCCESS" ? (

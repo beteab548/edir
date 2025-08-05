@@ -73,12 +73,11 @@ export async function applyCatchUpPayment({
 
   try {
     let usedForContribution = new Decimal(0);
-    let usedForPenalty = new Decimal(0); // Track penalty payments separately
+    let usedForPenalty = new Decimal(0); 
     const payments: Array<{ month: Date; paid: number; type: string }> = [];
 
     return await prisma.$transaction(
       async (tx) => {
-        // 1. Lock and verify member and contribution records
         const [member, contribution] = await Promise.all([
           tx.member.findUnique({
             where: { id: memberId },
@@ -100,7 +99,6 @@ export async function applyCatchUpPayment({
           throw new NotFoundError(`Contribution ${contributionId} not found`);
         }
 
-        // 2. Create payment record to track this payment batch
         const nextId = (await tx.paymentRecord.count()) + 1;
         const formattedId = `PYN-${nextId.toString().padStart(4, "0")}`;
 
@@ -116,7 +114,6 @@ export async function applyCatchUpPayment({
           },
         });
 
-        // 3. Determine current date based on simulation
         const currentDate = simulate
           ? addMonths(new Date(), simulationMonths)
           : new Date();
@@ -124,9 +121,7 @@ export async function applyCatchUpPayment({
 
         let remainingPayment = new Decimal(paidAmount);
 
-        // 4. Handle OneTimeWindow contributions differently
         if (contribution.contributionType.mode === "OneTimeWindow") {
-          // Validate payment window
           const startDate = contribution.contributionType.start_date;
           const endDate = contribution.contributionType.end_date;
 
@@ -148,7 +143,6 @@ export async function applyCatchUpPayment({
             );
           }
 
-          // Find the OneTimeWindow schedule
           const schedule = await tx.contributionSchedule.findFirst({
             where: {
               member_id: memberId,
@@ -201,12 +195,7 @@ export async function applyCatchUpPayment({
             usedForContribution = usedForContribution.plus(amountToPay);
           }
         } else {
-          // 5. For recurring contributions, process in priority order:
-          //    a) Past unpaid penalties
-          //    b) Past unpaid schedules
-          //    c) Current month's schedule
-
-          // a) Pay past unpaid penalties first (DOES NOT AFFECT BALANCE)
+    
           if (remainingPayment.gt(0)) {
             const pastSchedulesWithPenalties =
               await tx.contributionSchedule.findMany({
@@ -273,7 +262,6 @@ export async function applyCatchUpPayment({
             }
           }
 
-          // b) Pay past unpaid schedules (oldest first)
           if (remainingPayment.gt(0)) {
             const pastSchedules = await tx.contributionSchedule.findMany({
               where: {
@@ -327,7 +315,6 @@ export async function applyCatchUpPayment({
             }
           }
 
-          // c) Pay current month's schedule
           if (remainingPayment.gt(0)) {
             const currentSchedule = await tx.contributionSchedule.findFirst({
               where: {
@@ -381,7 +368,6 @@ export async function applyCatchUpPayment({
           }
         }
 
-        // 6. Update balance (ONLY deduct contribution payments, ignore penalties)
         await tx.balance.upsert({
           where: {
             member_id_contribution_id: {
@@ -390,7 +376,7 @@ export async function applyCatchUpPayment({
             },
           },
           update: {
-            amount: { decrement: usedForContribution }, // Only contributions affect balance
+            amount: { decrement: usedForContribution }, 
             ...(remainingPayment.gt(0) && {
               unallocated_amount: {
                 increment: remainingPayment,
@@ -400,14 +386,13 @@ export async function applyCatchUpPayment({
           create: {
             member_id: memberId,
             contribution_id: contribution.id,
-            amount: new Decimal(0).minus(usedForContribution), // Only contributions affect balance
+            amount: new Decimal(0).minus(usedForContribution), 
             unallocated_amount: remainingPayment.gt(0)
               ? remainingPayment
               : new Decimal(0),
           },
         });
 
-        // 7. Get final balance for response
         const updatedBalance = await tx.balance.findUnique({
           where: {
             member_id_contribution_id: {
@@ -419,7 +404,6 @@ export async function applyCatchUpPayment({
 
         const remainingBalance = updatedBalance?.amount ?? new Decimal(0);
 
-        // 8. Handle special case for Registration contributions
         if (
           contribution.contributionType.name === "Registration" &&
           remainingBalance.eq(0) &&
@@ -431,7 +415,6 @@ export async function applyCatchUpPayment({
           });
         }
 
-        // 9. Update payment record with remaining balance
         await tx.paymentRecord.update({
           where: { id: paymentRecord.id },
           data: {

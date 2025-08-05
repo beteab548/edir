@@ -1,4 +1,3 @@
-// In src/app/(dashboard)/audit-log/page.tsx
 
 "use client";
 
@@ -11,7 +10,6 @@ import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-// --- FIX #1: Define types for the data we expect from the API ---
 interface AuditLogTarget {
   name: string;
   customId: string;
@@ -41,7 +39,6 @@ interface ApiResponse {
   currentPage: number;
 }
 
-// --- FIX #2: Use static arrays for enum options ---
 const actionTypeOptions = [
     "MEMBER_CREATE", "MEMBER_UPDATE", "MEMBER_DELETE", "MEMBER_STATUS_UPDATE", "MEMBER_ROLE_TRANSFER",
     "FAMILY_CREATE", "FAMILY_UPDATE", "PENALTY_WAIVE", "PAYMENT_CREATE", "USER_LOGIN"
@@ -103,7 +100,6 @@ export default function AuditLogPage() {
         </p>
       </header>
 
-      {/* Filter Section */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           <div className="xl:col-span-2">
@@ -122,7 +118,6 @@ export default function AuditLogPage() {
             <label htmlFor="userId" className="text-sm font-medium text-gray-700 block mb-1">User</label>
             <select name="userId" id="userId" value={filters.userId} onChange={handleFilterChange} className="w-full py-2 px-3 border border-gray-300 rounded-md">
               <option value="">All Users</option>
-              {/* TypeScript now knows the exact shape of 'user' */}
               {data?.users?.map((user) => (
                 <option key={user.userId} value={user.userId}>
                   {user.userFullName}
@@ -152,7 +147,6 @@ export default function AuditLogPage() {
         </div>
       </div>
 
-      {/* Table Section */}
       <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -207,7 +201,6 @@ export default function AuditLogPage() {
         </table>
       </div>
 
-      {/* Pagination Section */}
       <div className="flex justify-between items-center mt-4">
         <span className="text-sm text-gray-700">Page {data?.currentPage || 1} of {data?.totalPages || 1}</span>
         <div className="flex gap-2">

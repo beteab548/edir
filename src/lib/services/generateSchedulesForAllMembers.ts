@@ -23,9 +23,7 @@ function generateMonthlyDates(start: Date, end: Date): Date[] {
   return dates;
 }
 
-/**
- * Updates a member's status to Inactive.
- */
+
 async function inactivateMember(memberId: number, simulate: boolean = false) {
   if (simulate) {
     console.log(`SIMULATION: Would inactivate member ${memberId}.`);
@@ -46,9 +44,7 @@ interface GenerateSchedulesOptions {
   simulationMonths?: number;
 }
 
-/**
- * Main function to generate contribution schedules, penalties, and handle payments.
- */
+
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
@@ -58,7 +54,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     : normalizeToMonthStart(new Date());
   const currentMonthStart = addMonths(now, 0);
 
-  // STEP 1: Recalculate all balances first to ensure they are up-to-date.
   const activeMembers = await prisma.member.findMany({
     where: { status: "Active" },
     include: {
@@ -73,7 +68,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
 
   await recalculateMemberContributionBalances(activeMembers);
 
-  // STEP 2: Generate new schedules and process payments from unallocated funds.
   const allNewSchedules = [];
   const balanceUpdatesMap = new Map<
     string,
@@ -91,7 +85,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
       const contributionAmount = Number(contributionType.amount);
       if (contributionAmount <= 0) continue;
 
-      // Handle 'OneTimeWindow' contributions
       if (contributionType.mode === "OneTimeWindow") {
         const existingSchedule = await prisma.contributionSchedule.findFirst({
           where: {
@@ -120,7 +113,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
         continue;
       }
 
-      // Handle 'Recurring' and 'OpenEndedRecurring' contributions
       let recurringStart = normalizeToMonthStart(
         contribution.start_date ?? startDate
       );
@@ -130,8 +122,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
         if (!contributionType.end_date) continue;
         recurringEnd = normalizeToMonthStart(contributionType.end_date);
       } else {
-        // OpenEndedRecurring
-        recurringEnd = addMonths(now, 11); // Generate for the next 12 months
+        recurringEnd = addMonths(now, 11); 
       }
 
       const months = generateMonthlyDates(recurringStart, recurringEnd);
@@ -171,10 +162,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
           amount: totalAmount,
         });
       }
-
-      // =================================================================
-      // MODIFIED SECTION: Handle unallocated amount with payment records
-      // =================================================================
       const balance = await prisma.balance.findUnique({
         where: {
           member_id_contribution_id: {
@@ -206,7 +193,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
 
             let totalAllocatedForRecord = 0;
 
-            // 1. Pay past penalties first
             const pastSchedules = await tx.contributionSchedule.findMany({
               where: {
                 member_id: member.id,
@@ -261,7 +247,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
                 totalAllocatedForRecord += toPay;
               }
 
-              // 2. Pay past schedules
               if (remainingUnallocated <= 0) continue;
 
               const paidAlready = Number(schedule.paid_amount);
@@ -297,7 +282,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
               }
             }
 
-            // 3. NEW: Pay current month's schedule if funds remain
             if (remainingUnallocated > 0) {
               const currentSchedule = await tx.contributionSchedule.findFirst({
                 where: {
@@ -345,7 +329,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
               }
             }
 
-            // Final balance updates
             if (totalAllocatedForRecord > 0) {
               await tx.balance.update({
                 where: {
@@ -369,13 +352,11 @@ export async function generateContributionSchedulesForAllActiveMembers(
               });
 
               if (!updatedBalance) {
-                // This is a safety check; it should never be triggered in this flow.
                 throw new Error(
                   `Failed to retrieve balance for member ${member.id} after auto-payment.`
                 );
               }
 
-              // Now, update the payment record with BOTH the total paid and the new remaining balance.
               await tx.paymentRecord.update({
                 where: { id: paymentRecord.id },
                 data: {
@@ -395,13 +376,10 @@ export async function generateContributionSchedulesForAllActiveMembers(
           }
         );
       }
-      // =================================================================
-      // END OF MODIFIED SECTION
-      // =================================================================
+      
     }
   }
 
-  // BATCH OPERATIONS: Create new schedules and update balances efficiently.
 
   if (allNewSchedules.length > 0) {
     console.log(`Creating ${allNewSchedules.length} new schedules`);
@@ -433,7 +411,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     });
   }
 
-  // PENALTY GENERATION LOGIC
   const unpaidSchedules = await prisma.contributionSchedule.findMany({
     where: { is_paid: false },
     include: {
@@ -481,7 +458,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
       });
 
       if (existingPenaltyForMonth) {
-        // A penalty for this month already exists. We should only UPDATE it if the amount has increased.
         if (
           Number(existingPenaltyForMonth.expected_amount) <
             calculatedPenaltyAmount &&
@@ -495,10 +471,8 @@ export async function generateContributionSchedulesForAllActiveMembers(
             },
           });
         }
-        // If the existing penalty is already paid, or the amount hasn't increased, we do nothing.
       } else {
-        // No penalty has ever been created for this missed month for this member.
-        // It is safe to create a new one.
+      
         penaltiesToCreate.push({
           member_id: schedule.member_id,
           contribution_id: schedule.contribution_id,
@@ -526,7 +500,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     });
   }
 
-  // MEMBER INACTIVATION LOGIC
   const contributionsForInactivation = await prisma.contribution.findMany({
     where: {
       member: { status: "Active" },
@@ -587,9 +560,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
   };
 }
 
-/**
- * Recalculates the total balance for a list of members based on their schedules.
- */
+
 async function recalculateMemberContributionBalances(
   members: (Member & {
     Contribution: (Contribution & {
