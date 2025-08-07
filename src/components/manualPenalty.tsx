@@ -30,7 +30,7 @@ import {
 } from "react-icons/fa";
 import Image from "next/image";
 import UploadFile from "./FileUpload/page";
-import { PenaltyType, PenaltyTypeModel } from "@prisma/client";
+import {  PenaltyTypeModel } from "@prisma/client";
 export const dynamic = "force-dynamic";
 type Member = {
   id: number;

@@ -23,7 +23,6 @@ function generateMonthlyDates(start: Date, end: Date): Date[] {
   return dates;
 }
 
-
 async function inactivateMember(memberId: number, simulate: boolean = false) {
   if (simulate) {
     console.log(`SIMULATION: Would inactivate member ${memberId}.`);
@@ -44,11 +43,10 @@ interface GenerateSchedulesOptions {
   simulationMonths?: number;
 }
 
-
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
-  const { simulate = true, simulationMonths = 3} = options;
+  const { simulate = true, simulationMonths = 3 } = options;
   const now = simulate
     ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
@@ -122,7 +120,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
         if (!contributionType.end_date) continue;
         recurringEnd = normalizeToMonthStart(contributionType.end_date);
       } else {
-        recurringEnd = addMonths(now, 11); 
+        recurringEnd = addMonths(now, 11);
       }
 
       const months = generateMonthlyDates(recurringStart, recurringEnd);
@@ -182,10 +180,10 @@ export async function generateContributionSchedulesForAllActiveMembers(
             const formattedId = `PYN-${nextId.toString().padStart(4, "0")}`;
             const paymentRecord = await tx.paymentRecord.create({
               data: {
-                custom_id: `${formattedId}-auto-paid`,
+                custom_id: `${formattedId}`,
                 member_id: member.id,
                 contribution_Type_id: contribution.contribution_type_id,
-                payment_method: "system",
+                payment_method: "system(auto-paid)",
                 document_reference: "Automated System Allocation",
                 total_paid_amount: 0,
               },
@@ -376,10 +374,8 @@ export async function generateContributionSchedulesForAllActiveMembers(
           }
         );
       }
-      
     }
   }
-
 
   if (allNewSchedules.length > 0) {
     console.log(`Creating ${allNewSchedules.length} new schedules`);
@@ -472,7 +468,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
           });
         }
       } else {
-      
         penaltiesToCreate.push({
           member_id: schedule.member_id,
           contribution_id: schedule.contribution_id,
@@ -559,7 +554,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     currentSimulationDate: currentMonthStart,
   };
 }
-
 
 async function recalculateMemberContributionBalances(
   members: (Member & {

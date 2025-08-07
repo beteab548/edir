@@ -27,7 +27,6 @@ export async function GET(req: NextRequest) {
         created_at: true,
       },
     });
-
     const formattedMembers = recentMembers.map((member) => ({
       ...member,
       created_at: member.created_at.toISOString(),

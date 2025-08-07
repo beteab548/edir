@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
 import { useEffect, useState } from "react";
+import { FiPieChart, FiUsers } from "react-icons/fi";
 
 interface GenderData {
   males: number;
@@ -52,7 +53,21 @@ const CountChart = () => {
   }, []);
 
   return (
-    <div className=" rounded-2xl w-full h-full p-6 flex flex-col justify-between">
+    <div className=" rounded-2xl w-full h-full  flex flex-col justify-between">
+       <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-1">
+                <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600">
+             <FiUsers className="w-5 h-5 inline-block mr-1 align-middle" />
+                </div>
+                <div>
+                  {/* --- STEP 3: UPDATE THE TITLE --- */}
+                  <h2 className="text-md font-semibold text-gray-600">
+                    Member Distribution (Active Families)
+                  </h2>
+                 
+                </div>
+              </div>
+            </div>
       <div className="relative w-full h-64 mb-6 mt-4">
         {loading ? (
           <div className="flex items-center justify-center h-full">

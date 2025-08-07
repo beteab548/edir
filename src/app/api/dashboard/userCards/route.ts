@@ -1,17 +1,9 @@
-// In src/app/api/dashboard/userCards/route.ts
-
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 import { NextRequest, NextResponse } from "next/server";
-// --- FIX #1: REMOVE the direct import of PrismaClient ---
-// import { PrismaClient } from "@prisma/client";
 
-// --- FIX #2: IMPORT the shared singleton instance instead ---
 import prisma from "@/lib/prisma";
-
-// --- FIX #3: DELETE the line that creates a new client ---
-// const prisma = new PrismaClient(); // <-- DELETE THIS LINE
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -39,7 +31,6 @@ export async function GET(req: NextRequest) {
 
     let currentCount = 0;
 
- 
     switch (type) {
       case "active members":
         currentCount = await prisma.member.count({
@@ -71,11 +62,15 @@ export async function GET(req: NextRequest) {
           },
         });
         break;
-
       case "total members":
-        currentCount = await prisma.member.count();
+        currentCount = await prisma.member.count({
+          where: {
+            status: {
+              notIn: ["Deceased", "Left"],
+            },
+          },
+        });
         break;
-
       case "deceased members":
         currentCount = await prisma.member.count({
           where: {
@@ -84,10 +79,7 @@ export async function GET(req: NextRequest) {
           },
         });
         break;
-
       case "deceased relative":
-        // Assuming you meant to count relatives here. If you meant members, the above logic is fine.
-        // If you actually have a `relative` table, the query would be:
         currentCount = await prisma.relative.count({
           where: {
             status: "Deceased",

@@ -22,7 +22,6 @@ const TABS = [
   { label: "All Types", value: "all" },
   { label: "Recurring", value: "Recurring" },
   { label: "Open Ended Recurrring", value: "OpenEndedRecurring" },
-  { label: "One Time Window", value: "OneTimeWindow" },
 ];
 
 export default function PenaltiesOverviewPage({ members }: Props) {
@@ -49,9 +48,12 @@ export default function PenaltiesOverviewPage({ members }: Props) {
           typeName: type.name,
         };
       }
-      acc[type.mode].count++;
-      acc[type.mode].totalAmount +=
-        Number(penalty.expected_amount) - Number(penalty.paid_amount);
+
+      if (!penalty.waived) {
+        acc[type.mode].count++;
+        acc[type.mode].totalAmount +=
+          Number(penalty.expected_amount) - Number(penalty.paid_amount);
+      }
       return acc;
     }, {} as Record<string, { count: number; totalAmount: number; typeName: string }>);
   };

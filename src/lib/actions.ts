@@ -4,7 +4,7 @@ import { logAction } from "./audit";
 import { Decimal } from "@prisma/client/runtime/library";
 import { FamilyMemberSchema, RelativeSchema } from "./formValidationSchemas";
 import { applyCatchUpPayment } from "./services/paymentService";
-import { ContributionMode } from "@prisma/client";
+import { ContributionMode, ContributionType } from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
 import {
   ContributionSchedule,
@@ -2482,12 +2482,11 @@ export async function generateInitialSchedulesForMember(
     const contributionAmount = Number(contributionType.amount);
     if (contributionAmount <= 0) continue;
 
-    // Handle 'OneTimeWindow' contributions
     if (contributionType.mode === "OneTimeWindow") {
       allNewSchedules.push({
         member_id: member.id,
         contribution_id: contribution.id,
-        month: startDate, // The start date is the single due date
+        month: startDate,
         paid_amount: 0,
         is_paid: false,
         expected_amount: contributionAmount,
@@ -2496,7 +2495,6 @@ export async function generateInitialSchedulesForMember(
       continue;
     }
 
-    // Handle 'Recurring' and 'OpenEndedRecurring' contributions
     let recurringStart = normalizeToMonthStart(startDate);
     let recurringEnd: Date;
 
@@ -2504,12 +2502,9 @@ export async function generateInitialSchedulesForMember(
       if (!contributionType.end_date) continue;
       recurringEnd = normalizeToMonthStart(contributionType.end_date);
     } else {
-      // OpenEndedRecurring
-      // --- FIX #3: Calculate the end date based on the simulated effectiveDate ---
       recurringEnd = addMonths(nowForOpenEnded, 11);
     }
 
-    // Generate all monthly dates within the calculated range
     const months = generateMonthlyDates(recurringStart, recurringEnd);
 
     for (const month of months) {
@@ -2528,15 +2523,151 @@ export async function generateInitialSchedulesForMember(
     }
   }
 
-  // STEP 3: Perform the database operations.
   if (allNewSchedules.length > 0) {
     await tx.contributionSchedule.createMany({
       data: allNewSchedules,
-      skipDuplicates: true, // Good practice to keep this
+      skipDuplicates: true,
     });
 
     console.log(
       `Generated ${allNewSchedules.length} initial schedules for member #${memberId}.`
     );
   }
+}
+export async function checkContributionmode(type: string) {
+  const contributionmode = await prisma.contributionType.findUnique({
+    where: { name: type },
+  });
+  if (
+    contributionmode?.mode === "Recurring" ||
+    contributionmode?.mode == "OneTimeWindow"
+  ) {
+    return true;
+  } else {
+    return false;
+  }
+}
+export async function fetchbalance(memberID: number, type: string) {
+  console.log("fetchbalcne data:", memberID, type);
+  const contributionType = await prisma.contributionType.findUnique({
+    where: { name: type },
+  });
+  const contribution = await prisma.contribution.findUnique({
+    where: {
+      member_id_contribution_type_id: {
+        member_id: memberID,
+        contribution_type_id: contributionType?.id!,
+      },
+    },
+  });
+  const balance = await prisma.balance.findUnique({
+    where: {
+      member_id_contribution_id: {
+        member_id: memberID,
+        contribution_id: contribution?.id!,
+      },
+    },
+  });
+  const penalties = await prisma.penalty.findMany({
+    where: {
+      member_id: memberID,
+      contribution_id: contribution?.id,
+      is_paid: false,
+    },
+  });
+  console.log("penalties:", penalties);
+  const totalpenalty = penalties.reduce((sum, initial) => {
+    return sum + Number(Number(initial.expected_amount)-Number(initial.paid_amount));
+  }, 0);
+  console.log("balance:", balance?.amount, "totalpenalty:", totalpenalty);
+  return Number(balance?.amount) + totalpenalty;
+}
+
+export async function checkIFhasExcessbalance(memberid: number) {
+  try {
+    console.log(`Checking balance for member ID: ${memberid}`); // Add this log
+
+    const contributionType = await prisma.contributionType.findUnique({
+      where: { name: "Monthly" },
+    });
+
+    if (!contributionType) {
+      console.warn("Contribution type 'Monthly' not found."); // Use console.warn for non-critical issues
+      return 0; // Or throw an error, depending on your logic
+    }
+
+    const contribution = await prisma.contribution.findUnique({
+      where: {
+        member_id_contribution_type_id: {
+          member_id: memberid,
+          contribution_type_id: contributionType?.id!,
+        },
+      },
+    });
+
+    if (!contribution) {
+      console.warn(
+        `No contribution found for member ID: ${memberid}, contribution type ID: ${contributionType.id}`
+      );
+      return 0;
+    }
+
+    const memberbalance = await prisma.balance.findUnique({
+      where: {
+        member_id_contribution_id: {
+          member_id: memberid,
+          contribution_id: contribution?.id!,
+        },
+      },
+    });
+
+    if (!memberbalance) {
+      console.warn(
+        `No balance found for member ID: ${memberid}, contribution ID: ${contribution.id}`
+      );
+      return 0;
+    }
+
+    console.log(`Unallocated amount: ${memberbalance.unallocated_amount}`);
+    return Number(memberbalance?.unallocated_amount);
+  } catch (error) {
+    console.error("Error in checkIFhasExcessbalance:", error); // CRITICAL: Log the error!
+    return 0; // Or re-throw the error, depending on how you want to handle it
+  }
+}
+type contributioType = {
+  id: number;
+  amount: number;
+  name: string;
+  is_active: boolean;
+};
+export async function deductAmountFromBalance(
+  member_id: number,
+  amount: number
+) {
+  const contributionType = await prisma.contributionType.findUnique({
+    where: { name: "Monthly" },
+  });
+  const contribution = await prisma.contribution.findUnique({
+    where: {
+      member_id_contribution_type_id: {
+        member_id,
+        contribution_type_id: contributionType?.id!,
+      },
+    },
+  });
+  await prisma.balance.update({
+    where: {
+      member_id_contribution_id: {
+        member_id,
+        contribution_id: contribution?.id!,
+      },
+    },
+    data: {
+      unallocated_amount: {
+        decrement: amount,
+      },
+    },
+  });
+  return;
 }

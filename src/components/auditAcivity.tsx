@@ -32,9 +32,9 @@ export default function AuditActivity({ type }: { type?: string }) {
     error,
     isLoading,
   } = useSWR("/api/audit-logs", fetcher, {
-    refreshInterval: 30000, 
+    refreshInterval: 30000,
+    fallbackData: [],
   });
-
   if (isLoading) {
     return <div className="p-4 text-center">Loading activity...</div>;
   }
@@ -59,29 +59,32 @@ export default function AuditActivity({ type }: { type?: string }) {
         Recent Activity
       </h3>
       <div className="space-y-4">
-        {logs?.slice(0, 5).map((log: any) => (
-          <div key={log.id} className="flex items-start gap-3">
-            <div>
-              {log.status === "SUCCESS" ? (
-                <FiCheckCircle className="w-5 h-5 text-green-500 mt-1" />
-              ) : (
-                <FiAlertCircle className="w-5 h-5 text-red-500 mt-1" />
-              )}
+        {Array.isArray(logs) &&
+          logs?.slice(0, 5).map((log: any) => (
+            <div key={log.id} className="flex items-start gap-3">
+              <div>
+                {log.status === "SUCCESS" ? (
+                  <FiCheckCircle className="w-5 h-5 text-green-500 mt-1" />
+                ) : (
+                  <FiAlertCircle className="w-5 h-5 text-red-500 mt-1" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-sm text-gray-800">
+                  <span className="font-semibold">{log.userFullName}</span>{" "}
+                  {log.details}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {formatDistanceToNow(new Date(log.timestamp))} ago
+                </p>
+                {log.status === "FAILURE" && log.error && (
+                  <p className="text-xs text-red-600 mt-1">
+                    Error: {log.error}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-gray-800">
-                <span className="font-semibold">{log.userFullName}</span>{" "}
-                {log.details}
-              </p>
-              <p className="text-xs text-gray-500">
-                {formatDistanceToNow(new Date(log.timestamp))} ago
-              </p>
-              {log.status === "FAILURE" && log.error && (
-                <p className="text-xs text-red-600 mt-1">Error: {log.error}</p>
-              )}
-            </div>
-          </div>
-        ))}
+          ))}
       </div>
     </div>
   );

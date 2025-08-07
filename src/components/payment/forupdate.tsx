@@ -28,16 +28,20 @@ import UploadFile from "../FileUpload/page";
 import DeletePaymentButton from "../deletePaymnetModal";
 import FilterBar from "../filterbar";
 import {
-  deductAmountFromBalance,
+  checkContributionmode,
+  checkIFhasExcessbalance,
   fetchbalance,
   paymentActionforAutomatic,
   paymentActionforManual,
+  deductAmountFromBalance,
 } from "@/lib/actions";
 import {
   paymentFormSchema,
   PaymentFormSchemaType,
   penaltyPaymentFormSchema,
+  penaltyPaymentFormSchemaType,
 } from "@/lib/formValidationSchemas";
+import { z } from "zod";
 
 // --- Icon Imports ---
 import { FaExclamation, FaFileDownload } from "react-icons/fa";
@@ -48,8 +52,6 @@ import {
   UserIcon as HeroUserIcon,
 } from "@heroicons/react/24/outline";
 
-// --- Import the Action ---
-import { checkIFhasExcessbalance } from "@/lib/actions"; // Make sure the path is correct
 // =================================================================================
 // --- Type Definitions ---
 // =================================================================================
@@ -63,7 +65,6 @@ type ContributionType = {
   amount: number;
   name: string;
   is_active: boolean;
-  mode: "Recurring" | "OneTimeWindow" | "OpenEndedRecurring";
 };
 
 type Payment = {
@@ -88,19 +89,13 @@ type PaymentRecord = {
   member_id: number;
 };
 
-type penaltyPaymentFormSchemaType = {
-  member_id: number;
-  paid_amount: string;
-  payment_method: string;
-  payment_date: string;
-  penalty_month: string;
-  receipt?: string | undefined;
-  contribution_id: string;
-};
-
 // =================================================================================
 // --- Main Component ---
 // =================================================================================
+
+// Utility type to merge schema types, making all optional
+type MergedSchemaType = Partial<PaymentFormSchemaType> &
+  Partial<penaltyPaymentFormSchemaType>;
 
 export default function ContributionTemplate({
   ContributionType,
@@ -113,6 +108,7 @@ export default function ContributionTemplate({
   payments: PaymentRecord[];
   type: "manually" | "automatically";
 }) {
+  // --- State Management ---
   const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchResults, setSearchResults] = useState<PrincipalWithSpouse[]>([]);
@@ -122,19 +118,19 @@ export default function ContributionTemplate({
   const [image, setImageUrl] = useState<{ Url: string; fileId: string } | null>(
     null
   );
+  const [LimitBalanceError, setLimitBalanceError] = useState<string>("");
   const [openPaymentId, setOpenPaymentId] = useState<number | null>(null);
   const [imageReady, setImageReady] = useState(true);
-
+  const [payFromBalance, setPayFromBalance] = useState<boolean>(false); // Track checkbox state
+  const [hasExcessBalanceAmount, setHasExcessBalanceAmount] =
+    useState<number>(0); // Store excess balance amount
   // Penalty-specific state
   const [penaltyMonths, setPenaltyMonths] = useState<
     { month: Date; amount: number; waived: boolean | null }[]
   >([]);
   const [loadingPenaltyMonths, setLoadingPenaltyMonths] = useState(false);
-  const [LimitMessage, setLimitMessage] = useState<string>("");
   const [isAmountLocked, setIsAmountLocked] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [payFromBalance, setPayFromBalance] = useState(false);
-  const [excessBalance, setExcessBalance] = useState<number>(0); // Track excess balance
   // --- Hooks ---
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -165,7 +161,7 @@ export default function ContributionTemplate({
   });
 
   const paymentMethod = watch("payment_method");
-  const paidAmount = watch("paid_amount"); // Get the paid amount
+  const penaltyMonth = watch("penalty_month"); // Get selected penalty month
 
   // --- Handlers and Callbacks ---
 
@@ -179,7 +175,7 @@ export default function ContributionTemplate({
     setSearchTerm(e.target.value);
   };
 
-  const handlePrincipalSelect = (principal: PrincipalWithSpouse) => {
+  const handlePrincipalSelect = async (principal: PrincipalWithSpouse) => {
     setSelectedPrincipal(principal);
     setSearchTerm(`${principal.first_name} ${principal.last_name}`);
     setSearchResults([]);
@@ -191,38 +187,57 @@ export default function ContributionTemplate({
     setSelectedPrincipal(null);
     setSearchTerm("");
     setValue("member_id", 0, { shouldValidate: true });
+    setHasExcessBalanceAmount(0);
+    setPayFromBalance(false);
   }, [setSelectedPrincipal, setSearchTerm, setValue]);
+
   const resetValues = useCallback(() => {
     setShowAddModal(false);
     clearSelectedPrincipal();
     setImageUrl(null);
-    setLimitMessage("");
     setIsDropdownOpen(false);
     setIsAmountLocked(false);
     setPenaltyMonths([]);
-    setPayFromBalance(false); // Also reset payFromBalance
+    setLoading(false);
+    setLimitBalanceError("");
+    setHasExcessBalanceAmount(0);
+    setPayFromBalance(false);
+    setValue("payment_method", "Cash"); // Reset payment method
+    setValue("payment_date", new Date().toISOString().split("T")[0]); // Reset payment date
+    setValue(
+      "paid_amount",
+      type === "automatically" ? ContributionType?.amount?.toString() || "" : ""
+    ); // Reset amount
     reset({
-      payment_method: "Cash",
-      payment_date: new Date().toISOString().split("T")[0],
-      penalty_month: "",
-      paid_amount:
-        type === "automatically"
-          ? ContributionType?.amount.toString() || ""
-          : "",
+      // Keep the reset function to reset the other values of the form
       member_id: 1,
       contribution_id: ContributionType?.id?.toString() || "",
     });
-  }, [reset, type, ContributionType, clearSelectedPrincipal]);
+  }, [reset, type, ContributionType, clearSelectedPrincipal, setValue]);
 
-  const onSubmit = async (
-    data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
-  ) => {
+  // Function to check for excess balance
+  const checkIfExcessBalance = async (memberId: number, amount: number) => {
+    try {
+      const excessBalance = await checkIFhasExcessbalance(memberId);
+      setHasExcessBalanceAmount(excessBalance);
+      if (excessBalance >= amount) {
+        setPayFromBalance(true); //Automatically select pay from balance if possible
+      } else {
+        setPayFromBalance(false);
+      }
+      return excessBalance;
+    } catch (error) {
+      console.error("Error checking excess balance:", error);
+      toast.error("Failed to check excess balance");
+      setHasExcessBalanceAmount(0);
+      setPayFromBalance(false);
+      return 0;
+    }
+  };
+
+  const onSubmit = async (data: MergedSchemaType) => {
     if (!selectedPrincipal) {
       toast.error("Please select a principal member first.");
-      return;
-    }
-    if (payFromBalance && !excessBalance) {
-      toast.error("Insufficient balance.");
       return;
     }
     setLoading(true);
@@ -230,50 +245,70 @@ export default function ContributionTemplate({
       const baseData = {
         member_id: selectedPrincipal.id,
         paid_amount: Number(data.paid_amount),
-        payment_method: payFromBalance ? "Excess Balance" : data.payment_method, // Use 'Balance' as payment method
+        payment_method: data.payment_method,
         payment_date: new Date(data.payment_date),
         receipt: image?.Url,
       };
 
+      if (type === "manually" && payFromBalance) {
+        // Deduct from balance first
+        try {
+          await deductAmountFromBalance(
+            selectedPrincipal.id,
+            Number(data.paid_amount),
+            // Pass ContributionType only if it exists
+            ContributionType!
+          );
+
+          toast.success("Amount deducted from balance.");
+        } catch (deductError) {
+          console.error("Error deducting from balance:", deductError);
+          toast.error("Failed to deduct amount from balance.");
+          setLoading(false);
+          return; // Stop the payment if deduction fails
+        }
+      }
+
       if (type === "automatically") {
+        const limitbalance = await checkContributionmode(
+          ContributionType?.name!
+        );
+        console.log("limit balnce", limitbalance);
+        console.log("pricipal id", selectedPrincipal.id);
+        console.log("contribution type", ContributionType?.name);
         const automaticData = {
           ...baseData,
           contribution_type: (data as PaymentFormSchemaType).contribution_type,
           contribution_id: ContributionType?.id?.toString(),
         };
-        const limitAmount = await fetchbalance(
-          selectedPrincipal.id,
-          ContributionType?.name!
-        );
-        if (ContributionType?.mode !== "OpenEndedRecurring") {
-          if (limitAmount < Number(data.paid_amount)) {
-            setLimitMessage(
-              `paid amount ${baseData.paid_amount} birr is greater than the limit of owed ${limitAmount} birr`
-            );
+        if (limitbalance) {
+          const balance = await fetchbalance(
+            selectedPrincipal.id,
+            ContributionType?.name!
+          );
+          if (balance! >= baseData.paid_amount) {
+            return formAction(automaticData as any);
+          } else {
             setLoading(false);
-            return;
+            return setLimitBalanceError(
+              `Can't submit amount (${baseData.paid_amount}) greater than owed (${balance}) `
+            );
           }
         }
-        setLimitMessage("");
         formAction(automaticData as any);
+
+        console.log("paid amount is:", baseData.paid_amount);
       } else {
         const penaltyData = {
           ...baseData,
-          penalty_month: new Date(
-            (data as penaltyPaymentFormSchemaType).penalty_month
-          ),
+          penalty_month: new Date((data as any).penalty_month),
         };
-        if (payFromBalance) {
-          await deductAmountFromBalance(
-            selectedPrincipal.id,
-            Number(data.paid_amount)
-          );
-        }
         formAction(penaltyData as any);
       }
     } catch (error) {
       console.error("❌ Error submitting form:", error);
       toast.error("Failed to process payment");
+    } finally {
       setLoading(false);
     }
   };
@@ -283,14 +318,8 @@ export default function ContributionTemplate({
     toast.error("Please check the form for errors.");
   };
 
-  // --- useEffect Hooks ---
-
-  // Smart search for principals and their spouses
-  // Smart search for principals and their spouses
   useEffect(() => {
     if (!principals) return;
-
-    // The single source of truth for filtering is the `principals` prop.
     const lowerCaseSearchTerm = searchTerm.toLowerCase();
     const results = principals.filter((principal) => {
       const principalName =
@@ -311,46 +340,38 @@ export default function ContributionTemplate({
     setSearchResults(results);
   }, [searchTerm, principals]);
 
-  // Click outside dropdown handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
-        setIsDropdownOpen(false); // This is now correctly placed inside the handler
+        setIsDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Form state handler
-  // --- CORRECTED: Form state handler to prevent toast loops ---
-  // We use a ref to track the previous state to only fire the toast on a state *change*.
   const formStateRef = useRef(state);
 
   useEffect(() => {
-    // Check for a successful state change (i.e., it was not success before, but is now)
     if (state.success && !formStateRef.current.success) {
       toast.success("Payment created successfully!");
       setLoading(false);
 
       resetValues();
-      router.refresh(); // It's now safe to refresh
+      router.refresh();
     }
 
-    // Check for an error state change
     if (state.error && !formStateRef.current.error) {
       toast.error("Something went wrong with the payment.");
       setLoading(false);
     }
 
-    // ALWAYS update the ref to the current state for the next render comparison.
     formStateRef.current = state;
-  }, [state, resetValues, router]); // Keep dependencies the same
+  }, [state, resetValues, router]);
 
-  // Fetch penalty months when a principal is selected for a manual payment
   useEffect(() => {
     const fetchPenaltyMonths = async () => {
       if (type === "manually" && selectedPrincipal) {
@@ -383,7 +404,6 @@ export default function ContributionTemplate({
     fetchPenaltyMonths();
   }, [type, selectedPrincipal]);
 
-  // Watch for changes in the penalty_month dropdown and update the amount
   useEffect(() => {
     const subscription = watch((value, { name }) => {
       if (name === "penalty_month" && value.penalty_month) {
@@ -397,45 +417,30 @@ export default function ContributionTemplate({
             shouldValidate: true,
           });
           setIsAmountLocked(true);
+          //Call check if user has enough excess amount
+          if (selectedPrincipal) {
+            checkIfExcessBalance(selectedPrincipal.id, selectedMonth.amount);
+          }
         }
       } else if (name === "penalty_month" && !value.penalty_month) {
         setValue("paid_amount", "");
         setIsAmountLocked(false);
+        setHasExcessBalanceAmount(0);
+        setPayFromBalance(false);
       }
     });
     return () => subscription.unsubscribe();
-  }, [watch, penaltyMonths, setValue]);
+  }, [watch, penaltyMonths, setValue, selectedPrincipal]);
 
-  // Set default amount for automatic contributions
   useEffect(() => {
     if (type === "automatically" && ContributionType?.amount) {
       setValue("paid_amount", ContributionType.amount.toString());
     }
   }, [type, ContributionType, setValue]);
 
-  // Check excess balance
-  useEffect(() => {
-    const checkBalance = async () => {
-      if (type === "manually" && selectedPrincipal && paidAmount) {
-        try {
-          const excess = await checkIFhasExcessbalance(selectedPrincipal.id);
-          setExcessBalance(excess);
-        } catch (error) {
-          console.error("Error checking balance:", error);
-          toast.error("Failed to check balance");
-          setExcessBalance(0);
-        }
-      } else {
-        setExcessBalance(0);
-      }
-    };
-    checkBalance();
-  }, [type, selectedPrincipal, paidAmount]);
-  // --- Render ---
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-600">
@@ -479,9 +484,7 @@ export default function ContributionTemplate({
                   <TableHeader>Amount</TableHeader>
                   <TableHeader>Date</TableHeader>
                   <TableHeader>Method</TableHeader>
-                  {type === "automatically" && (
-                    <TableHeader>Balance</TableHeader>
-                  )}
+                  <TableHeader>Balance</TableHeader>
                   <TableHeader>Actions</TableHeader>
                 </tr>
               </thead>
@@ -525,19 +528,17 @@ export default function ContributionTemplate({
                             {payment.payment_method}
                           </Badge>
                         </TableCell>
-                        {type === "automatically" && (
-                          <TableCell>
-                            <span
-                              className={`${
-                                (payment?.remaining_balance ?? 0) > 0
-                                  ? " text-red-800 bg-red-100  "
-                                  : " text-green-800 bg-green-100 "
-                              } rounded-full  px-2 `}
-                            >
-                              {payment.remaining_balance}
-                            </span>
-                          </TableCell>
-                        )}
+                        <TableCell>
+                          <span
+                            className={`${
+                              (payment?.remaining_balance ?? 0) > 0
+                                ? " text-red-800 bg-red-100  "
+                                : " text-green-800 bg-green-100 "
+                            } rounded-full  px-2 `}
+                          >
+                            {payment.remaining_balance}
+                          </span>
+                        </TableCell>
                         <TableCell onclick={(e) => e.stopPropagation()}>
                           <DeletePaymentButton
                             type={type}
@@ -678,7 +679,7 @@ export default function ContributionTemplate({
                 onSubmit={handleSubmit(onSubmit, onError)}
                 className="space-y-6"
               >
-                {/* --- Row 1: Search and Type --- */}
+                {/* Row 1: Search and Type */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Col 1: Find Family */}
                   <div>
@@ -822,7 +823,7 @@ export default function ContributionTemplate({
                       : "opacity-40 pointer-events-none"
                   }`}
                 >
-                  {/* --- Row 2: Amount and Date --- */}
+                  {/* Row 2: Amount and Date */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Col 1: Amount */}
                     <div>
@@ -847,10 +848,15 @@ export default function ContributionTemplate({
                               : "",
                         }}
                       />
-                      <span className="text-xs text-red-600">
-                        {LimitMessage.length > 0 && LimitMessage}
-                      </span>
+                      {LimitBalanceError.length > 0 && (
+                        <>
+                          <span className="text-red-500 text-sm">
+                            {LimitBalanceError}
+                          </span>
+                        </>
+                      )}
                     </div>
+
                     {/* Col 2: Payment Date */}
                     <InputField
                       label="Payment Date"
@@ -861,31 +867,25 @@ export default function ContributionTemplate({
                       inputProps={{ required: true }}
                     />
                   </div>
-                  {/* Pay from balance checkbox */}
-                  {type === "manually" && (
-                    <div className="flex items-center">
+                  {type === "manually" && hasExcessBalanceAmount > 0 && (
+                    <div className="flex items-center space-x-2">
                       <input
-                        id="pay-from-balance"
                         type="checkbox"
-                        className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        id="payFromBalance"
+                        className="rounded text-blue-500 focus:ring-blue-500"
                         checked={payFromBalance}
                         onChange={(e) => setPayFromBalance(e.target.checked)}
-                        disabled={Number(paidAmount) > excessBalance}
                       />
                       <label
-                        htmlFor="pay-from-balance"
-                        className="ml-2 block text-sm text-gray-900"
+                        htmlFor="payFromBalance"
+                        className="text-sm font-medium text-gray-700"
                       >
-                        Pay from Balance (Available: {excessBalance} birr)
+                        Pay from Balance (Excess: {hasExcessBalanceAmount} birr)
                       </label>
                     </div>
                   )}
-                  <span className="text-red-600 text-xs">
-                    {type === "manually" &&
-                      Number(paidAmount) > excessBalance &&
-                      "Not enough excess balance"}
-                  </span>
-                  {/* --- Row 3: Method and Upload --- */}
+
+                  {/* Row 3: Method and Upload */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Col 1: Payment Method */}
                     <SelectField
@@ -898,11 +898,10 @@ export default function ContributionTemplate({
                         { value: "Bank", label: "Bank" },
                         { value: "Mobile banking", label: "Mobile banking" },
                       ]}
-                      disabled={payFromBalance}
                     />
                     {/* Col 2: Upload File (Conditional) */}
                     <div>
-                      {paymentMethod !== "Cash" && !payFromBalance && (
+                      {paymentMethod !== "Cash" && (
                         <UploadFile
                           text="receipt"
                           getImageUrl={getImageUrl}
@@ -913,7 +912,7 @@ export default function ContributionTemplate({
                   </div>
                 </div>
 
-                {/* --- Form Buttons --- */}
+                {/* Form Buttons */}
                 <div className="flex justify-end gap-3 pt-6 border-t">
                   <button
                     type="button"
@@ -924,10 +923,20 @@ export default function ContributionTemplate({
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium  text-white hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    style={{
+                      backgroundColor:
+                        type === "manually" && payFromBalance
+                          ? "#4CAF50"
+                          : "#3B82F6",
+                    }}
                     disabled={!selectedPrincipal || loading || !imageReady}
                   >
-                    {loading ? "Processing..." : "Save Payment"}
+                    {loading
+                      ? "Processing..."
+                      : type === "manually" && payFromBalance
+                      ? "Pay from Balance"
+                      : "Save Payment"}
                   </button>
                 </div>
               </form>

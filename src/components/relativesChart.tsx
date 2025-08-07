@@ -47,6 +47,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({ apiUrl 
       }
 
       const data = await response.json();
+      console.log("relatives date:",data);
       setRelatives(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch relatives");
@@ -88,7 +89,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({ apiUrl 
           </div>
           <div>
             {/* --- STEP 3: UPDATE THE TITLE --- */}
-            <h2 className="text-md font-semibold text-gray-900">
+            <h2 className="text-md font-semibold text-gray-600">
               Relatives Distribution (Active Families)
             </h2>
             <p className="text-xs text-gray-500">
@@ -146,7 +147,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({ apiUrl 
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="-mt-24 pt-4 border-gray-200">
+          <div className="-mt-28 pt-4 border-gray-200">
             <div className="flex items-center justify-center space-x-2">
               <FiUsers className="text-gray-500" />
               <span className="text-sm font-medium text-gray-700">
