@@ -645,7 +645,7 @@ export default function ContributionTemplate({
                                               ? "Registration Fee"
                                               : "Monthly Contribution"}
                                           </p>
-                                          <p className="font-semibold">
+                                          <p className="font-semibold text-blue-800">
                                             {Number(p.paid_amount).toFixed(2)}{" "}
                                             birr
                                           </p>

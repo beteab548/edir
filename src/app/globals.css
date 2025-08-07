@@ -7,7 +7,9 @@ body {
     transform-origin: top left; /* Important to keep the top-left corner in place */
   /* transform: scale(0.95); 0.9 = 90% zoom */
 }
-
+html {
+  font-size: 94%; /*  This sets the base font size for the entire document */
+}
 .react-calendar {
   width: 100% !important;
   border: none !important;

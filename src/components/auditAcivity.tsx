@@ -36,7 +36,20 @@ export default function AuditActivity({ type }: { type?: string }) {
     fallbackData: [],
   });
   if (isLoading) {
-    return <div className="p-4 text-center">Loading activity...</div>;
+    return (
+      <div className="max-w-md mx-auto p-6  bg-white rounded-xl shadow border border-gray-200 animate-pulse">
+        <div className="h-8 bg-gray-300 rounded w-3/4 mb-6"></div>
+        <div className="space-y-5">
+          {[1, 2, 3, 4,5].map((i) => (
+            <div
+              key={i}
+              className="h-12 bg-gray-300 rounded w-3/3"
+              style={{ animationDelay: `${i * 150}ms` }}
+            />
+          ))}
+        </div>
+      </div>
+    );
   }
   if (error) {
     return (
