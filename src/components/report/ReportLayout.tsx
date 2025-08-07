@@ -54,7 +54,7 @@ export default function ReportLayout({
     <div className="bg-white p-4 border rounded-md w-full" id="report-content">
       <div className="flex items-center justify-between border-b pb-2 mb-4">
         <div className="flex items-center gap-2">
-          <Image src="/edirlogo.jpg" alt="Logo" width={50} height={50} />
+          <Image src="/edirlogo2.jpg" alt="Logo" width={50} height={50} />
         </div>
         <div className="text-center flex flex-col gap-1">
           <h3 className="text-xl font-semibold">
