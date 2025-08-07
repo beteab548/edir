@@ -131,7 +131,7 @@ export default function AddNewPenaltyType() {
       <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
         {/* Header */}
         <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">
+          <h2 className="text-2xl font-bold text-gray-700">
             Manage Penalty Types
           </h2>
           <button

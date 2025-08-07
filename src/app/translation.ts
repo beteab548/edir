@@ -5,7 +5,7 @@ export const translations = {
       login: "Login",
       redirect: "Logging...",
     },
-    logoText: "Jemo Edir Community",
+    logoText: "Jemo Lebu Edir Community",
     hero: {
       title: "Together We Support",
       subtitle:

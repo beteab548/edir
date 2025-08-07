@@ -233,7 +233,7 @@ export default function ConfigureExistingContribution({
         </div>
       ) : (
         <>
-          <h2 className="text-2xl font-bold text-gray-600 mb-6 pb-2 border-b border-gray-200">
+          <h2 className="text-2xl font-bold text-gray-700 mb-6 pb-2 border-b border-gray-200">
             Configure Existing Contributions
           </h2>
 

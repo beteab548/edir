@@ -1,3 +1,4 @@
+
 "use client";
 import { useEffect, useState } from "react";
 import ContributionTab from "../../../components/contribution/contributionPage";
@@ -11,11 +12,11 @@ import {
 } from "@heroicons/react/24/outline";
 import AddNewPenaltyType from "@/components/AddNewPenaltyType";
 import { useRouter } from "next/navigation";
+import AuditLog from "@/components/audit-logs";
 
 type Tab =
   | "contribution"
-  | "contributionPenalty"
-  | "Announcements Manager"
+  | "Audit Logs"
   | "configurePenalty";
 
 interface TabData {
@@ -27,11 +28,12 @@ interface TabData {
 export default function ContributionTabs() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("contribution");
+  const [activeTab, setActiveTab] = useState<Tab>("Audit Logs"); // Set default tab to "Audit Logs"
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isClient, setIsClient] = useState(false);
-
+    const userId = user?.id;
+console.log("user ID:", userId);
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -45,7 +47,7 @@ export default function ContributionTabs() {
     }
 
     const role = user?.publicMetadata?.role;
-    if (role !== "chairman" && role !== "admin") {
+    if (role !== "chairman" && role !== "admin" && role !== "secretary") {
       router.push("/dashboard");
     }
   }, [isLoaded, isSignedIn, user, router]);
@@ -97,16 +99,16 @@ export default function ContributionTabs() {
   }
 
   const role = user.publicMetadata?.role as string;
-  const isChairman =
-    (role && role.includes("chairman")) || role.includes("admin");
-  if (!isChairman) {
+  const isChairman = role === "chairman" || role === "admin";
+
+  if (role !== "secretary" && !isChairman) {
     return (
       <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
         <Alert>
           <LockClosedIcon className="h-5 w-5" />
           <AlertTitle>Access Restricted</AlertTitle>
           <AlertDescription>
-            Only committee chairpersons can access this section.
+            Only committee chairpersons and secretaries can access this section.
           </AlertDescription>
         </Alert>
       </div>
@@ -134,18 +136,37 @@ export default function ContributionTabs() {
     );
   }
 
-  const allTabs: TabData[] = [
-    {
-      id: "contribution",
-      label: "Configure Contribution",
-      component: <ContributionTab />,
-    },
-    {
-      id: "configurePenalty",
-      label: "Configure Penalty",
-      component: <AddNewPenaltyType />,
-    },
-  ];
+  let filteredTabs: TabData[];
+
+  if (role === "secretary") {
+    filteredTabs = [
+      {
+        id: "Audit Logs",
+        label: "Audit Logs",
+        component: <AuditLog userId={userId!} userRole={role} />,
+      },
+    ];
+  } else {
+    // Chairman and Admin see all tabs
+    filteredTabs = [
+      {
+        id: "contribution",
+        label: "Configure Contribution",
+        component: <ContributionTab />,
+      },
+      {
+        id: "configurePenalty",
+        label: "Configure Penalty",
+        component: <AddNewPenaltyType />,
+      },
+      {
+        id: "Audit Logs",
+        label: "Audit Logs",
+        component: <AuditLog userId={userId!} userRole={role}/>,
+      },
+    ];
+  }
+
   return (
     <div className="mt-1 bg-gray-50 rounded-xl p-8">
       <div className="flex flex-col items-center justify-center">
@@ -153,10 +174,9 @@ export default function ContributionTabs() {
           View and manage contribution details
         </h2>
       </div>
-
       <div className="border-b">
         <nav className="-mb-px flex space-x-8 justify-center">
-          {allTabs.map((tab) => (
+          {filteredTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -173,8 +193,9 @@ export default function ContributionTabs() {
       </div>
 
       <div className="mt-2 p-4 rounded-lg min-h-[200px] transition-all duration-300">
-        {allTabs.find((tab) => tab.id === activeTab)?.component}
+        {filteredTabs.find((tab) => tab.id === activeTab)?.component}
       </div>
     </div>
   );
 }
+

@@ -72,7 +72,7 @@ const menuItems = [
         icon: <FiSettings size={20} />,
         label: "Settings",
         href: "/configure-setting",
-        visible: ["admin", "chairman"],
+        visible: ["admin", "chairman","secretary"],
       },
       {
         icon: <FiLogOut size={20} />,

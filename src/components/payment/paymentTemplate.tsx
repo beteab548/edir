@@ -85,6 +85,7 @@ type PaymentRecord = {
   contributionType?: ContributionType | null;
   remaining_balance?: number | null;
   payments?: Payment[];
+  excess_balance?: number; // Added to track excess balance
   member_id: number;
 };
 
@@ -482,6 +483,9 @@ export default function ContributionTemplate({
                   {type === "automatically" && (
                     <TableHeader>Balance</TableHeader>
                   )}
+                  {type === "automatically" && (
+                    <TableHeader>Remaining/excess balance</TableHeader>
+                  )}
                   <TableHeader>Actions</TableHeader>
                 </tr>
               </thead>
@@ -525,6 +529,17 @@ export default function ContributionTemplate({
                             {payment.payment_method}
                           </Badge>
                         </TableCell>
+                        {type === "automatically" && (
+                          <TableCell>
+                            <span
+                              className={`
+                                  : " text-green-800 bg-green-100 "
+                               rounded-full  px-2 `}
+                            >
+                              {payment.excess_balance}
+                            </span>
+                          </TableCell>
+                        )}
                         {type === "automatically" && (
                           <TableCell>
                             <span

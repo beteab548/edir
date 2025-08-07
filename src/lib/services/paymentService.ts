@@ -43,6 +43,7 @@ interface PaymentResult {
   simulatedMonths?: number;
   simulationDate?: Date;
   remainingBalance: Decimal;
+  excessAmount: Decimal; // ADDED
 }
 
 export async function applyCatchUpPayment({
@@ -73,9 +74,9 @@ export async function applyCatchUpPayment({
 
   try {
     let usedForContribution = new Decimal(0);
-    let usedForPenalty = new Decimal(0); 
+    let usedForPenalty = new Decimal(0);
     const payments: Array<{ month: Date; paid: number; type: string }> = [];
-
+    let initialPayment = new Decimal(paidAmount);
     return await prisma.$transaction(
       async (tx) => {
         const [member, contribution] = await Promise.all([
@@ -102,24 +103,14 @@ export async function applyCatchUpPayment({
         const nextId = (await tx.paymentRecord.count()) + 1;
         const formattedId = `PYN-${nextId.toString().padStart(4, "0")}`;
 
-        const paymentRecord = await tx.paymentRecord.create({
-          data: {
-            member_id: memberId,
-            contribution_Type_id: contributionId,
-            payment_date: new Date(),
-            payment_method: paymentMethod,
-            document_reference: documentReference,
-            total_paid_amount: new Decimal(paidAmount),
-            custom_id: formattedId,
-          },
-        });
-
-        const currentDate = simulate
+        let currentDate = simulate
           ? addMonths(new Date(), simulationMonths)
           : new Date();
-        const currentMonthStart = startOfMonth(currentDate);
+        let currentMonthStart = startOfMonth(currentDate);
 
         let remainingPayment = new Decimal(paidAmount);
+     // Declare paymentRecord outside the try block and initialize to null
+         let paymentRecord: any = null;
 
         if (contribution.contributionType.mode === "OneTimeWindow") {
           const startDate = contribution.contributionType.start_date;
@@ -195,7 +186,6 @@ export async function applyCatchUpPayment({
             usedForContribution = usedForContribution.plus(amountToPay);
           }
         } else {
-    
           if (remainingPayment.gt(0)) {
             const pastSchedulesWithPenalties =
               await tx.contributionSchedule.findMany({
@@ -243,7 +233,7 @@ export async function applyCatchUpPayment({
                       member_id: memberId,
                       contribution_id: contribution.id,
                       contribution_schedule_id: schedule.id,
-                      penalty_id: penalty.id, 
+                      penalty_id: penalty.id,
                       payment_type: "penalty",
                       payment_month: schedule.month.toISOString().slice(0, 7),
                       paid_amount: toPay,
@@ -252,7 +242,7 @@ export async function applyCatchUpPayment({
                 ]);
 
                 remainingPayment = remainingPayment.minus(toPay);
-                usedForPenalty = usedForPenalty.plus(toPay); 
+                usedForPenalty = usedForPenalty.plus(toPay);
                 payments.push({
                   month: schedule.month,
                   paid: toPay.toNumber(),
@@ -281,7 +271,9 @@ export async function applyCatchUpPayment({
               if (remainingDue.lte(0)) continue;
 
               const toPay = Decimal.min(remainingPayment, remainingDue);
-              const isFullyPaid = paidAlready.plus(toPay).gte(schedule.expected_amount);
+              const isFullyPaid = paidAlready
+                .plus(toPay)
+                .gte(schedule.expected_amount);
 
               await Promise.all([
                 tx.contributionSchedule.update({
@@ -310,7 +302,9 @@ export async function applyCatchUpPayment({
               payments.push({
                 month: schedule.month,
                 paid: toPay.toNumber(),
-                type: isFullyPaid ? "contribution_full" : "contribution_partial",
+                type: isFullyPaid
+                  ? "contribution_full"
+                  : "contribution_partial",
               });
             }
           }
@@ -329,10 +323,14 @@ export async function applyCatchUpPayment({
 
             if (currentSchedule) {
               const paidAlready = currentSchedule.paid_amount ?? 0;
-              const remainingDue = currentSchedule.expected_amount.minus(paidAlready);
+              const remainingDue = currentSchedule.expected_amount.minus(
+                paidAlready
+              );
               if (remainingDue.gt(0)) {
                 const toPay = Decimal.min(remainingPayment, remainingDue);
-                const isFullyPaid = paidAlready.plus(toPay).gte(currentSchedule.expected_amount);
+                const isFullyPaid = paidAlready
+                  .plus(toPay)
+                  .gte(currentSchedule.expected_amount);
 
                 await Promise.all([
                   tx.contributionSchedule.update({
@@ -361,13 +359,39 @@ export async function applyCatchUpPayment({
                 payments.push({
                   month: currentSchedule.month,
                   paid: toPay.toNumber(),
-                  type: isFullyPaid ? "contribution_full" : "contribution_partial",
+                  type: isFullyPaid
+                    ? "contribution_full"
+                    : "contribution_partial",
                 });
               }
             }
           }
         }
+          let excessAmount = remainingPayment; 
 
+              const balance = await tx.balance.findUnique({
+        where: {
+            member_id_contribution_id: {
+                member_id: memberId,
+                contribution_id: contribution.id,
+            },
+        },
+    });
+
+    const unallocatedAmount = balance?.unallocated_amount || new Decimal(0);
+
+       paymentRecord = await tx.paymentRecord.create({
+          data: {
+            member_id: memberId,
+            contribution_Type_id: contributionId,
+            payment_date: new Date(),
+            payment_method: paymentMethod,
+            document_reference: documentReference,
+            total_paid_amount: initialPayment,
+            excess_balance:unallocatedAmount,
+            custom_id: formattedId,
+          },
+        });
         await tx.balance.upsert({
           where: {
             member_id_contribution_id: {
@@ -376,19 +400,19 @@ export async function applyCatchUpPayment({
             },
           },
           update: {
-            amount: { decrement: usedForContribution }, 
-            ...(remainingPayment.gt(0) && {
+            amount: { decrement: usedForContribution },
+            ...(excessAmount.gt(0) && {
               unallocated_amount: {
-                increment: remainingPayment,
+                increment: excessAmount,
               },
             }),
           },
           create: {
             member_id: memberId,
             contribution_id: contribution.id,
-            amount: new Decimal(0).minus(usedForContribution), 
-            unallocated_amount: remainingPayment.gt(0)
-              ? remainingPayment
+            amount: new Decimal(0).minus(usedForContribution),
+            unallocated_amount: excessAmount.gt(0)
+              ? excessAmount
               : new Decimal(0),
           },
         });
@@ -414,13 +438,14 @@ export async function applyCatchUpPayment({
             data: { member_type: "Existing" },
           });
         }
-
+  if (paymentRecord) {
         await tx.paymentRecord.update({
           where: { id: paymentRecord.id },
           data: {
             remaining_balance: remainingBalance,
           },
         });
+  }
 
         return {
           payments,
@@ -428,6 +453,7 @@ export async function applyCatchUpPayment({
           simulatedMonths: simulationMonths,
           simulationDate: currentDate,
           remainingBalance,
+          excessAmount,
         };
       },
       {
@@ -445,7 +471,9 @@ export async function applyCatchUpPayment({
       throw error;
     }
     if (error instanceof Error) {
-      throw new PaymentProcessingError(`Payment processing failed: ${error.message}`);
+      throw new PaymentProcessingError(
+        `Payment processing failed: ${error.message}`
+      );
     }
     throw new PaymentProcessingError("Unknown payment error occurred");
   }

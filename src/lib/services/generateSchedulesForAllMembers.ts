@@ -1,7 +1,6 @@
 import {
   ContributionSchedule,
   Prisma,
-  PrismaClient,
   Member,
   Contribution,
 } from "@prisma/client";
@@ -186,6 +185,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
                 payment_method: "system(auto-paid)",
                 document_reference: "Automated System Allocation",
                 total_paid_amount: 0,
+                excess_balance:unallocatedAmount
               },
             });
 

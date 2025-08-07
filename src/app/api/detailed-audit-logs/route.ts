@@ -26,11 +26,12 @@ export async function GET(req: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Filter parameters
-    const userId = searchParams.get("userId");
+    let userId = searchParams.get("userId");
     const actionType = searchParams.get("actionType") as ActionType | null;
     const status = searchParams.get("status") as ActionStatus | null;
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
+    const userRole = searchParams.get("userRole");
 
     // Search query
     const searchQuery = searchParams.get("searchQuery");
@@ -38,7 +39,20 @@ export async function GET(req: NextRequest) {
     // Construct the Prisma 'where' clause dynamically
     const where: Prisma.AuditLogWhereInput = {};
 
-    if (userId) where.userId = userId;
+    if (userId) {
+      where.userId = userId;
+    } else if (userRole === "user") {
+      // If no userId is provided but userRole is "user", filter by the current user's ID.
+      // Assuming you have a way to identify the current user's ID (e.g., from session or auth token)
+      // For demonstration purposes, I'll assume it's passed as a query parameter.  **IMPORTANT:  DO NOT DO THIS IN PRODUCTION**
+      userId = searchParams.get("currentUserId"); //  <---  REPLACE THIS WITH A SECURE METHOD
+      if (userId) {
+        where.userId = userId;
+      } else {
+        //If currentUserId not provided return no results
+        where.userId = "no-user-id";
+      }
+    }
     if (actionType) where.actionType = actionType;
     if (status) where.status = status;
     if (startDate) {

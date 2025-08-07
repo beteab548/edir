@@ -1619,7 +1619,6 @@ export async function updatePenaltyType(
 export async function deletePenaltyType(id: number) {
   const user = await currentUser();
   if (!user) {
-    // This case should be handled by your auth middleware, but it's a good safeguard.
     console.error(
       "CRITICAL: updateFamily action called without authenticated user."
     );
