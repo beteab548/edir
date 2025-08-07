@@ -92,7 +92,7 @@ export default async function ContributionPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {contributionOptions.map((option) => (
+              {contributionOptions.map((option:any) => (
                 <ClientLink
                   key={option.id}
                   href={`/contribution/${option.name}`}
