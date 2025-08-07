@@ -1,4 +1,3 @@
-
 "use client";
 import { useEffect, useState } from "react";
 import ContributionTab from "../../../components/contribution/contributionPage";
@@ -8,8 +7,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   ExclamationTriangleIcon,
   LockClosedIcon,
-  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
+// import { ArrowPathIcon } from "react-icons/fi";  // Correct import path
 import AddNewPenaltyType from "@/components/AddNewPenaltyType";
 import { useRouter } from "next/navigation";
 import AuditLog from "@/components/audit-logs";
@@ -28,12 +27,13 @@ interface TabData {
 export default function ContributionTabs() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("contribution"); // Set default tab to "Audit Logs"
+    const [activeTab, setActiveTab] = useState<Tab>("Audit Logs"); // Set default tab to "Audit Logs"
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isClient, setIsClient] = useState(false);
-    const userId = user?.id;
-console.log("user ID:", userId);
+  const userId = user?.id;
+  console.log("user ID:", userId);
+
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -127,7 +127,7 @@ console.log("user ID:", userId);
               onClick={() => setRetryCount(retryCount + 1)}
               className="mt-2 inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              <ArrowPathIcon className="h-4 w-4 mr-2" />
+              {/* <ArrowPathIcon className="h-4 w-4 mr-2" /> */}
               Retry
             </button>
           </AlertDescription>
@@ -135,7 +135,7 @@ console.log("user ID:", userId);
       </div>
     );
   }
-
+console.log("role is",role);
   let filteredTabs: TabData[];
 
   if (role === "secretary") {
@@ -150,6 +150,11 @@ console.log("user ID:", userId);
     // Chairman and Admin see all tabs
     filteredTabs = [
       {
+        id: "Audit Logs",
+        label: "Audit Logs",
+        component: <AuditLog userId={userId!} userRole={role}/>,
+      },
+      {
         id: "contribution",
         label: "Configure Contribution",
         component: <ContributionTab />,
@@ -158,11 +163,6 @@ console.log("user ID:", userId);
         id: "configurePenalty",
         label: "Configure Penalty",
         component: <AddNewPenaltyType />,
-      },
-      {
-        id: "Audit Logs",
-        label: "Audit Logs",
-        component: <AuditLog userId={userId!} userRole={role}/>,
       },
     ];
   }
@@ -198,4 +198,3 @@ console.log("user ID:", userId);
     </div>
   );
 }
-
