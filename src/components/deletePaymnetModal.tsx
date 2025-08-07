@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { deletePayment } from "@/lib/actions";
+import { deletePayment, deletePaymentForManual } from "@/lib/actions";
 import { UserIcon } from "@heroicons/react/24/outline";
 import { format } from "date-fns";
 import { PenaltyType } from "@prisma/client";
@@ -26,16 +26,20 @@ export default function DeletePaymentButton({
   memberId,
   contributionTypeID,
 }: DeletePaymentButtonProps) {
-  console.log(type);
+  console.log("type", type);
+  console.log("paymentId", paymentId);
+  console.log("memberName", memberName);
+  console.log("paymentDate", paymentDate);
+  console.log("contributionTypeID", contributionTypeID);
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const handleDelete = async () => {
     setIsLoading(true);
     setError(null);
     const data = {
+      type,
       paymentId,
       amount,
       paymentDate,
@@ -44,14 +48,22 @@ export default function DeletePaymentButton({
       contributionTypeID,
     };
     try {
-      const result = await deletePayment(
-        data,
-      );
-      if (result?.success) {
-        setShowModal(false);
-        router.refresh();
+      if (type === "manually") {
+        const result = await deletePaymentForManual(data);
+        if (result?.success) {
+          setShowModal(false);
+          router.refresh();
+        } else {
+          setError("Failed to delete payment.");
+        }
       } else {
-        setError("Failed to delete payment.");
+        const result = await deletePayment(data);
+        if (result?.success) {
+          setShowModal(false);
+          router.refresh();
+        } else {
+          setError("Failed to delete payment.");
+        }
       }
     } catch {
       setError("An unexpected error occurred.");

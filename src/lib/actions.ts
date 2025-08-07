@@ -4,7 +4,7 @@ import { logAction } from "./audit";
 import { Decimal } from "@prisma/client/runtime/library";
 import { FamilyMemberSchema, RelativeSchema } from "./formValidationSchemas";
 import { applyCatchUpPayment } from "./services/paymentService";
-import { ContributionMode, ContributionType } from "@prisma/client";
+import { ContributionMode, PenaltyType } from "@prisma/client";
 import { deleteImageFromImageKit } from "./deleteImageFile";
 import {
   ContributionSchedule,
@@ -1238,9 +1238,10 @@ export const deleteContributionType = async (id: number) => {
 };
 
 export const paymentActionforAutomatic = async (
-  currentState: CurrentState,
+  // currentState: CurrentState,
   data: Payment
 ) => {
+  console.log("data is:", data);
   try {
     const currentContributionId = Number(data.contribution_id);
     const currentMemberId = Number(data.member_id);
@@ -1473,7 +1474,7 @@ export const createPenalty = async (
 };
 
 export const paymentActionforManual = async (
-  currentState: CurrentState,
+  // currentState: CurrentState,
   data: Payment
 ) => {
   return await prisma
@@ -2574,11 +2575,12 @@ export async function fetchbalance(memberID: number, type: string) {
       is_paid: false,
     },
   });
-  console.log("penalties:", penalties);
   const totalpenalty = penalties.reduce((sum, initial) => {
-    return sum + Number(Number(initial.expected_amount)-Number(initial.paid_amount));
+    return (
+      sum +
+      Number(Number(initial.expected_amount) - Number(initial.paid_amount))
+    );
   }, 0);
-  console.log("balance:", balance?.amount, "totalpenalty:", totalpenalty);
   return Number(balance?.amount) + totalpenalty;
 }
 
@@ -2669,4 +2671,97 @@ export async function deductAmountFromBalance(
     },
   });
   return;
+}
+interface DeletePaymentData {
+  type: PenaltyType;
+  paymentId: number;
+  memberName: string;
+  amount: number;
+  paymentDate: string | Date;
+  memberId: number;
+  contributionTypeID: number;
+}
+export async function deletePaymentForManual(data: DeletePaymentData) {
+  console.log("data submitted for deletePaymentForManual:", data);
+  if (!data || !data.paymentId || !data.memberId) {
+    throw new Error("Invalid data provided for payment deletion.");
+  }
+  const user = await currentUser();
+  if (!user) {
+    console.error(
+      "CRITICAL: deletePaymentForManual called without authenticated user."
+    );
+    return { success: false, error: true, message: "User not authenticated." };
+  }
+  const userFullName = `${user.firstName} ${user.lastName}`;
+  try {
+    const paymentRecord = await prisma.paymentRecord.findUnique({
+      where: { id: data.paymentId },
+    });
+    if (!paymentRecord) {
+      throw new Error("Payment record not found.");
+    }
+    await prisma.$transaction([
+      prisma.penalty.update({
+        where: {
+          id: paymentRecord.Penalty_id!,
+        },
+        data: {
+          is_paid: false,
+          paid_amount: 0,
+          resolved_at: null,
+        },
+      }),
+      prisma.paymentRecord.delete({
+        where: { id: data.paymentId },
+      }),
+    ]);
+    if (paymentRecord.payment_method == "Excess Balance") {
+      const contributionTypeID = await prisma.contributionType.findFirst({
+        where: { name: "Monthly" },
+      });
+      const contribution = await prisma.contribution.findUnique({
+        where: {
+          member_id_contribution_type_id: {
+            member_id: data.memberId,
+            contribution_type_id: contributionTypeID?.id!,
+          },
+        },
+      });
+      await prisma.balance.update({
+        where: {
+          member_id_contribution_id: {
+            member_id: data.memberId,
+            contribution_id: contribution?.id!,
+          },
+        },
+        data: {
+          unallocated_amount: {
+            increment: paymentRecord.total_paid_amount,
+          },
+        },
+      });
+    }
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PAYMENT_DELETE,
+      status: ActionStatus.SUCCESS,
+      details: `Successfully deleted payment for manual with ID ${data.paymentId} for member ${data.memberName}`,
+    });
+    return { success: true, error: false };
+  } catch (err) {
+    const error =
+      err instanceof Error ? err : new Error("An unknown error occurred");
+    console.error("Failed to delete payment for manual:", error);
+    await logAction({
+      userId: user.id,
+      userFullName: `${user.firstName} ${user.lastName}`,
+      actionType: ActionType.PAYMENT_DELETE,
+      status: ActionStatus.FAILURE,
+      details: `Failed to delete payment for manual with ID ${data.paymentId} for member ${data.memberName}`,
+      error: error.message,
+    });
+    return { success: false, error: true, message: error.message };
+  }
 }

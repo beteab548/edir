@@ -28,7 +28,7 @@ interface TabData {
 export default function ContributionTabs() {
   const { isLoaded, isSignedIn, user } = useUser();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<Tab>("Audit Logs"); // Set default tab to "Audit Logs"
+  const [activeTab, setActiveTab] = useState<Tab>("contribution"); // Set default tab to "Audit Logs"
   const [error, setError] = useState<{ message: string } | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [isClient, setIsClient] = useState(false);

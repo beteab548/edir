@@ -4,6 +4,8 @@
 
 body {
   font-family: "Inter", sans-serif;
+    transform-origin: top left; /* Important to keep the top-left corner in place */
+  /* transform: scale(0.95); 0.9 = 90% zoom */
 }
 
 .react-calendar {

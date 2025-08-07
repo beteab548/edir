@@ -139,12 +139,12 @@ export default function ContributionTemplate({
   // --- Hooks ---
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  // const [state, formAction] = useFormState(
-  //   type === "automatically"
-  //     ? paymentActionforAutomatic
-  //     : paymentActionforManual,
-  //   { success: false, error: false }
-  // );
+  const [state, formAction] = useFormState(
+    type === "automatically"
+      ? paymentActionforAutomatic
+      : paymentActionforManual,
+    { success: false, error: false }
+  );
 
   const {
     register,
@@ -201,8 +201,7 @@ export default function ContributionTemplate({
     setIsDropdownOpen(false);
     setIsAmountLocked(false);
     setPenaltyMonths([]);
-    setPayFromBalance(false);
-    setExcessBalance(0);
+    setPayFromBalance(false); // Also reset payFromBalance
     reset({
       payment_method: "Cash",
       payment_date: new Date().toISOString().split("T")[0],
@@ -216,97 +215,127 @@ export default function ContributionTemplate({
     });
   }, [reset, type, ContributionType, clearSelectedPrincipal]);
 
-  const onSubmit = async (
-    data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
-  ) => {
-    if (!selectedPrincipal) {
-      toast.error("Please select a principal member first.");
-      return;
-    }
-    if (payFromBalance && !excessBalance) {
-      toast.error("Insufficient balance.");
-      return;
-    }
+ const onSubmit = async (
+  data: PaymentFormSchemaType | penaltyPaymentFormSchemaType
+) => {
+  if (!selectedPrincipal) {
+    toast.error("Please select a principal member first.");
+    return;
+  }
+  if (payFromBalance && !excessBalance) {
+    toast.error("Insufficient balance.");
+    return;
+  }
 
-    setLoading(true);
-    try {
-      const baseData = {
-        member_id: selectedPrincipal.id,
-        paid_amount: Number(data.paid_amount),
-        payment_method: payFromBalance ? "Excess Balance" : data.payment_method, // Use 'Balance' as payment method
-        payment_date: new Date(data.payment_date),
-        receipt: image?.Url,
+  setLoading(true); // Start loading
+
+  try {
+    const baseData = {
+      member_id: selectedPrincipal.id,
+      paid_amount: Number(data.paid_amount),
+      payment_method: payFromBalance ? "Excess Balance" : data.payment_method,
+      payment_date: new Date(data.payment_date),
+      receipt: image?.Url,
+    };
+
+    if (type === "automatically") {
+      const automaticData = {
+        ...baseData,
+        contribution_type: (data as PaymentFormSchemaType).contribution_type,
+        contribution_id: ContributionType?.id?.toString(),
       };
 
-      let result; // To store the result of the action
+      const limitAmount = await fetchbalance(
+        selectedPrincipal.id,
+        ContributionType?.name!
+      );
 
-      if (type === "automatically") {
-        const automaticData = {
-          ...baseData,
-          contribution_type: (data as PaymentFormSchemaType).contribution_type,
-          contribution_id: ContributionType?.id?.toString(),
-        };
-
-        const limitAmount = await fetchbalance(
-          selectedPrincipal.id,
-          ContributionType?.name!
-        );
-        if (ContributionType?.mode !== "OpenEndedRecurring") {
-          if (limitAmount < Number(data.paid_amount)) {
-            setLimitMessage(
-              `paid amount ${baseData.paid_amount} birr is greater than the limit of owed ${limitAmount} birr`
-            );
-            setLoading(false);
-            return;
-          }
+      if (ContributionType?.mode !== "OpenEndedRecurring") {
+        if (limitAmount < Number(data.paid_amount)) {
+          setLimitMessage(
+            `paid amount ${baseData.paid_amount} birr is greater than the limit of owed ${limitAmount} birr`
+          );
+          setLoading(false); // Stop loading if limit is exceeded
+          return;
         }
-        setLimitMessage("");
-
-        // Call the server action and await the result
-        result = await paymentActionforAutomatic(automaticData as any);
-
-      } else {
-        const penaltyData = {
-          ...baseData,
-          penalty_month: new Date(
-            (data as penaltyPaymentFormSchemaType).penalty_month
-          ),
-        };
-
-        if (payFromBalance) {
-          try {
-            await deductAmountFromBalance(
-              selectedPrincipal.id,
-              Number(data.paid_amount)
-            );
-          } catch (deductError) {
-            console.error("❌ Error deducting balance:", deductError);
-            toast.error("Failed to deduct amount from balance.");
-            setLoading(false);
-            return; // Exit if deducting balance fails
-          }
-        }
-
-        // Call the server action and await the result
-        result = await paymentActionforManual(penaltyData as any);
       }
 
-      // Process the result
-      if (result?.success) {
-        toast.success("Payment created successfully!");
-        resetValues();
-        router.refresh();
-      } else {
-        toast.error("Something went wrong with the payment.");
+      setLimitMessage("");
+
+      try {
+        await formAction(automaticData as any); // Await the formAction
+      } catch (actionError) {
+        console.error("❌ Error in formAction:", actionError);
+        toast.error("Failed to process payment (action error)");
+        //ADD setloading false here
+        setLoading(false);
+        return; // Exit the function
       }
-    } catch (error) {
-      console.error("❌ Error submitting form:", error);
-      toast.error("Failed to process payment");
-    } finally {
-      setLoading(false);
+    } else {
+      const penaltyData = {
+        ...baseData,
+        penalty_month: new Date(
+          (data as penaltyPaymentFormSchemaType).penalty_month
+        ),
+      };
+      if (payFromBalance) {
+        try {
+          await deductAmountFromBalance(
+            selectedPrincipal.id,
+            Number(data.paid_amount)
+          );
+        } catch (deductError) {
+          console.error("❌ Error deducting from balance:", deductError);
+          toast.error("Failed to deduct from balance");
+          //ADD setloading false here
+          setLoading(false);
+          return; // Exit the function
+        }
+      }
+
+      try {
+        await formAction(penaltyData as any); // Await the formAction
+      } catch (actionError) {
+        console.error("❌ Error in formAction:", actionError);
+        toast.error("Failed to process payment (action error)");
+        //ADD setloading false here
+        setLoading(false);
+        return; // Exit the function
+      }
     }
-  };
 
+  } catch (error) {
+    console.error("❌ Error submitting form:", error);
+    toast.error("Failed to process payment");
+  //ADD setloading false here
+      setLoading(false);
+  } finally {
+    // Ensure setLoading(false) is always called
+    //ADD setloading false here
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  console.log("state is:", state);
+  // Check for a successful state change (i.e., it was not success before, but is now)
+  if (state.success && !formStateRef.current.success) {
+    toast.success("Payment created successfully!");
+    setLoading(false);
+
+    resetValues();
+    router.refresh(); // It's now safe to refresh
+  }
+
+  // Check for an error state change
+  if (state.error && !formStateRef.current.error) {
+    toast.error("Something went wrong with the payment.");
+    setLoading(false);
+  }
+
+  // ALWAYS update the ref to the current state for the next render comparison.
+  formStateRef.current = state;
+}, [state, resetValues, router]); // Keep dependencies the same
   const onError = (errors: any) => {
     console.error("❌ Zod Validation Errors:", errors);
     toast.error("Please check the form for errors.");
@@ -357,24 +386,8 @@ export default function ContributionTemplate({
   // Form state handler
   // --- CORRECTED: Form state handler to prevent toast loops ---
   // We use a ref to track the previous state to only fire the toast on a state *change*.
-  //const formStateRef = useRef(state);
+  const formStateRef = useRef(state);
 
-  //console.log(state);
-  //useEffect(() => {
-  //  if (state.success && !formStateRef.current.success) {
-  //    toast.success("Payment created successfully!");
-  //    setLoading(false);
-  //    resetValues();
-  //    router.refresh();
-  //  }
-
-  //  if (state.error && !formStateRef.current.error) {
-  //    toast.error("Something went wrong with the payment.");
-  //    setLoading(false);
-  //  }
-
-  //  formStateRef.current = state;
-  //}, [state, resetValues, router]); // Keep dependencies the same
 
   // Fetch penalty months when a principal is selected for a manual payment
   useEffect(() => {
@@ -702,7 +715,7 @@ export default function ContributionTemplate({
 
       {/* --- Add Payment Modal --- */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div key={Date.now()}  className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
@@ -921,6 +934,11 @@ export default function ContributionTemplate({
                       </label>
                     </div>
                   )}
+                  <span className="text-red-600 text-xs">
+                    {type === "manually" &&
+                      Number(paidAmount) > excessBalance &&
+                      "Not enough excess balance"}
+                  </span>
                   {/* --- Row 3: Method and Upload --- */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Col 1: Payment Method */}

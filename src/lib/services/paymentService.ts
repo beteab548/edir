@@ -109,8 +109,20 @@ export async function applyCatchUpPayment({
         let currentMonthStart = startOfMonth(currentDate);
 
         let remainingPayment = new Decimal(paidAmount);
-     // Declare paymentRecord outside the try block and initialize to null
-         let paymentRecord: any = null;
+
+        // Create paymentRecord with excess_balance: 0 initially
+        const paymentRecord = await tx.paymentRecord.create({
+          data: {
+            member_id: memberId,
+            contribution_Type_id: contributionId,
+            payment_date: new Date(),
+            payment_method: paymentMethod,
+            document_reference: documentReference,
+            total_paid_amount: initialPayment,
+            excess_balance: new Decimal(0), // Initial excess_balance is 0
+            custom_id: formattedId,
+          },
+        });
 
         if (contribution.contributionType.mode === "OneTimeWindow") {
           const startDate = contribution.contributionType.start_date;
@@ -323,9 +335,8 @@ export async function applyCatchUpPayment({
 
             if (currentSchedule) {
               const paidAlready = currentSchedule.paid_amount ?? 0;
-              const remainingDue = currentSchedule.expected_amount.minus(
-                paidAlready
-              );
+              const remainingDue =
+                currentSchedule.expected_amount.minus(paidAlready);
               if (remainingDue.gt(0)) {
                 const toPay = Decimal.min(remainingPayment, remainingDue);
                 const isFullyPaid = paidAlready
@@ -348,7 +359,9 @@ export async function applyCatchUpPayment({
                       contribution_id: contribution.id,
                       contribution_schedule_id: currentSchedule.id,
                       payment_type: contribution.contributionType.name,
-                      payment_month: currentSchedule.month.toISOString().slice(0, 7),
+                      payment_month: currentSchedule.month
+                        .toISOString()
+                        .slice(0, 7),
                       paid_amount: toPay,
                     },
                   }),
@@ -367,31 +380,8 @@ export async function applyCatchUpPayment({
             }
           }
         }
-          let excessAmount = remainingPayment; 
+        let excessAmount = remainingPayment;
 
-              const balance = await tx.balance.findUnique({
-        where: {
-            member_id_contribution_id: {
-                member_id: memberId,
-                contribution_id: contribution.id,
-            },
-        },
-    });
-
-    const unallocatedAmount = balance?.unallocated_amount || new Decimal(0);
-
-       paymentRecord = await tx.paymentRecord.create({
-          data: {
-            member_id: memberId,
-            contribution_Type_id: contributionId,
-            payment_date: new Date(),
-            payment_method: paymentMethod,
-            document_reference: documentReference,
-            total_paid_amount: initialPayment,
-            excess_balance:unallocatedAmount,
-            custom_id: formattedId,
-          },
-        });
         await tx.balance.upsert({
           where: {
             member_id_contribution_id: {
@@ -417,6 +407,7 @@ export async function applyCatchUpPayment({
           },
         });
 
+        // Fetch the updated balance *after* upsert
         const updatedBalance = await tx.balance.findUnique({
           where: {
             member_id_contribution_id: {
@@ -426,7 +417,18 @@ export async function applyCatchUpPayment({
           },
         });
 
-        const remainingBalance = updatedBalance?.amount ?? new Decimal(0);
+        const remainingBalance = updatedBalance?.amount ?? new Decimal(0); // Get the remaining balance
+        const newUnallocatedAmount =
+          updatedBalance?.unallocated_amount ?? new Decimal(0);
+
+        // Update the paymentRecord with the newUnallocatedAmount and remainingBalance
+        await tx.paymentRecord.update({
+          where: { id: paymentRecord.id },
+          data: {
+            excess_balance: newUnallocatedAmount,
+            remaining_balance: remainingBalance, // <---- Add this line
+          },
+        });
 
         if (
           contribution.contributionType.name === "Registration" &&
@@ -438,14 +440,6 @@ export async function applyCatchUpPayment({
             data: { member_type: "Existing" },
           });
         }
-  if (paymentRecord) {
-        await tx.paymentRecord.update({
-          where: { id: paymentRecord.id },
-          data: {
-            remaining_balance: remainingBalance,
-          },
-        });
-  }
 
         return {
           payments,

@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import useSWR from "swr";
 import { format } from "date-fns";
 import { FiSearch, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
-import Link from "next/link";
 import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -82,7 +81,6 @@ export default function AuditLog({
     return params.toString();
   }, [page, filters, userRole]);
 
-  // --- FIX #3: Apply the strong ApiResponse type to useSWR ---
   const { data, error, isLoading } = useSWR<ApiResponse>(
     `/api/detailed-audit-logs?${queryString}`,
     fetcher,
