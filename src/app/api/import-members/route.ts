@@ -1,10 +1,8 @@
-export const dynamic = "force-dynamic"; 
-export const revalidate = 0; 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
-
-
 
 function parseFullName(fullName: string) {
   const parts = fullName.trim().split(/\s+/); // split on any whitespace
@@ -98,24 +96,73 @@ export async function POST(req: Request) {
 
       const { first_name, second_name, last_name } = parseFullName(fullName);
 
-      console.log("Creating member:", {
+      console.log("Creating family and member for:", {
         title,
         first_name,
         second_name,
         last_name,
       });
 
-      // await prisma.member.create({
-      //   data: {
-      //     title,
-      //     first_name,
-      //     second_name,
-      //     last_name: last_name ?? "",
-      //     birth_date: new Date(0),
-      //     citizen: " ",
-      //   },
-      // });
-
+      // ✅ Step 1: Create the family
+      const family = await prisma.family.create({
+        data: { familyId: `FAM-${count + (1).toString().padStart(4, "0")}` },
+      });
+      await prisma.family.update({
+        where: { id: family.id },
+        data: { familyId: `FAM-${family.id.toString().padStart(4, "0")}` },
+      });
+      // ✅ Step 2: Create the member, linking to the family
+      const member = await prisma.member.create({
+        data: {
+          title,
+          first_name,
+          second_name,
+          last_name: last_name || "Unknown",
+          birth_date: new Date(0),
+          citizen: "Ethiopia",
+          marital_status: "single",
+          status: "Active",
+          member_type: "Existing",
+          isPrincipal: true,
+          sex: "Male",
+          phone_number: "251911-111-111",
+          phone_number_2: "",
+          bank_account_name: "",
+          bank_account_number: "",
+          bank_name: "",
+          block: "",
+          created_at: new Date(),
+          document:null,
+          document_file_id: null,
+          email_2: "",
+          end_date: null,
+          founding_member: false,
+          green_area: "",
+          house_number: "",
+          identification_file_id: null,
+          identification_image: null,
+          identification_number: "",
+          identification_type: "KEBELE_ID",
+          image_file_id: null,
+          image_url: null,
+          job_business: "",
+          profession: "",
+          kebele: "",
+          wereda: "",
+          zone_or_district: "",
+          remark: "",
+          email: "",
+          custom_id: `JE-${count + (1).toString().padStart(4, "0")}`,
+          familyId: family.id, // now we use the actual created family ID
+        },
+      });
+      await prisma.member.update({
+        where: { id: member.id },
+        data: {
+          custom_id: `JE-${member.id.toString().padStart(4, "0")}`,
+          familyId: family.id,
+        },
+      });
       console.log(
         `✅ Imported: ${first_name} ${second_name} ${
           last_name || ""

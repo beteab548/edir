@@ -74,8 +74,6 @@ model Member {
   Contribution          Contribution[]
   PaymentRecord         PaymentRecord[]
 }
-
-
 // ===================================================================
 // === 3. THE UPDATED RELATIVE MODEL ===
 // Now links to the 'Family' model, not a specific member.

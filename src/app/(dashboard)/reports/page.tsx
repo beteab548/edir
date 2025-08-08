@@ -110,7 +110,7 @@ export default function ReportsPage() {
       <h1 className="text-3xl font-bold mb-6 text-gray-600">Reports</h1>
       <p className="m-4 text-gray-600">Choose Reports to View or To Export</p>
       <div className="grid md:grid-cols-3 gap-6">
-        {reports.map((report, idx) => (
+        {reports?.map((report, idx) => (
           <Link href={report.href} key={idx} onClick={() => nProgress.start()}>
             <motion.div
               whileHover={{ scale: 1.03 }}

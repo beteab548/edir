@@ -834,7 +834,7 @@ export const updateContribution = async (
 
     // 7. Handle schedule updates if amount changed (same logic for both is_for_all true and false)
     if (amountChanged && updatedType.name !== "Registration") {
-      const today = startOfMonth(addMonths(new Date(), 3)); // Using your adjusted date
+      const today = startOfMonth(addMonths(new Date(), 0)); // Using your adjusted date
       const contributionIds = contributionsToUpdate.map((c) => c.id);
 
       if (contributionIds.length > 0) {
@@ -1288,8 +1288,8 @@ export const paymentActionforAutomatic = async (
       paidAmount: paymentAmount,
       paymentMethod,
       documentReference: paymentReceipt || "-",
-      simulate: true,
-      simulationMonths: 3,
+      // simulate: true,
+      // simulationMonths: 2,
     });
     return { success: true, error: false };
   } catch (error) {

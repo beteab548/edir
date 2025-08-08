@@ -147,7 +147,6 @@ console.log("role is",role);
       },
     ];
   } else {
-    // Chairman and Admin see all tabs
     filteredTabs = [
       {
         id: "Audit Logs",

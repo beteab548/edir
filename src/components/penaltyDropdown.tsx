@@ -94,7 +94,7 @@ export default function PenaltyDropdown({
             className="overflow-hidden"
           >
             <div className="mt-1 ml-4 flex flex-col bg-white/80 backdrop-blur-sm rounded-md shadow-sm w-[90%] border border-gray-200 px-2 py-2 gap-1">
-              {penaltyItems.map((item) => (
+              {penaltyItems?.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}

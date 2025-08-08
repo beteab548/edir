@@ -103,7 +103,7 @@ export default function ContributionDropdown({
             className="overflow-hidden"
           >
             <div className="mt-1 ml-4 flex flex-col bg-white/80 backdrop-blur-sm rounded-md shadow-sm w-[90%] border border-gray-200 px-2 py-2 gap-1">
-              {contributionTypes.map((type) => {
+              {contributionTypes?.map((type) => {
                 const encodedName = encodeURIComponent(type.name);
                 const isActiveLink =
                   pathname === `/contribution/${encodedName}`;
