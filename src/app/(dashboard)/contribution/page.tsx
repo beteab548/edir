@@ -28,8 +28,7 @@ export default async function ContributionPage() {
       },
     });
 
-     generateContributionSchedulesForAllActiveMembers();
-
+    await generateContributionSchedulesForAllActiveMembers();
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <main className="container mx-auto px-4 py-12">
@@ -92,7 +91,7 @@ export default async function ContributionPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-              {contributionOptions.map((option:any) => (
+              {contributionOptions.map((option: any) => (
                 <ClientLink
                   key={option.id}
                   href={`/contribution/${option.name}`}

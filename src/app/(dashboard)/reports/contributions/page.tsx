@@ -31,10 +31,9 @@ export default async function ContributionReportPage({
     if (!["admin", "secretary", "chairman"].includes(role as string)) {
       return redirect("/unauthorized");
     }
-
     // Generate contribution schedules with error handling
     try {
-       generateContributionSchedulesForAllActiveMembers();
+      await generateContributionSchedulesForAllActiveMembers();
     } catch (scheduleError) {
       console.error("Error generating schedules:", scheduleError);
       // Continue execution even if schedule generation fails
