@@ -40,7 +40,7 @@ export default async function PenaltyReportPage({
 
     // Generate schedules with error handling
     try {
-      await generateContributionSchedulesForAllActiveMembers();
+       generateContributionSchedulesForAllActiveMembers();
     } catch (scheduleError) {
       console.error("Error generating schedules:", scheduleError);
       // Continue execution even if schedule generation fails
