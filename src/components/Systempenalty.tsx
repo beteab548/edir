@@ -91,7 +91,7 @@ export default function PenaltiesOverviewPage({ members }: Props) {
   return (
     <div className="p-1 max-w-7xl mx-auto ">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-600">Penalties Overview</h1>
+        <h1 className="text-2xl font-bold text-gray-700">Penalties Overview</h1>
         <p className="text-gray-600">
           View and manage member penalties by contribution type
         </p>

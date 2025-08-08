@@ -169,7 +169,7 @@ console.log("role is",role);
   return (
     <div className="mt-1 bg-gray-50 rounded-xl p-8">
       <div className="flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold text-gray-600 mb-4">
+        <h2 className="text-2xl font-bold text-gray-700 mb-4">
           View and manage contribution details
         </h2>
       </div>

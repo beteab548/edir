@@ -137,7 +137,7 @@ const AdminPage = async () => {
           <header className="mb-8">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-600">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-700">
                   Welcome back, {user?.firstName}
                 </h1>
                 <DateTimeDisplay />

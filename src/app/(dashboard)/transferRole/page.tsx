@@ -32,7 +32,7 @@ export default async function PendingTransfersPage() {
 
     return (
       <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-200 h-full">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-gray-700">
           Pending Principal Transfers
         </h1>
         <p className="text-sm text-gray-500 mt-1">

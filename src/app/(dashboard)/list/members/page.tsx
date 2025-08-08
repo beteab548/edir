@@ -336,7 +336,7 @@ const MemberListPage = async ({
               <h1 className="text-2xl font-bold text-gray-600">
                 Member Table
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-700 mt-1">
                 {count} {count === 1 ? "Member" : "Members"} found
               </p>
             </div>

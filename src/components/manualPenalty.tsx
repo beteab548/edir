@@ -470,7 +470,7 @@ export default function ManualPenaltyManagement() {
       {/* Header Section */}
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-600">
+          <h1 className="text-2xl font-bold text-gray-700">
             Penalty Management
           </h1>
           <p className="text-gray-600 mt-1">
