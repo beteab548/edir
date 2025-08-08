@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import MemberForm from "@/components/form/MemberForm";
-import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 const AddNewMember = async () => {
@@ -16,7 +15,6 @@ const AddNewMember = async () => {
     if (role !== "secretary"&&role!=="admin") {
       return redirect("/dashboard");
     }
-    await generateContributionSchedulesForAllActiveMembers();
   } catch (error) {
     console.error("ContributionPage failed:", error);
     return (
