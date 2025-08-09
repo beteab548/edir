@@ -56,7 +56,7 @@ export default async function ContributionReportPage({
     }
 
     // Process data with robust error handling
-    const processed = contributions.map((c: any) => {
+    const processed = contributions?.map((c: any) => {
       try {
         const expected =
           c.ContributionSchedule?.reduce(

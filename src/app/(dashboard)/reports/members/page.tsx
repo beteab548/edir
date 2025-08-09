@@ -64,7 +64,7 @@ export default async function ReportPage({ searchParams }: SearchParams) {
       throw new Error("Failed to load member data. Please try again later.");
     }
 
-    const processedData = members.map((m: any) => {
+    const processedData = members?.map((m: any) => {
       try {
         const formatPhone = (phone: string | undefined) => {
           if (!phone) return "";

@@ -61,7 +61,7 @@ export default async function PenaltyReportPage({
       throw new Error("Failed to load penalty data. Please try again later.");
     }
 
-    const processed = penalties.map((p: any) => {
+    const processed = penalties?.map((p: any) => {
       try {
         const formatPhone = (phone: string | undefined) => {
           if (!phone) return "N/A";

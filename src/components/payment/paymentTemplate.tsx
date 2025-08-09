@@ -254,7 +254,7 @@ export default function ContributionTemplate({
         if (ContributionType?.mode !== "OpenEndedRecurring") {
           if (limitAmount < Number(data.paid_amount)) {
             setLimitMessage(
-              `paid amount ${baseData.paid_amount} birr is greater than the limit of owed ${limitAmount} birr`
+              `paid amount ${baseData.paid_amount} birr is greater than the limit owed ${limitAmount} birr`
             );
             setLoading(false);
             return;
