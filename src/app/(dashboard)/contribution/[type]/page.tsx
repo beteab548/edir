@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 import prisma from "@/lib/prisma";
 import ContributionTemplate from "../../../../components/payment/paymentTemplate";
-import Penalty from "../../../../components/Systempenalty"; // Assuming this is for a different route now
 import { notFound, redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 
@@ -169,7 +168,6 @@ export default async function ContributionPage({
     const principals = convertDecimalsToNumbers(principalsRaw);
     const payments = convertDecimalsToNumbers(paymentsRaw);
     const updatedContributionType = convertDecimalsToNumbers(contributionType);
-
     return (
       <div className="contribution-page">
         <ContributionTemplate

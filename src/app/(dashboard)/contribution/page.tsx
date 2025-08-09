@@ -19,6 +19,7 @@ export default async function ContributionPage() {
     if (role !== "chairman" && role !== "admin") {
       return redirect("/dashboard");
     }
+    await generateContributionSchedulesForAllActiveMembers();
 
     const contributionOptions = await prisma.contributionType.findMany({
       select: {
@@ -28,7 +29,6 @@ export default async function ContributionPage() {
       },
     });
 
-    await generateContributionSchedulesForAllActiveMembers();
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <main className="container mx-auto px-4 py-12">

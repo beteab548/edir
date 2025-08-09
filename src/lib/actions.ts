@@ -1289,7 +1289,7 @@ export const paymentActionforAutomatic = async (
       paymentMethod,
       documentReference: paymentReceipt || "-",
       // simulate: true,
-      // simulationMonths: 2,
+      // simulationMonths: 3,
     });
     return { success: true, error: false };
   } catch (error) {
@@ -1934,6 +1934,7 @@ export async function deletePayment(data: {
   memberId: number;
   contributionTypeID: number;
 }) {
+  console.log("delete payment data:", data);
   const user = await currentUser();
   if (!user) {
     // This case should be handled by your auth middleware, but it's a good safeguard.
@@ -1952,6 +1953,7 @@ export async function deletePayment(data: {
             document_reference: true,
             total_paid_amount: true,
             member_id: true,
+            payment_method: true,
           },
         });
 
@@ -1962,7 +1964,7 @@ export async function deletePayment(data: {
         }
 
         const isAutoAllocation =
-          paymentRecord.document_reference === "Automated System Allocation";
+          paymentRecord.payment_method === "system(auto-paid)";
 
         const contribution = await tx.contribution.findUnique({
           where: {
@@ -2213,11 +2215,9 @@ export async function deletePenalty(penaltyId: number) {
           },
         },
       });
-
       if (!penalty) {
         throw new Error("Penalty not found");
       }
-
       // 2. Find and delete the associated payment record (if exists)
       let deletedPaymentRecord = null;
       const paymentRecord = await prisma.paymentRecord.findFirst({

@@ -354,27 +354,7 @@ export default function ContributionTemplate({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Form state handler
-  // --- CORRECTED: Form state handler to prevent toast loops ---
-  // We use a ref to track the previous state to only fire the toast on a state *change*.
-  //const formStateRef = useRef(state);
-
-  //console.log(state);
-  //useEffect(() => {
-  //  if (state.success && !formStateRef.current.success) {
-  //    toast.success("Payment created successfully!");
-  //    setLoading(false);
-  //    resetValues();
-  //    router.refresh();
-  //  }
-
-  //  if (state.error && !formStateRef.current.error) {
-  //    toast.error("Something went wrong with the payment.");
-  //    setLoading(false);
-  //  }
-
-  //  formStateRef.current = state;
-  //}, [state, resetValues, router]); // Keep dependencies the same
+  
 
   // Fetch penalty months when a principal is selected for a manual payment
   useEffect(() => {

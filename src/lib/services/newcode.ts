@@ -36,10 +36,11 @@ async function inactivateMember(memberId: number, simulate: boolean = false) {
     },
   });
 }
+
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
-  const { simulate = false, simulationMonths = 0 } = options;
+  const { simulate = true, simulationMonths = 2 } = options;
 
   const now = simulate
     ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
@@ -62,21 +63,19 @@ export async function generateContributionSchedulesForAllActiveMembers(
       simulated: simulate,
       newSchedulesCount: 0,
       newPenaltiesCount: 0,
+      updatedPenaltiesCount: 0,
       currentSimulationDate: currentMonthStart,
     };
   }
 
   const memberIds = activeMembers.map((m) => m.id);
 
-  /** 2) Prefetch schedules, balances, penalties (all at once) */
-  const [allSchedules, allBalances, allPenalties] = await Promise.all([
+  /** 2) Prefetch schedules, balances (penalties removed from here) */
+  const [allSchedules, allBalances] = await Promise.all([
     prisma.contributionSchedule.findMany({
       where: { member_id: { in: memberIds } },
     }),
     prisma.balance.findMany({
-      where: { member_id: { in: memberIds } },
-    }),
-    prisma.penalty.findMany({
       where: { member_id: { in: memberIds } },
     }),
   ]);
@@ -88,6 +87,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
     if (!schedulesByKey.has(key)) schedulesByKey.set(key, []);
     schedulesByKey.get(key)!.push(s);
   }
+
   // ensure schedules arrays are sorted ascending by month (oldest first)
   for (const arr of Array.from(schedulesByKey.values())) {
     arr.sort((a, b) => a.month.getTime() - b.month.getTime());
@@ -98,14 +98,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     balanceMap.set(`${b.member_id}-${b.contribution_id}`, b);
   }
 
-  const penaltyByKey = new Map<string, (typeof allPenalties)[number]>();
-  for (const p of allPenalties) {
-    const key = `${p.member_id}-${p.contribution_id}-${normalizeToMonthStart(
-      p.missed_month
-    ).toISOString()}`;
-    penaltyByKey.set(key, p);
-  }
-
   /** Collections to create/update in bulk */
   const newSchedules: Prisma.ContributionScheduleCreateManyInput[] = [];
   const balanceUpserts: Array<{
@@ -113,11 +105,8 @@ export async function generateContributionSchedulesForAllActiveMembers(
     update: Prisma.BalanceUpdateInput;
     create: Prisma.BalanceCreateInput;
   }> = [];
-  const newPenalties: Prisma.PenaltyCreateManyInput[] = [];
-  const penaltiesToUpdate: Array<{ id: number; newExpectedAmount: number }> =
-    [];
 
-  /** 3) In-memory compute: missing schedules, balance increments, and penalty creations */
+  /** 3) Generate missing schedules */
   for (const member of activeMembers) {
     for (const contrib of member.Contribution) {
       const { contributionType } = contrib;
@@ -211,74 +200,10 @@ export async function generateContributionSchedulesForAllActiveMembers(
           },
         });
       }
-
-      // Penalty calc for existing schedules (already prefetched)
-      const penaltyBase = Number(contributionType.penalty_amount ?? 0);
-
-      if (penaltyBase > 0 && schedulesForThis.length > 0) {
-        for (const sch of schedulesForThis) {
-          if (sch.is_paid) continue;
-          const scheduleMonthStart = normalizeToMonthStart(sch.month);
-          // Use simulation date instead of current date since we are in future
-          const simulationDate = addMonths(new Date(), simulationMonths);
-          const simulationMonthStart = normalizeToMonthStart(simulationDate);
-
-          if (isAfter(simulationMonthStart, scheduleMonthStart)) {
-            const monthsLate = differenceInMonths(
-              simulationMonthStart,
-              scheduleMonthStart
-            );
-            const calculatedPenaltyAmount = penaltyBase * monthsLate;
-            const penKey = `${sch.member_id}-${
-              sch.contribution_id
-            }-${scheduleMonthStart.toISOString()}`;
-            const existingPenalty = penaltyByKey.get(penKey);
-
-            if (!existingPenalty) {
-              newPenalties.push({
-                member_id: sch.member_id,
-                contribution_id: sch.contribution_id,
-                contribution_schedule_id: sch.id,
-                reason: `Missed payment for ${sch.month.toLocaleDateString(
-                  "en-US",
-                  {
-                    year: "numeric",
-                    month: "short",
-                  }
-                )}`,
-                expected_amount: calculatedPenaltyAmount,
-                missed_month: sch.month,
-                penalty_type: contributionType.name ?? "Unknown",
-              });
-            } else {
-              // Calculate unpaid amount of existing penalty
-              const unpaidAmount =
-                Number(existingPenalty.expected_amount) -
-                Number(existingPenalty.paid_amount ?? 0);
-
-              if (
-                unpaidAmount < calculatedPenaltyAmount &&
-                !existingPenalty.is_paid
-              ) {
-                penaltiesToUpdate.push({
-                  id: existingPenalty.id,
-                  newExpectedAmount: calculatedPenaltyAmount,
-                });
-              }
-            }
-          }
-        }
-      }
     }
   }
-  for (const update of penaltiesToUpdate) {
-    await prisma.penalty.update({
-      where: { id: update.id },
-      data: { expected_amount: update.newExpectedAmount },
-    });
-  }
 
-  /** 4) Commit new schedules, balances (upserts), and new penalties in bulk (chunked) */
+  /** 4) Commit new schedules and balances in bulk */
   if (newSchedules.length > 0) {
     for (let i = 0; i < newSchedules.length; i += 500) {
       await prisma.contributionSchedule.createMany({
@@ -289,7 +214,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
   }
 
   if (balanceUpserts.length > 0) {
-    // perform all upserts inside a transaction; map to prisma.balance.upsert calls
     await prisma.$transaction(
       balanceUpserts.map((u) => prisma.balance.upsert(u)),
       {
@@ -298,29 +222,105 @@ export async function generateContributionSchedulesForAllActiveMembers(
     );
   }
 
-  if (newPenalties.length > 0) {
-    for (let i = 0; i < newPenalties.length; i += 500) {
-      await prisma.penalty.createMany({
-        data: newPenalties.slice(i, i + 500),
-        skipDuplicates: true,
+  /** 5) NEW PENALTY CALCULATION PHASE */
+  const unpaidSchedules = await prisma.contributionSchedule.findMany({
+    where: {
+      member_id: { in: memberIds },
+      is_paid: false,
+    },
+    include: {
+      contribution: {
+        select: {
+          contributionType: {
+            select: {
+              penalty_amount: true,
+              name: true,
+              mode: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const penaltiesToCreate: Prisma.PenaltyCreateManyInput[] = [];
+  const penaltiesToUpdate: Array<{ id: number; newAmount: number }> = [];
+
+  for (const schedule of unpaidSchedules) {
+    const penaltyBase = Number(
+      schedule.contribution.contributionType.penalty_amount ?? 0
+    );
+    if (penaltyBase <= 0) continue;
+
+    const scheduleMonthStart = normalizeToMonthStart(schedule.month);
+    if (isAfter(currentMonthStart, scheduleMonthStart)) {
+      const monthsLate = differenceInMonths(
+        currentMonthStart,
+        scheduleMonthStart
+      );
+      const calculatedPenalty = penaltyBase * monthsLate;
+
+      // Check if penalty already exists
+      const existingPenalty = await prisma.penalty.findFirst({
+        where: {
+          member_id: schedule.member_id,
+          contribution_id: schedule.contribution_id,
+          missed_month: schedule.month,
+        },
       });
+
+      if (existingPenalty) {
+        if (
+          Number(existingPenalty.expected_amount) < calculatedPenalty &&
+          !existingPenalty.is_paid
+        ) {
+          penaltiesToUpdate.push({
+            id: existingPenalty.id,
+            newAmount: calculatedPenalty,
+          });
+        }
+      } else {
+        penaltiesToCreate.push({
+          member_id: schedule.member_id,
+          contribution_id: schedule.contribution_id,
+          contribution_schedule_id: schedule.id,
+          expected_amount: calculatedPenalty,
+          missed_month: schedule.month,
+          penalty_type:
+            schedule.contribution.contributionType.name ?? "Unknown",
+          reason: `Missed payment for ${schedule.month.toLocaleDateString(
+            "en-US",
+            {
+              year: "numeric",
+              month: "short",
+            }
+          )}`,
+        });
+      }
     }
   }
 
-  /**
-   * 5) Optimize unallocated allocation:
-   *    - Reload relevant unpaid schedules & penalties (fresh IDs + ordering),
-   *    - Process each balance with unallocated_amount > 0,
-   *    - Do one transaction per balance that updates the DB.
-   *
-   * Note: We could try to do an all-in-one giant transaction, but allocation touches many
-   * item-specific rows and creating payment rows that reference the paymentRecord ID
-   * is easiest and safest in a per-balance transaction. Because each transaction now
-   * uses prefetched lists and performs only necessary updates, this is *much* faster
-   * than the earlier version which performed many findMany per loop iteration.
-   */
+  // Apply penalty updates in bulk
+  if (penaltiesToUpdate.length > 0) {
+    await prisma.$transaction(
+      penaltiesToUpdate.map((update) =>
+        prisma.penalty.update({
+          where: { id: update.id },
+          data: { expected_amount: update.newAmount },
+        })
+      )
+    );
+  }
 
-  // reload balances that have unallocated amount > 0
+  // Create new penalties in bulk
+  if (penaltiesToCreate.length > 0) {
+    await prisma.penalty.createMany({
+      data: penaltiesToCreate,
+      skipDuplicates: true,
+    });
+  }
+
+  /** 6) Handle unallocated amounts (existing logic remains the same) */
   const balancesWithUnallocated = await prisma.balance.findMany({
     where: {
       member_id: { in: memberIds },
@@ -342,7 +342,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
               custom_id: `${formattedId}`,
               member_id: bal.member_id,
               contribution_Type_id: contrib?.contribution_type_id,
-              payment_method: "system(auto-paid)",
+              payment_method: "Excess Balance",
               total_paid_amount: 0,
               excess_balance: bal.unallocated_amount,
             },
@@ -529,6 +529,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
     }
   }
 
+  /** 7) Member inactivation (existing logic remains the same) */
   const contributionsForInactivation = await prisma.contribution.findMany({
     where: {
       member: { status: "Active" },
@@ -540,6 +541,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
       ContributionSchedule: { where: { is_paid: false } },
     },
   });
+
   for (const contribution of contributionsForInactivation) {
     const {
       contributionType,
@@ -582,7 +584,8 @@ export async function generateContributionSchedulesForAllActiveMembers(
     success: true,
     simulated: simulate,
     newSchedulesCount: newSchedules.length,
-    newPenaltiesCount: newPenalties.length,
+    newPenaltiesCount: penaltiesToCreate.length,
+    updatedPenaltiesCount: penaltiesToUpdate.length,
     currentSimulationDate: currentMonthStart,
   };
 }

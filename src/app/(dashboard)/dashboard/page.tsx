@@ -109,7 +109,7 @@ async function RecentMembers() {
 
 const AdminPage = async () => {
   try {
-     generateContributionSchedulesForAllActiveMembers();
+    await generateContributionSchedulesForAllActiveMembers();
 
     const user = await currentUser();
     if (!user) redirect("/sign-in");
