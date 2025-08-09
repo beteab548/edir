@@ -1288,8 +1288,8 @@ export const paymentActionforAutomatic = async (
       paidAmount: paymentAmount,
       paymentMethod,
       documentReference: paymentReceipt || "-",
-      // simulate: true,
-      // simulationMonths: 3,
+      simulate: true,
+      simulationMonths: 2,
     });
     return { success: true, error: false };
   } catch (error) {
