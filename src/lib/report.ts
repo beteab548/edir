@@ -163,7 +163,7 @@ export async function getFilteredMembers({
   // Fetch filtered members from Prisma using the completed 'filters' object
   const members = await prisma.member.findMany({
     where: filters, // The 'where' clause now includes the conditional 'isPrincipal' filter
-    orderBy: { created_at: "desc" },
+    orderBy: { id: "asc" },
     // The select statement is fine as is
     select: {
       id: true,
@@ -267,7 +267,7 @@ export async function getFilteredPenalties({
   const penaltiesRaw = await prisma.penalty.findMany({
     where: filters, // The where clause is now clean and correct
     include: { member: true, penaltyType: true },
-    orderBy: { applied_at: "desc" },
+    orderBy: { id: "asc" },
   });
 
   // Convert Decimal fields to number recursively
@@ -338,6 +338,7 @@ export const getFilteredContributions = async ({
       ContributionSchedule: true,
       Balance: true,
     },
+    orderBy: { id: "asc" },
   });
 
   // The rest of your function logic for in-memory filtering is correct
