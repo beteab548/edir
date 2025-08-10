@@ -21,7 +21,8 @@ interface AuditLogEntry {
   actionType: string;
   details: string;
   status: "SUCCESS" | "FAILURE";
-  target: AuditLogTarget | null;
+  targetId: string | null;
+  error: string | null;
 }
 
 interface UserFilterOption {
@@ -67,7 +68,7 @@ export default function AuditLog({
     startDate: "",
     endDate: "",
   });
-
+  
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     params.append("page", page.toString());
@@ -80,13 +81,13 @@ export default function AuditLog({
     if (userRole) params.append("userRole", userRole); // Add the userRole
     return params.toString();
   }, [page, filters, userRole]);
-
+  
   const { data, error, isLoading } = useSWR<ApiResponse>(
     `/api/detailed-audit-logs?${queryString}`,
     fetcher,
     { keepPreviousData: true }
   );
-  console.log(`/api/detailed-audit-logs?${queryString}`);
+  console.log("data logs:",data?.logs);
   const handleFilterChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -105,7 +106,9 @@ export default function AuditLog({
     });
     setPage(1);
   };
-
+  data?.logs.map((log) => {
+    console.log("log target:",log.targetId);
+  });
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <header className="mb-6">
@@ -215,9 +218,8 @@ export default function AuditLog({
           </div>
         </div>
       </div>
-
       <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-200">
-        <table className="min-w-full divide-y divide-gray-200">
+        <table className="min-w-full divide-y divide-gray-200 table-fixed">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -229,9 +231,10 @@ export default function AuditLog({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Action
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase w-full">
                 Details
               </th>
+
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                 Target
               </th>
@@ -263,6 +266,7 @@ export default function AuditLog({
               </tr>
             )}
             {data?.logs?.map((log) => (
+              
               <tr key={log.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {format(new Date(log.timestamp), "MMM d, yyyy, h:mm:ss a")}
@@ -273,14 +277,26 @@ export default function AuditLog({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {log.actionType}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-700">
-                  {log.details}
+
+                <td
+                  className="px-6 py-4 text-sm text-gray-700 min-w-[300px] whitespace-pre-wrap break-words"
+                  style={{
+                    display: "-webkit-box",
+                    WebkitLineClamp: 4,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {log.details.replace(/(.{30})/g, "$1\n")}{" "}
+                  {/* break every ~50 chars */}
                 </td>
+
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {log.target ? (
-                    <LinkButtonWithProgress href={log.target.link || "#"}>
+                  {log.targetId ? (
+                    <LinkButtonWithProgress href={`/list/members?search=${log.targetId}` || "#"}>
                       <span className="text-blue-600 hover:underline hover:text-blue-800">
-                        {log.target.name} ({log.target.customId})
+                        {log.targetId} 
                       </span>
                     </LinkButtonWithProgress>
                   ) : (

@@ -95,13 +95,13 @@ export const createFamily = async (
             ...principalData,
             isPrincipal: true,
             familyId: newFamily.id,
-            custom_id: `EDM-TEMP`,
+            custom_id: `JE-TEMP`,
           },
         });
         await tx.member.update({
           where: { id: principalMember.id },
           data: {
-            custom_id: `EDM-${principalMember.id.toString().padStart(4, "0")}`,
+            custom_id: `JE-${principalMember.id.toString().padStart(4, "0")}`,
           },
         });
         if (!spouse) {
@@ -123,13 +123,13 @@ export const createFamily = async (
               isPrincipal: false,
               familyId: newFamily.id,
               spouseId: principalMember.id,
-              custom_id: "EDM-TEMP",
+              custom_id: "JE-TEMP",
             },
           });
           await tx.member.update({
             where: { id: spouseMember.id },
             data: {
-              custom_id: `EDM-${spouseMember.id.toString().padStart(4, "0")}`,
+              custom_id: `JE-${spouseMember.id.toString().padStart(4, "0")}`,
             },
           });
           await tx.member.update({
@@ -414,7 +414,7 @@ export const updateFamily = async (
               where: { id: newSpouse.id },
               data: {
                 spouseId: principal.id, // Link new spouse back to principal
-                custom_id: `EDM-${newSpouse.id.toString().padStart(4, "0")}`,
+                custom_id: `JE-${newSpouse.id.toString().padStart(4, "0")}`,
               },
             });
             await logAction({
@@ -423,7 +423,7 @@ export const updateFamily = async (
               actionType: ActionType.MEMBER_CREATE,
               status: ActionStatus.SUCCESS,
               details: `created spouse member ${newSpouse.first_name} ${newSpouse.last_name} for family of ${existingPrincipal.first_name} ${existingPrincipal.second_name}.`,
-              targetId: `${existingPrincipal.custom_id}`,
+              targetId: `${existingPrincipal?.custom_id}`,
             });
           }
         } else if (oldSpouseId) {
@@ -602,7 +602,7 @@ const memberToDelete = await prisma.member.findUnique({
         custom_id: true,
       },
     });
-    member = memberToDelete?.custom_id
+    member = memberToDelete
   try {
     await prisma.$transaction(async (tx) => {
       // --- STEP 1: Find the Member to get their Family ID ---
@@ -654,8 +654,8 @@ const memberToDelete = await prisma.member.findUnique({
       userFullName,
       actionType: ActionType.MEMBER_DELETE,
       status: ActionStatus.SUCCESS,
-      details: `successfully deleted family for principal: ${memberToDelete?.first_name} ${memberToDelete?.second_name}`,
-      targetId: `${member}`,
+      details: `successfully deleted family for principal: ${member?.first_name} ${member?.second_name}`,
+      targetId: `${member?.custom_id}`,
     });
     return { success: true, error: false };
   } catch (err: any) {
@@ -2105,7 +2105,7 @@ export async function deletePayment(data: {
           actionType: ActionType.PAYMENT_DELETE,
           status: ActionStatus.SUCCESS,
           details: `successfully Deleted Payment Record of :${paymentRecordToDelete?.custom_id} amount:${paymentRecordToDelete?.total_paid_amount} for ${paymentRecordToDelete?.member.custom_id}`,
-          targetId: paymentRecordToDelete?.custom_id,
+          targetId: paymentRecordToDelete?.member.custom_id?.toString(),
         });
 
         return { success: true, error: false };
@@ -2264,6 +2264,12 @@ export const transferPrincipalRole = async (
       message: "Outgoing principal ID was not provided.",
     };
   }
+  let principal
+   const outgoingPrincipal = await prisma.member.findUnique({
+      where: { id: outgoingPrincipalId, isPrincipal: true },
+      include: { spouse: true },
+    });
+    principal=outgoingPrincipal
   try {
     await prisma.$transaction(
       async (tx) => {
@@ -2356,16 +2362,13 @@ export const transferPrincipalRole = async (
       },
       { timeout: 20000 }
     );
-    const outgoingPrincipal = await prisma.member.findUnique({
-      where: { id: outgoingPrincipalId, isPrincipal: true },
-      include: { spouse: true },
-    });
     await logAction({
       userId: user.id,
       userFullName: `${user.firstName} ${user.lastName}`,
       actionType: ActionType.ROlE_TRANSFER,
       status: ActionStatus.SUCCESS,
-      details: `successfully transfered role from ${outgoingPrincipal?.custom_id} to${outgoingPrincipal?.spouse?.custom_id}`,
+      targetId: principal?.custom_id?.toString(),
+      details: `successfully transfered role from ${principal?.custom_id} to${principal?.spouse?.custom_id}`,
     });
     return { success: true, error: false };
   } catch (err: any) {
@@ -2381,6 +2384,7 @@ export const transferPrincipalRole = async (
       userFullName: `${user.firstName} ${user.lastName}`,
       actionType: ActionType.ROlE_TRANSFER,
       status: ActionStatus.FAILURE,
+      targetId: outgoingPrincipal?.custom_id?.toString(),
       details: `Failed to transfere role from ${outgoingPrincipal?.custom_id} to${outgoingPrincipal?.spouse?.custom_id}`,
       error: error.message,
     });
@@ -2674,7 +2678,7 @@ export async function deletePaymentForManual(data: DeletePaymentData) {
   const userFullName = `${user.firstName} ${user.lastName}`;
   try {
     const paymentRecord = await prisma.paymentRecord.findUnique({
-      where: { id: data.paymentId },
+      where: { id: data.paymentId },include:{member:true},
     });
     if (!paymentRecord) {
       throw new Error("Payment record not found.");
@@ -2725,6 +2729,7 @@ export async function deletePaymentForManual(data: DeletePaymentData) {
       userFullName: `${user.firstName} ${user.lastName}`,
       actionType: ActionType.PAYMENT_DELETE,
       status: ActionStatus.SUCCESS,
+      targetId:paymentRecord.member.custom_id?.toString(),
       details: `Successfully deleted payment for manual with ID ${data.paymentId} for member ${data.memberName}`,
     });
     return { success: true, error: false };
