@@ -48,7 +48,7 @@ export function TransferActionRow({ principal }: { principal: PrincipalWithSpous
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
           <button
             onClick={() => setIsModalOpen(true)}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md font-semibold"
+            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md font-semibold"
           >
             Confirm Transfer
           </button>
@@ -59,7 +59,7 @@ export function TransferActionRow({ principal }: { principal: PrincipalWithSpous
         <div className="bg-white rounded-lg">
           <div className="p-6 text-center">
             <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-              <FiAlertTriangle className="h-6 w-6 text-red-600" aria-hidden="true" />
+              <FiAlertTriangle className="h-6 w-6 text-green-600" aria-hidden="true" />
             </div>
             <h3 className="mt-5 text-lg font-semibold leading-6 text-gray-900">
               Confirm Principal Role Transfer
@@ -80,7 +80,7 @@ export function TransferActionRow({ principal }: { principal: PrincipalWithSpous
               type="button"
               onClick={handleConfirmTransfer}
               disabled={isPending}
-              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+              className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
             >
               {isPending ? "Transferring..." : "Yes, I'm Sure"}
             </button>
