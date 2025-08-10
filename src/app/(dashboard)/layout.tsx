@@ -26,7 +26,7 @@ export default async function DashboardLayout({
             className="mb-6"
             unoptimized
           />
-          <span className="hidden lg:block font-bold text-lg">Edir</span>
+          <span className="hidden lg:block font-bold text-lg text-gray-600">Jemo Edir</span>
         </Link>
         <ClientOnly>
           <Menu pendingTransfers={pendingTransfers} />

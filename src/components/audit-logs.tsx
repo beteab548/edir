@@ -68,7 +68,7 @@ export default function AuditLog({
     startDate: "",
     endDate: "",
   });
-  
+
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     params.append("page", page.toString());
@@ -81,13 +81,12 @@ export default function AuditLog({
     if (userRole) params.append("userRole", userRole); // Add the userRole
     return params.toString();
   }, [page, filters, userRole]);
-  
+
   const { data, error, isLoading } = useSWR<ApiResponse>(
     `/api/detailed-audit-logs?${queryString}`,
     fetcher,
     { keepPreviousData: true }
   );
-  console.log("data logs:",data?.logs);
   const handleFilterChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
@@ -107,7 +106,7 @@ export default function AuditLog({
     setPage(1);
   };
   data?.logs.map((log) => {
-    console.log("log target:",log.targetId);
+    console.log("log target:", log.targetId);
   });
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -266,7 +265,6 @@ export default function AuditLog({
               </tr>
             )}
             {data?.logs?.map((log) => (
-              
               <tr key={log.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {format(new Date(log.timestamp), "MMM d, yyyy, h:mm:ss a")}
@@ -294,9 +292,11 @@ export default function AuditLog({
 
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                   {log.targetId ? (
-                    <LinkButtonWithProgress href={`/list/members?search=${log.targetId}` || "#"}>
+                    <LinkButtonWithProgress
+                      href={`/list/members?search=${log.targetId}` || "#"}
+                    >
                       <span className="text-blue-600 hover:underline hover:text-blue-800">
-                        {log.targetId} 
+                        {log.targetId}
                       </span>
                     </LinkButtonWithProgress>
                   ) : (
