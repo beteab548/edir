@@ -147,7 +147,7 @@ const RelativeRelationsChart: React.FC<RelativeRelationsChartProps> = ({ apiUrl 
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="-mt-28 pt-4 border-gray-200">
+          <div className="-mt-32 pt-4 border-gray-200">
             <div className="flex items-center justify-center space-x-2">
               <FiUsers className="text-gray-500" />
               <span className="text-sm font-medium text-gray-700">

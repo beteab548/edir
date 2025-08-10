@@ -3,28 +3,30 @@
 import React, { useEffect, useState } from "react";
 import { Skeleton } from "./ui/skeleton";
 import Decimal from "decimal.js";
-import { $Enums } from "@prisma/client";
-
-type Member = {
-  id: number;
-  first_name: string;
-  created_at: string;
+import { $Enums, Member } from "@prisma/client";
+ type PaymentRecord = {
+    id: number;
+    custom_id: string;
+    created_at: Date;
+    member_id: number;
+    contribution_Type_id: number | null;
+    Penalty_id: number | null;
+    payment_date: Date;
+    payment_method: string;
+    document_reference: string;
+    total_paid_amount: Decimal;
+    remaining_balance: Decimal | null;
+    excess_balance: Decimal | null;
+    penalty_type_payed_for: $Enums.PenaltyType | null;
+    member: Member;
+}
+type Props = {
+  type: "secretary";
+  dataprop: Member[];
+} | {
+  type: "chairman";
+  dataprop: PaymentRecord[];
 };
-
-type PaymentRecord = {
-  id: number;
-  member_id: number;
-  contribution_Type_id: number | null;
-  payment_date: Date;
-  payment_method: string;
-  document_reference: string;
-  total_paid_amount: Decimal;
-  remaining_balance: Decimal | null;
-  penalty_type_payed_for: $Enums.PenaltyType | null;
-  created_at: Date;
-  member: Member;
-};
-
 function formatTimeAgo(timestamp: string) {
   const diffMs = Date.now() - new Date(timestamp).getTime();
   const diffMins = Math.floor(diffMs / 60000);
@@ -39,34 +41,17 @@ function formatTimeAgo(timestamp: string) {
   return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
 }
 
-export default function Activity({ type }: { type: string }) {
-  const [data, setData] = useState<Member[] | PaymentRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function Activity({
+  type,
+  dataprop,
+}: {
+  type: string;
+  dataprop: Member[] | PaymentRecord[];
+}) {
+  const [data, setData] = useState<Member[] | PaymentRecord[]>(dataprop);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchRecent() {
-      try {
-        setLoading(true);
-        const url =
-          type === "secretary"
-            ? "/api/dashboard/members/recent"
-            : "/api/dashboard/members/payment";
-        const res = await fetch(url, {
-          cache: "no-store",
-          next: { revalidate: 0 },
-        });
-        if (!res.ok) throw new Error(`Error: ${res.status}`);
-        const json = await res.json();
-        setData(json);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchRecent();
-  }, [type]);
 
   const isSecretary = type === "secretary";
 
@@ -112,14 +97,14 @@ export default function Activity({ type }: { type: string }) {
                   className="flex items-center gap-4 p-3 border border-gray-200 rounded-lg shadow-sm hover:bg-gray-50 transition"
                 >
                   <div className="flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-600 rounded-full font-bold text-lg">
-                    {first_name[0]}
+                    {first_name?.[0]}
                   </div>
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">
                       {first_name}
                     </p>
                     <p className="text-xs text-gray-500">
-                      Joined {formatTimeAgo(created_at)}
+                      Joined {formatTimeAgo(created_at.toString())}
                     </p>
                   </div>
                 </li>
@@ -138,7 +123,7 @@ export default function Activity({ type }: { type: string }) {
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-semibold text-sm text-gray-800">
-                        {member.first_name}
+                        {member.first_name} {member.second_name}
                       </span>
                       <span className="text-xs text-gray-500">
                         {formatTimeAgo(payment_date.toString())}

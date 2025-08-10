@@ -14,16 +14,14 @@ import {
   FiActivity,
   FiTrendingDown,
   FiDollarSign,
-  FiUserPlus,
 } from "react-icons/fi";
 import Activity from "@/components/activity";
 import { redirect } from "next/navigation";
 import LinkButtonWithProgress from "@/components/ui/LinkButtonWithProgress";
 import DateTimeDisplay from "@/components/ui/datetimeshower";
-import Image from "next/image";
-import { formatDistanceToNow } from "date-fns";
 import AuditActivity from "@/components/auditAcivity";
 import { headers } from "next/headers";
+import { Member, PaymentRecord } from "@prisma/client";
 type Metrics = {
   activeMembers: number;
   inactiveMembers: number;
@@ -38,88 +36,11 @@ type Metrics = {
   unpaidMembers: number;
   inactivatedMembers: number;
 };
-// --- NEW COMPONENT: Recently Joined Members ---
-async function RecentMembers() {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-    const response = await fetch(`${baseUrl}/api/dashboard/recent-members`, {
-      cache: "no-store",
-    });
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch recent members data");
-    }
-
-    const members: {
-      id: number;
-      first_name: string;
-      last_name: string;
-      image_url?: string | null;
-      created_at: string;
-    }[] = await response.json();
-
-    return (
-      <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-green-50 text-green-600">
-            <FiUserPlus className="w-5 h-5" />
-          </div>
-          Recently Joined Members
-        </h3>
-        <div className="space-y-4">
-          {members.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">
-              No new members in the last 30 days.
-            </p>
-          ) : (
-            members.map((member) => (
-              <div key={member.id} className="flex items-center gap-3">
-                <div className="relative w-10 h-10">
-                  {member.image_url ? (
-                    <Image
-                      src={member.image_url}
-                      alt={`${member.first_name}'s profile`}
-                      layout="fill"
-                      className="rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                      <span className="font-bold text-gray-500">
-                        {member.first_name?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm text-gray-800">
-                    {member.first_name} {member.last_name}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Joined {formatDistanceToNow(new Date(member.created_at))}{" "}
-                    ago
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    );
-  } catch (error) {
-    console.error("Error fetching recent members:", error);
-    return (
-      <div className="bg-white rounded-lg shadow-xs p-5 border border-red-200">
-        <h3 className="text-lg font-semibold text-red-700 mb-2">
-          Could not load recent members.
-        </h3>
-        <p className="text-sm text-red-600">
-          Please check the server connection.
-        </p>
-      </div>
-    );
-  }
+interface GenderData {
+  males: number;
+  females: number;
 }
-
 const AdminPage = async () => {
   try {
     const user = await currentUser();
@@ -142,18 +63,42 @@ const AdminPage = async () => {
     )
       .filter((name): name is string => name != null)
       .map((name: any) => ({ name }));
-const host = headers().get("host");
-  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
+    const host = headers().get("host");
+    const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
 
-  const res = await fetch(`${protocol}://${host}/api/dashboard/userCards`, {
-    cache: "no-store", // optional if you need fresh data
-  });
+    const res = await fetch(`${protocol}://${host}/api/dashboard/userCards`, {
+      cache: "no-store",
+    });
+    const resforMember = await fetch(
+      `${protocol}://${host}/api/dashboard/members/count`,
+      {
+        cache: "no-store",
+        next: { revalidate: 0 },
+      }
+    );
+    const genderData: GenderData = await resforMember.json();
+    const resforRecent = await fetch(
+      `${protocol}://${host}/api/dashboard/members/recent`,
+      {
+        cache: "no-store",
+        next: { revalidate: 0 },
+      }
+    );
+    const dataforRecent: Member[] = await resforRecent.json();
+    const resforpayment = await fetch(
+      `${protocol}://${host}/api/dashboard/members/payment`,
+      {
+        cache: "no-store",
+        next: { revalidate: 0 },
+      }
+    );
+    const dataforpayment: PaymentRecord[] = await resforpayment.json();
 
-  if (!res.ok) {
-    throw new Error("Failed to fetch user card data");
-  }
+    if (!res.ok) {
+      throw new Error("Failed to fetch user card data");
+    }
 
-  const metrics:Metrics = await res.json();
+    const metrics: Metrics = await res.json();
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
@@ -170,7 +115,6 @@ const host = headers().get("host");
               </div>
             </div>
           </header>
-
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-3 space-y-6">
               {/* --- SECRETARY-ONLY VIEW --- */}
@@ -210,7 +154,10 @@ const host = headers().get("host");
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200 lg:col-span-1">
                       <div className="h-72">
-                        <MemberDistribution />
+                        <MemberDistribution
+                          genderData={genderData}
+                          loading={false}
+                        />
                       </div>
                     </div>
                     <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200 lg:col-span-2">
@@ -317,7 +264,10 @@ const host = headers().get("host");
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
                     <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200 lg:col-span-1">
                       <div className="h-72">
-                        <MemberDistribution />
+                        <MemberDistribution
+                          genderData={genderData}
+                          loading={false}
+                        />
                       </div>
                     </div>
                     <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200 lg:col-span-2">
@@ -422,11 +372,11 @@ const host = headers().get("host");
 
               {/* --- ACTIVITY & RECENT MEMBERS SECTION --- */}
               <div className="bg-white rounded-lg">
-                {isSecretary && <Activity type="secretary" />}
-                {isChairman && <Activity type="chairman" />}
+                {isSecretary && <Activity type="secretary" dataprop={dataforRecent} />}
+                {isChairman && <Activity type="chairman" dataprop={dataforpayment as any} />}
               </div>
-              {isAdmin && <Activity type="secretary" />}
-              {isAdmin && <Activity type="chairman" />}
+              {isAdmin && <Activity type="secretary" dataprop={dataforRecent}/>}
+              {isAdmin && <Activity type="chairman" dataprop={dataforpayment as any} />}
               {isAdmin && <AuditActivity />}
             </div>
           </div>
