@@ -1,5 +1,4 @@
 export const dynamic = "force-dynamic";
-
 import { currentUser } from "@clerk/nextjs/server";
 import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import PenaltyChart from "@/components/penaltyBarChart";
@@ -24,7 +23,21 @@ import DateTimeDisplay from "@/components/ui/datetimeshower";
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import AuditActivity from "@/components/auditAcivity";
-
+import { headers } from "next/headers";
+type Metrics = {
+  activeMembers: number;
+  inactiveMembers: number;
+  newMembers: number;
+  leftMembers: number;
+  totalMembers: number;
+  deceasedMembers: number;
+  deceasedRelative: number;
+  roleTransferPending: number;
+  penalizedMembers: number;
+  paidMembers: number;
+  unpaidMembers: number;
+  inactivatedMembers: number;
+};
 // --- NEW COMPONENT: Recently Joined Members ---
 async function RecentMembers() {
   try {
@@ -109,12 +122,11 @@ async function RecentMembers() {
 
 const AdminPage = async () => {
   try {
-    await generateContributionSchedulesForAllActiveMembers();
-
     const user = await currentUser();
     if (!user) redirect("/sign-in");
 
     const role = user?.publicMetadata?.role as string;
+    await generateContributionSchedulesForAllActiveMembers();
 
     const isSecretary = role === "secretary";
     const isChairman = role === "chairman";
@@ -130,7 +142,18 @@ const AdminPage = async () => {
     )
       .filter((name): name is string => name != null)
       .map((name: any) => ({ name }));
+const host = headers().get("host");
+  const protocol = process.env.NODE_ENV === "development" ? "http" : "https";
 
+  const res = await fetch(`${protocol}://${host}/api/dashboard/userCards`, {
+    cache: "no-store", // optional if you need fresh data
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch user card data");
+  }
+
+  const metrics:Metrics = await res.json();
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
@@ -154,14 +177,35 @@ const AdminPage = async () => {
               {isSecretary && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-                    <UserCard type="Total Members" />
-                    <UserCard type="Active Members" />
-                    <UserCard type="Inactive Members" />
-                    <UserCard type="New Members" />
-                    <UserCard type="Deceased Members" />
-                    <UserCard type="Deceased Relative" />
-                    <UserCard type="Role Transfer Pending" />
-                    <UserCard type="Left Members" />
+                    <UserCard
+                      type="Total Members"
+                      counts={metrics.totalMembers}
+                    />
+                    <UserCard
+                      type="Active Members"
+                      counts={metrics.activeMembers}
+                    />
+                    <UserCard
+                      type="Inactive Members"
+                      counts={metrics.inactivatedMembers}
+                    />
+                    <UserCard type="New Members" counts={metrics.newMembers} />
+                    <UserCard
+                      type="Deceased Members"
+                      counts={metrics.deceasedMembers}
+                    />
+                    <UserCard
+                      type="Deceased Relative"
+                      counts={metrics.deceasedRelative}
+                    />
+                    <UserCard
+                      type="Role Transfer Pending"
+                      counts={metrics.totalMembers}
+                    />
+                    <UserCard
+                      type="Left Members"
+                      counts={metrics.leftMembers}
+                    />
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     <div className="bg-white rounded-lg shadow-xs p-5 border border-gray-200 lg:col-span-1">
@@ -182,10 +226,22 @@ const AdminPage = async () => {
               {isChairman && (
                 <div className="mb-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-6">
-                    <UserCard type="Penalized Members" />
-                    <UserCard type="Paid Members" />
-                    <UserCard type="Unpaid Members" />
-                    <UserCard type="Inactivated Members" />
+                    <UserCard
+                      type="Penalized Members"
+                      counts={metrics.penalizedMembers}
+                    />
+                    <UserCard
+                      type="Paid Members"
+                      counts={metrics.paidMembers}
+                    />
+                    <UserCard
+                      type="Unpaid Members"
+                      counts={metrics.unpaidMembers}
+                    />
+                    <UserCard
+                      type="Inactivated Members"
+                      counts={metrics.inactivatedMembers}
+                    />
                   </div>
                   <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-xs">
                     <div className="h-[530px]">
@@ -202,20 +258,53 @@ const AdminPage = async () => {
               {isAdmin && (
                 <>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
-                    <UserCard type="Total Members" />
-                    <UserCard type="Active Members" />
-                    <UserCard type="Inactive Members" />
-                    <UserCard type="New Members" />
-                    <UserCard type="Deceased Members" />
-                    <UserCard type="Deceased Relative" />
-                    <UserCard type="Role Transfer Pending" />
-                    <UserCard type="Left Members" />
+                    <UserCard
+                      type="Total Members"
+                      counts={metrics.totalMembers}
+                    />
+                    <UserCard
+                      type="Active Members"
+                      counts={metrics.activeMembers}
+                    />
+                    <UserCard
+                      type="Inactive Members"
+                      counts={metrics.inactivatedMembers}
+                    />
+                    <UserCard type="New Members" counts={metrics.newMembers} />
+                    <UserCard
+                      type="Deceased Members"
+                      counts={metrics.deceasedMembers}
+                    />
+                    <UserCard
+                      type="Deceased Relative"
+                      counts={metrics.deceasedRelative}
+                    />
+                    <UserCard
+                      type="Role Transfer Pending"
+                      counts={metrics.totalMembers}
+                    />
+                    <UserCard
+                      type="Left Members"
+                      counts={metrics.leftMembers}
+                    />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-                    <UserCard type="Penalized Members" />
-                    <UserCard type="Paid Members" />
-                    <UserCard type="Unpaid Members" />
-                    <UserCard type="Inactivated Members" />
+                    <UserCard
+                      type="Penalized Members"
+                      counts={metrics.penalizedMembers}
+                    />
+                    <UserCard
+                      type="Paid Members"
+                      counts={metrics.paidMembers}
+                    />
+                    <UserCard
+                      type="Unpaid Members"
+                      counts={metrics.unpaidMembers}
+                    />
+                    <UserCard
+                      type="Inactivated Members"
+                      counts={metrics.inactivatedMembers}
+                    />
                   </div>
                   <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-xs">
                     <div className="h-[530px]">
@@ -333,12 +422,12 @@ const AdminPage = async () => {
 
               {/* --- ACTIVITY & RECENT MEMBERS SECTION --- */}
               <div className="bg-white rounded-lg">
-              {isSecretary && <Activity type="secretary" />}
-              {isChairman && <Activity type="chairman" />}
+                {isSecretary && <Activity type="secretary" />}
+                {isChairman && <Activity type="chairman" />}
               </div>
               {isAdmin && <Activity type="secretary" />}
               {isAdmin && <Activity type="chairman" />}
-              {isAdmin && <AuditActivity  />}
+              {isAdmin && <AuditActivity />}
             </div>
           </div>
         </div>

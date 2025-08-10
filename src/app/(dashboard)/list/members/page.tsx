@@ -46,7 +46,10 @@ const MemberListPage = async ({
     const user = await currentUser();
 
     if (!user) return redirect("/sign-in");
-    if (user.publicMetadata?.role !== "secretary" && user.publicMetadata?.role !== "admin")
+    if (
+      user.publicMetadata?.role !== "secretary" &&
+      user.publicMetadata?.role !== "admin"
+    )
       return redirect("/dashboard");
 
     const itemsPerPage = searchParams.perPage
@@ -54,11 +57,7 @@ const MemberListPage = async ({
       : DEFAULT_ITEMS_PER_PAGE;
 
     const sortableColumns = {
-      name: [
-        { last_name: "asc" },
-        { first_name: "asc" },
-        { second_name: "asc" },
-      ],
+      name: [{ first_name: "asc" }],
       registered_date: { created_at: "desc" },
       profession: { profession: "asc" },
       status: { status: "asc" },
@@ -73,7 +72,7 @@ const MemberListPage = async ({
       {
         header: (
           <SortableHeader
-            label="Member"
+            label="Member Full Name"
             sortKey="name"
             currentSort={currentSort}
             sortDirection={sortDirection}
@@ -296,11 +295,7 @@ const MemberListPage = async ({
       | Prisma.MemberOrderByWithRelationInput[];
 
     if (currentSort === "name") {
-      orderBy = [
-        { last_name: sortDirection },
-        { first_name: sortDirection },
-        { second_name: sortDirection },
-      ];
+      orderBy = [{ first_name: sortDirection }, { second_name: sortDirection }];
     } else if (currentSort === "registered_date") {
       orderBy = { created_at: sortDirection };
     } else if (currentSort === "profession") {
@@ -333,9 +328,7 @@ const MemberListPage = async ({
         <div className="p-6 pb-4 border-b border-gray-100">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-gray-600">
-                Member Table
-              </h1>
+              <h1 className="text-2xl font-bold text-gray-600">Member Table</h1>
               <p className="text-sm text-gray-700 mt-1">
                 {count} {count === 1 ? "Member" : "Members"} found
               </p>
