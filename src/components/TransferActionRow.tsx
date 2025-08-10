@@ -58,7 +58,7 @@ export function TransferActionRow({ principal }: { principal: PrincipalWithSpous
       <dialog ref={dialogRef} className="modal backdrop:bg-black/40 p-0 rounded-lg shadow-xl w-full max-w-md">
         <div className="bg-white rounded-lg">
           <div className="p-6 text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
               <FiAlertTriangle className="h-6 w-6 text-green-600" aria-hidden="true" />
             </div>
             <h3 className="mt-5 text-lg font-semibold leading-6 text-gray-900">
@@ -67,8 +67,8 @@ export function TransferActionRow({ principal }: { principal: PrincipalWithSpous
             <div className="mt-2 px-4 text-sm text-gray-500">
               <p>
                 Are you sure you want to transfer all financial responsibilities and history from{' '}
-                <strong className="text-gray-800">{principal.first_name} {principal.last_name}</strong> to{' '}
-                <strong className="text-gray-800">{principal.spouse.first_name} {principal.spouse.last_name}</strong>?
+                <strong className="text-gray-800">{principal.first_name} {principal.second_name}</strong> to{' '}
+                <strong className="text-gray-800">{principal.spouse.first_name} {principal.spouse.second_name}</strong>?
               </p>
               <p className="mt-3 font-bold text-red-600">
                 This action cannot be undone.
