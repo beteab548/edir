@@ -40,12 +40,10 @@ export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
   const { simulate = true, simulationMonths = 2 } = options;
-
   const now = simulate
     ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
   const currentMonthStart = startOfMonth(now);
-
   /** 1) Bulk load active members and static related data */
   const activeMembers = await prisma.member.findMany({
     where: { status: "Active" },
@@ -55,7 +53,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
       },
     },
   });
-
   if (activeMembers.length === 0) {
     return {
       success: true,
@@ -65,9 +62,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
       currentSimulationDate: currentMonthStart,
     };
   }
-
   const memberIds = activeMembers.map((m) => m.id);
-
   /** 2) Prefetch schedules, balances, penalties (all at once) */
   const [allSchedules, allBalances, allPenalties] = await Promise.all([
     prisma.contributionSchedule.findMany({
@@ -80,7 +75,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
       where: { member_id: { in: memberIds } },
     }),
   ]);
-
   /** Maps for fast lookups */
   const schedulesByKey = new Map<string, typeof allSchedules>();
   for (const s of allSchedules) {
@@ -92,12 +86,10 @@ export async function generateContributionSchedulesForAllActiveMembers(
   for (const arr of Array.from(schedulesByKey.values())) {
     arr.sort((a, b) => a.month.getTime() - b.month.getTime());
   }
-
   const balanceMap = new Map<string, (typeof allBalances)[number]>();
   for (const b of allBalances) {
     balanceMap.set(`${b.member_id}-${b.contribution_id}`, b);
   }
-
   const penaltyByKey = new Map<string, (typeof allPenalties)[number]>();
   for (const p of allPenalties) {
     const key = `${p.member_id}-${p.contribution_id}-${normalizeToMonthStart(
