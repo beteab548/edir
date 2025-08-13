@@ -97,6 +97,7 @@ const Menu = ({ pendingTransfers }: { pendingTransfers: number }) => {
   const [loggingOut, setLoggingOut] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false); // 👈 hydration-safe
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   useEffect(() => {
     setMounted(true); // Prevent hydration error
@@ -153,8 +154,15 @@ const Menu = ({ pendingTransfers }: { pendingTransfers: number }) => {
   }
 
   return (
-    <div className="overflow-y-auto h-[550px] overflow-x-hidden pb-6 custom-scrollbar">
-      <div className="mt-4 text-sm space-y-6">
+    <div
+      className="h-[550px] mt-4 text-sm space-y-6"
+      onMouseEnter={() => setIsSidebarHovered(true)}
+      onMouseLeave={() => setIsSidebarHovered(false)}
+    >
+      <div className={`overflow-y-auto h-[550px] overflow-x-hidden pb-6  ${
+          isSidebarHovered ? "custom-scrollbar" : "hide-scrollbar"
+        }`}
+      >
         <AnimatePresence mode="wait">
           {menuItems.map(({ title, icon, items }) => {
             const visibleItems = items.filter((item) =>
