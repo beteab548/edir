@@ -316,28 +316,36 @@ export default function ContributionTemplate({
   // Smart search for principals and their spouses
   // Smart search for principals and their spouses
   useEffect(() => {
-    if (!principals) return;
+  if (!principals) return;
 
-    // The single source of truth for filtering is the `principals` prop.
-    const lowerCaseSearchTerm = searchTerm.toLowerCase();
-    const results = principals.filter((principal) => {
-      const principalName =
-        `${principal.first_name} ${principal.second_name} ${principal.last_name}`.toLowerCase();
-      if (
-        principalName.includes(lowerCaseSearchTerm) ||
-        principal.phone_number?.includes(lowerCaseSearchTerm)
-      ) {
-        return true;
-      }
-      if (principal.spouse) {
-        const spouseName =
-          `${principal.spouse.first_name} ${principal.spouse.second_name} ${principal.spouse.last_name}`.toLowerCase();
-        return spouseName.includes(lowerCaseSearchTerm);
-      }
-      return false;
-    });
-    setSearchResults(results);
-  }, [searchTerm, principals]);
+  const normalize = (str:any) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  const normalizedSearchTerm = normalize(searchTerm);
+
+  const results = principals.filter((principal) => {
+    const principalName = `${principal.first_name} ${principal.second_name} ${principal.last_name}`.toLowerCase();
+
+    // ✅ Check for custom_id (ignoring dashes, spaces, etc.)
+    if (normalize(principal.custom_id)?.includes(normalizedSearchTerm)) {
+      return true;
+    }
+
+    if (principalName.includes(searchTerm.toLowerCase()) ||
+        principal.phone_number?.includes(searchTerm)) {
+      return true;
+    }
+
+    if (principal.spouse) {
+      const spouseName = `${principal.spouse.first_name} ${principal.spouse.second_name} ${principal.spouse.last_name}`.toLowerCase();
+      return spouseName.includes(searchTerm.toLowerCase());
+    }
+
+    return false;
+  });
+
+  setSearchResults(results);
+}, [searchTerm, principals]);
+
 
   // Click outside dropdown handler
   useEffect(() => {
