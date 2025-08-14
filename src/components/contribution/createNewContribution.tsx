@@ -78,12 +78,12 @@ export default function CreateNewContribution({
       const result = await createContributionType(payload);
 
       if (result.success) {
-        toast.success("Contribution type created!");
         setRevalidate((prev) => !prev);
         reset();
         setSelectedMemberIds([]);
         onClose();
-        return router.push("/contribution");
+        router.push("/contribution");
+        toast.success("Contribution type created!");
       } else {
         toast.error("Failed to create contribution type");
       }

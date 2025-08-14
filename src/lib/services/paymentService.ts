@@ -1,6 +1,6 @@
 import prisma from "@/lib/prisma";
 import { Decimal } from "@prisma/client/runtime/library";
-import { addMonths, startOfMonth, isBefore, endOfDay, isAfter } from "date-fns";
+import { addMonths, startOfMonth, isBefore, endOfDay, isAfter, subMonths, endOfMonth, startOfYear, addYears } from "date-fns";
 
 class PaymentProcessingError extends Error {
   constructor(message: string) {
@@ -43,7 +43,7 @@ interface PaymentResult {
   simulatedMonths?: number;
   simulationDate?: Date;
   remainingBalance: Decimal;
-  excessAmount: Decimal; // ADDED
+  excessAmount: Decimal; 
 }
 
 export async function applyCatchUpPayment({
@@ -104,7 +104,7 @@ export async function applyCatchUpPayment({
         const formattedId = `PYN-${nextId.toString().padStart(4, "0")}`;
 
         let currentDate = simulate
-          ? addMonths(new Date(), simulationMonths)
+          ? subMonths(new Date(), simulationMonths)
           : new Date();
         let currentMonthStart = startOfMonth(currentDate);
 
@@ -416,6 +416,38 @@ export async function applyCatchUpPayment({
             },
           },
         });
+        const currentYear = new Date().getFullYear();
+         const startDate = subMonths(
+              addYears(startOfYear(new Date(currentYear, 0)), 0),
+              -6
+            ); // January is 0, July is 6
+
+            const endDate = endOfMonth(
+              addMonths(addYears(startOfYear(new Date(currentYear, 0)), 1), 5)
+            );
+            console.log(startDate, endDate);
+            const schedules = await tx.contributionSchedule.findMany({
+              where: {
+                member_id: memberId,
+                contribution_id: contribution.id,
+                month: {
+                  gte: startDate, // Greater than or equal to July of the current year
+                  lt: endDate, // Less than July of the next year
+                },
+              },
+              orderBy: {
+                month: "asc",
+              },
+            });
+            console.log("schedules", schedules);
+            const totalDue = schedules.reduce((sum, schedule) => {
+              return (
+                sum +
+                (Number(schedule.expected_amount) -
+                  Number(schedule.paid_amount))
+              );
+            }, 0);
+            console.log("total due", totalDue);
 
         const remainingBalance = updatedBalance?.amount ?? new Decimal(0); // Get the remaining balance
         const newUnallocatedAmount =
@@ -426,7 +458,7 @@ export async function applyCatchUpPayment({
           where: { id: paymentRecord.id },
           data: {
             excess_balance: newUnallocatedAmount,
-            remaining_balance: remainingBalance, // <---- Add this line
+            remaining_balance: totalDue, // <---- Add this line
           },
         });
 

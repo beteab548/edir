@@ -592,17 +592,17 @@ export const deleteFamily = async (
       message: "Invalid Member ID provided.",
     };
   }
-  let member
-const memberToDelete = await prisma.member.findUnique({
-      where: { id: memberId },
-      select: {
-        familyId: true,
-        first_name: true,
-        second_name: true,
-        custom_id: true,
-      },
-    });
-    member = memberToDelete
+  let member;
+  const memberToDelete = await prisma.member.findUnique({
+    where: { id: memberId },
+    select: {
+      familyId: true,
+      first_name: true,
+      second_name: true,
+      custom_id: true,
+    },
+  });
+  member = memberToDelete;
   try {
     await prisma.$transaction(async (tx) => {
       // --- STEP 1: Find the Member to get their Family ID ---
@@ -648,7 +648,7 @@ const memberToDelete = await prisma.member.findUnique({
         where: { id: familyId },
       });
     }); // End of transaction
-    
+
     await logAction({
       userId: user.id,
       userFullName,
@@ -1267,7 +1267,7 @@ export const paymentActionforAutomatic = async (
       paymentMethod,
       documentReference: paymentReceipt || "-",
       simulate: true,
-      simulationMonths: 2,
+      simulationMonths: 1,
     });
     return { success: true, error: false };
   } catch (error) {
@@ -2264,12 +2264,12 @@ export const transferPrincipalRole = async (
       message: "Outgoing principal ID was not provided.",
     };
   }
-  let principal
-   const outgoingPrincipal = await prisma.member.findUnique({
-      where: { id: outgoingPrincipalId, isPrincipal: true },
-      include: { spouse: true },
-    });
-    principal=outgoingPrincipal
+  let principal;
+  const outgoingPrincipal = await prisma.member.findUnique({
+    where: { id: outgoingPrincipalId, isPrincipal: true },
+    include: { spouse: true },
+  });
+  principal = outgoingPrincipal;
   try {
     await prisma.$transaction(
       async (tx) => {
@@ -2678,7 +2678,8 @@ export async function deletePaymentForManual(data: DeletePaymentData) {
   const userFullName = `${user.firstName} ${user.lastName}`;
   try {
     const paymentRecord = await prisma.paymentRecord.findUnique({
-      where: { id: data.paymentId },include:{member:true},
+      where: { id: data.paymentId },
+      include: { member: true },
     });
     if (!paymentRecord) {
       throw new Error("Payment record not found.");
@@ -2729,7 +2730,7 @@ export async function deletePaymentForManual(data: DeletePaymentData) {
       userFullName: `${user.firstName} ${user.lastName}`,
       actionType: ActionType.PAYMENT_DELETE,
       status: ActionStatus.SUCCESS,
-      targetId:paymentRecord.member.custom_id?.toString(),
+      targetId: paymentRecord.member.custom_id?.toString(),
       details: `Successfully deleted payment for manual with ID ${data.paymentId} for member ${data.memberName}`,
     });
     return { success: true, error: false };

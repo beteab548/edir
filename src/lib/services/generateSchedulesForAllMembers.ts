@@ -1,4 +1,13 @@
-import { addMonths, isAfter, differenceInMonths, startOfMonth } from "date-fns";
+import {
+  addMonths,
+  isAfter,
+  differenceInMonths,
+  startOfMonth,
+  subMonths,
+  startOfYear,
+  addYears,
+  endOfMonth,
+} from "date-fns";
 import prisma from "../prisma";
 import { Prisma, Member, Contribution } from "@prisma/client";
 
@@ -39,9 +48,9 @@ async function inactivateMember(memberId: number, simulate: boolean = false) {
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
-  const { simulate = true, simulationMonths = 2 } = options;
+  const { simulate = true, simulationMonths = 1 } = options;
   const now = simulate
-    ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
+    ? normalizeToMonthStart(subMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
   const currentMonthStart = startOfMonth(now);
   /** 1) Bulk load active members and static related data */
@@ -299,19 +308,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     }
   }
 
-  /**
-   * 5) Optimize unallocated allocation:
-   *    - Reload relevant unpaid schedules & penalties (fresh IDs + ordering),
-   *    - Process each balance with unallocated_amount > 0,
-   *    - Do one transaction per balance that updates the DB.
-   *
-   * Note: We could try to do an all-in-one giant transaction, but allocation touches many
-   * item-specific rows and creating payment rows that reference the paymentRecord ID
-   * is easiest and safest in a per-balance transaction. Because each transaction now
-   * uses prefetched lists and performs only necessary updates, this is *much* faster
-   * than the earlier version which performed many findMany per loop iteration.
-   */
-
   // reload balances that have unallocated amount > 0
   const balancesWithUnallocated = await prisma.balance.findMany({
     where: {
@@ -329,6 +325,8 @@ export async function generateContributionSchedulesForAllActiveMembers(
           });
           const nextId = (await tx.paymentRecord.count()) + 1;
           const formattedId = `PYN-${nextId.toString().padStart(4, "0")}`;
+          const currentYear = new Date().getFullYear();
+
           const paymentRecord = await tx.paymentRecord.create({
             data: {
               custom_id: `${formattedId}`,
@@ -336,6 +334,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
               contribution_Type_id: contrib?.contribution_type_id,
               payment_method: "system(auto-paid)",
               total_paid_amount: 0,
+              payment_date: new Date(),
               excess_balance: bal.unallocated_amount,
             },
           });
@@ -490,20 +489,45 @@ export async function generateContributionSchedulesForAllActiveMembers(
                 amount: { decrement: totalAllocatedForRecord },
               },
             });
-            const updatedBalance = await tx.balance.findUnique({
+           
+            // Calculate the start date (July of the current year)
+            const startDate = subMonths(
+              addYears(startOfYear(new Date(currentYear, 0)), 0),
+              -6
+            ); // January is 0, July is 6
+
+            const endDate = endOfMonth(
+              addMonths(addYears(startOfYear(new Date(currentYear, 0)), 1), 5)
+            );
+            console.log(startDate, endDate);
+            const schedules = await tx.contributionSchedule.findMany({
               where: {
-                member_id_contribution_id: {
-                  member_id: bal.member_id,
-                  contribution_id: bal.contribution_id,
+                member_id: bal.member_id,
+                contribution_id: bal.contribution_id,
+                month: {
+                  gte: startDate, // Greater than or equal to July of the current year
+                  lt: endDate, // Less than July of the next year
                 },
               },
+              orderBy: {
+                month: "asc",
+              },
             });
+            console.log("schedules", schedules);
+            const totalDue = schedules.reduce((sum, schedule) => {
+              return (
+                sum +
+                (Number(schedule.expected_amount) -
+                  Number(schedule.paid_amount))
+              );
+            }, 0);
+            console.log("total due", totalDue);
 
             await tx.paymentRecord.update({
               where: { id: paymentRecord.id },
               data: {
                 total_paid_amount: totalAllocatedForRecord,
-                remaining_balance: updatedBalance?.amount,
+                remaining_balance: totalDue,
                 excess_balance: remainingUnallocated,
               },
             });
