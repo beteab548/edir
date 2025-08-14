@@ -144,7 +144,7 @@ const AdminPage = async () => {
                     />
                     <UserCard
                       type="Role Transfer Pending"
-                      counts={metrics.totalMembers}
+                      counts={metrics.roleTransferPending}
                     />
                     <UserCard
                       type="Left Members"
@@ -228,7 +228,7 @@ const AdminPage = async () => {
                     />
                     <UserCard
                       type="Role Transfer Pending"
-                      counts={metrics.totalMembers}
+                      counts={metrics.roleTransferPending}
                     />
                     <UserCard
                       type="Left Members"
