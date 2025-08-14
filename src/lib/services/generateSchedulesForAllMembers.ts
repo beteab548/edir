@@ -48,9 +48,9 @@ async function inactivateMember(memberId: number, simulate: boolean = false) {
 export async function generateContributionSchedulesForAllActiveMembers(
   options: GenerateSchedulesOptions = {}
 ) {
-  const { simulate = true, simulationMonths = 1 } = options;
+  const { simulate = true, simulationMonths = 2 } = options;
   const now = simulate
-    ? normalizeToMonthStart(subMonths(new Date(), simulationMonths))
+    ? normalizeToMonthStart(addMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
   const currentMonthStart = startOfMonth(now);
   const activeMembers = await prisma.member.findMany({
