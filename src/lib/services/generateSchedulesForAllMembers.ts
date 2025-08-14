@@ -53,7 +53,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     ? normalizeToMonthStart(subMonths(new Date(), simulationMonths))
     : normalizeToMonthStart(new Date());
   const currentMonthStart = startOfMonth(now);
-  /** 1) Bulk load active members and static related data */
   const activeMembers = await prisma.member.findMany({
     where: { status: "Active" },
     include: {
@@ -72,7 +71,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
     };
   }
   const memberIds = activeMembers.map((m) => m.id);
-  /** 2) Prefetch schedules, balances, penalties (all at once) */
   const [allSchedules, allBalances, allPenalties] = await Promise.all([
     prisma.contributionSchedule.findMany({
       where: { member_id: { in: memberIds } },
@@ -221,7 +219,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
           if (sch.is_paid) continue;
           const scheduleMonthStart = normalizeToMonthStart(sch.month);
           // Use simulation date instead of current date since we are in future
-          const simulationDate = addMonths(new Date(), simulationMonths);
+          const simulationDate = now; // use the same simulated current date as schedules
           const simulationMonthStart = normalizeToMonthStart(simulationDate);
 
           if (isAfter(simulationMonthStart, scheduleMonthStart)) {
@@ -489,7 +487,7 @@ export async function generateContributionSchedulesForAllActiveMembers(
                 amount: { decrement: totalAllocatedForRecord },
               },
             });
-           
+
             // Calculate the start date (July of the current year)
             const startDate = subMonths(
               addYears(startOfYear(new Date(currentYear, 0)), 0),
