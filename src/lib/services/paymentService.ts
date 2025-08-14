@@ -420,8 +420,7 @@ export async function applyCatchUpPayment({
          const startDate = subMonths(
               addYears(startOfYear(new Date(currentYear, 0)), 0),
               -6
-            ); // January is 0, July is 6
-
+            ); 
             const endDate = endOfMonth(
               addMonths(addYears(startOfYear(new Date(currentYear, 0)), 1), 5)
             );

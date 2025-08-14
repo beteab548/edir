@@ -139,6 +139,9 @@ export default function ContributionTemplate({
   // --- Hooks ---
   const router = useRouter();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+  const listRef = useRef<HTMLUListElement>(null); // useRef for the list
+
   // const [state, formAction] = useFormState(
   //   type === "automatically"
   //     ? paymentActionforAutomatic
@@ -186,12 +189,14 @@ export default function ContributionTemplate({
     setSearchResults([]);
     setIsDropdownOpen(false);
     setValue("member_id", principal.id, { shouldValidate: true });
+    setFocusedIndex(-1); // Reset focused index after selection
   };
 
   const clearSelectedPrincipal = useCallback(() => {
     setSelectedPrincipal(null);
     setSearchTerm("");
     setValue("member_id", 0, { shouldValidate: true });
+    setFocusedIndex(-1); // Reset focused index after clearing
   }, [setSelectedPrincipal, setSearchTerm, setValue]);
   const resetValues = useCallback(() => {
     setShowAddModal(false);
@@ -214,6 +219,7 @@ export default function ContributionTemplate({
       member_id: 1,
       contribution_id: ContributionType?.id?.toString() || "",
     });
+    setFocusedIndex(-1); // Reset focused index after resetting values
   }, [reset, type, ContributionType, clearSelectedPrincipal]);
 
   const onSubmit = async (
@@ -316,36 +322,39 @@ export default function ContributionTemplate({
   // Smart search for principals and their spouses
   // Smart search for principals and their spouses
   useEffect(() => {
-  if (!principals) return;
+    if (!principals) return;
 
-  const normalize = (str:any) => str?.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const normalize = (str: any) =>
+      str?.toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  const normalizedSearchTerm = normalize(searchTerm);
+    const normalizedSearchTerm = normalize(searchTerm);
 
-  const results = principals.filter((principal) => {
-    const principalName = `${principal.first_name} ${principal.second_name} ${principal.last_name}`.toLowerCase();
+    const results = principals.filter((principal) => {
+      const principalName = `${principal.first_name} ${principal.second_name} ${principal.last_name}`.toLowerCase();
 
-    // ✅ Check for custom_id (ignoring dashes, spaces, etc.)
-    if (normalize(principal.custom_id)?.includes(normalizedSearchTerm)) {
-      return true;
-    }
+      // ✅ Check for custom_id (ignoring dashes, spaces, etc.)
+      if (normalize(principal.custom_id)?.includes(normalizedSearchTerm)) {
+        return true;
+      }
 
-    if (principalName.includes(searchTerm.toLowerCase()) ||
-        principal.phone_number?.includes(searchTerm)) {
-      return true;
-    }
+      if (
+        principalName.includes(searchTerm.toLowerCase()) ||
+        principal.phone_number?.includes(searchTerm)
+      ) {
+        return true;
+      }
 
-    if (principal.spouse) {
-      const spouseName = `${principal.spouse.first_name} ${principal.spouse.second_name} ${principal.spouse.last_name}`.toLowerCase();
-      return spouseName.includes(searchTerm.toLowerCase());
-    }
+      if (principal.spouse) {
+        const spouseName = `${principal.spouse.first_name} ${principal.spouse.second_name} ${principal.spouse.last_name}`.toLowerCase();
+        return spouseName.includes(searchTerm.toLowerCase());
+      }
 
-    return false;
-  });
+      return false;
+    });
 
-  setSearchResults(results);
-}, [searchTerm, principals]);
-
+    setSearchResults(results);
+    setFocusedIndex(-1); // Reset focused index when search results change
+  }, [searchTerm, principals]);
 
   // Click outside dropdown handler
   useEffect(() => {
@@ -355,6 +364,7 @@ export default function ContributionTemplate({
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsDropdownOpen(false); // This is now correctly placed inside the handler
+        setFocusedIndex(-1); // Also reset focused index when dropdown closes
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -442,6 +452,45 @@ export default function ContributionTemplate({
     };
     checkBalance();
   }, [type, selectedPrincipal, paidAmount]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!isDropdownOpen) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        setFocusedIndex((prevIndex) => {
+          const newIndex = (prevIndex + 1) % searchResults.length;
+          scrollToListItem(newIndex); // Scroll to the new item
+          return newIndex;
+        });
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        setFocusedIndex((prevIndex) => {
+          let newIndex = (prevIndex - 1 + searchResults.length) % searchResults.length;
+          scrollToListItem(newIndex); // Scroll to the new item
+          return newIndex;
+        });
+      }
+    } else if (e.key === "Enter" && focusedIndex !== -1) {
+      e.preventDefault();
+      handlePrincipalSelect(searchResults[focusedIndex]);
+    }
+  };
+
+  const scrollToListItem = (index: number) => {
+    if (listRef.current) {
+      const listItem = listRef.current.children[index] as HTMLElement;
+      if (listItem) {
+        listItem.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest', // or 'center'
+        });
+      }
+    }
+  };
   // --- Render ---
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
@@ -748,6 +797,7 @@ export default function ContributionTemplate({
                                 setSearchResults(principals);
                               }
                             }}
+                            onKeyDown={handleKeyDown} // Attach keydown handler
                           />
                           {isDropdownOpen && (
                             <div className="absolute z-10 mt-1 w-full border border-gray-200 rounded-lg shadow-lg bg-white max-h-60 overflow-y-auto">
@@ -760,28 +810,31 @@ export default function ContributionTemplate({
                                 </div>
                               ) : searchResults.length > 0 ? (
                                 // B) Case 2: We have search results to display.
-                                searchResults.map((principal) => (
-                                  <li key={principal.id} className="list-none">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handlePrincipalSelect(principal)
-                                      }
-                                      className="w-full text-left px-4 py-3 hover:bg-gray-100 border-b last:border-0"
-                                    >
-                                      <p className="font-semibold text-gray-800">
-                                        {principal.first_name}{" "}
-                                        {principal.second_name}{" "}
-                                        {principal.last_name} (Principal)
-                                      </p>
-                                      <p className="text-sm text-gray-500">
-                                        {principal.spouse
-                                          ? `Spouse: ${principal.spouse.first_name} ${principal.spouse.second_name}`
-                                          : "No spouse"}
-                                      </p>
-                                    </button>
-                                  </li>
-                                ))
+                                <ul ref={listRef}>
+                                  {searchResults.map((principal, index) => (
+                                    <li key={principal.id} className="list-none">
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handlePrincipalSelect(principal)
+                                        }
+                                        className={`w-full text-left px-4 py-3 hover:bg-gray-100 border-b last:border-0 ${index === focusedIndex ? "bg-blue-100" : ""
+                                          }`}
+                                      >
+                                        <p className="font-semibold text-gray-800">
+                                          {principal.first_name}{" "}
+                                          {principal.second_name}{" "}
+                                          {principal.last_name} (Principal)
+                                        </p>
+                                        <p className="text-sm text-gray-500">
+                                          {principal.spouse
+                                            ? `Spouse: ${principal.spouse.first_name} ${principal.spouse.second_name}`
+                                            : "No spouse"}
+                                        </p>
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
                               ) : (
                                 // C) Case 3: The initial list has members, but the current search term found none.
                                 <div className="p-4 text-center text-sm text-gray-500">
@@ -821,16 +874,15 @@ export default function ContributionTemplate({
                           loadingPenaltyMonths
                             ? [{ value: "", label: "Loading penalties..." }]
                             : penaltyMonths.length === 0
-                            ? [{ value: "", label: "No outstanding penalties" }]
-                            : [
+                              ? [{ value: "", label: "No outstanding penalties" }]
+                              : [
                                 { value: "", label: "Select oldest penalty" },
                                 ...penaltyMonths.map((month, index) => ({
                                   value: new Date(month.month).toISOString(),
                                   label: `${new Date(
                                     month.month
-                                  ).toLocaleDateString()} - ${
-                                    month.amount
-                                  } birr`,
+                                  ).toLocaleDateString()} - ${month.amount
+                                    } birr`,
                                   disabled: index !== 0,
                                 })),
                               ]
@@ -842,11 +894,10 @@ export default function ContributionTemplate({
 
                 {/* Wrapper div to control the enabled/disabled state of lower form rows */}
                 <div
-                  className={`transition-opacity duration-300 space-y-6 ${
-                    selectedPrincipal
-                      ? "opacity-100"
-                      : "opacity-40 pointer-events-none"
-                  }`}
+                  className={`transition-opacity duration-300 space-y-6 ${selectedPrincipal
+                    ? "opacity-100"
+                    : "opacity-40 pointer-events-none"
+                    }`}
                 >
                   {/* --- Row 2: Amount and Date --- */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

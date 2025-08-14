@@ -101,7 +101,9 @@ export const createFamily = async (
         await tx.member.update({
           where: { id: principalMember.id },
           data: {
-            custom_id: `JE-${principalMember.id.toString().padStart(4, "0")}`,
+            custom_id: `JE${(principalMember.id + 1)
+              .toString()
+              .padStart(4, "0")}`,
           },
         });
         if (!spouse) {
@@ -129,7 +131,7 @@ export const createFamily = async (
           await tx.member.update({
             where: { id: spouseMember.id },
             data: {
-              custom_id: `JE-${spouseMember.id.toString().padStart(4, "0")}`,
+              custom_id: `JE${spouseMember.id.toString().padStart(4, "0")}`,
             },
           });
           await tx.member.update({
@@ -381,10 +383,7 @@ export const updateFamily = async (
             targetId: `${existingPrincipal.custom_id}`,
           });
         }
-        // --- STEP 3: Handle the Spouse (Update, Create, or Unlink) ---
-        // This block now runs without error because the principal update was successful.
         const oldSpouseId = existingPrincipal.spouseId;
-
         if (principal.marital_status === "married" && spouse) {
           // SCENARIO A: The principal is now married.
           const spouseUpdateData = prepareMemberUpdateData(spouse);
@@ -414,7 +413,7 @@ export const updateFamily = async (
               where: { id: newSpouse.id },
               data: {
                 spouseId: principal.id, // Link new spouse back to principal
-                custom_id: `JE-${newSpouse.id.toString().padStart(4, "0")}`,
+                custom_id: `JE${(newSpouse.id+1).toString().padStart(4, "0")}`,
               },
             });
             await logAction({

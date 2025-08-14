@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 import prisma from "@/lib/prisma";
+import { Sex } from "@prisma/client";
 import { NextResponse } from "next/server";
 import * as XLSX from "xlsx";
 
@@ -88,6 +89,21 @@ export async function POST(req: Request) {
     for (const row of rows) {
       const fullName = row["Members (Principal)"]?.toString().trim();
       const title = row["Title"]?.toString().trim();
+      const custom_id = row["ID #"]?.toString().trim();
+      let sex="Male" as Sex
+      if (
+        title === "Ato" ||
+        title === "Eng." ||
+        title === "Dr" ||
+        title === "Col." ||
+        title === "Capt." ||
+        title === "Ex.Com." ||
+        title === "Prof."
+      ) {
+        sex = "Male";
+      } else if (title === "Wro" || title === "Wr") {
+        sex = "Female";
+      }
 
       if (!fullName || !title) {
         console.warn("⚠️ Skipped row (missing fields):", row);
@@ -124,7 +140,7 @@ export async function POST(req: Request) {
           status: "Active",
           member_type: "Existing",
           isPrincipal: true,
-          sex: "Male",
+          sex,
           phone_number: "251911-111-111",
           phone_number_2: "",
           bank_account_name: "",
@@ -132,7 +148,7 @@ export async function POST(req: Request) {
           bank_name: "",
           block: "",
           created_at: new Date(),
-          document:null,
+          document: null,
           document_file_id: null,
           email_2: "",
           end_date: null,
@@ -152,14 +168,13 @@ export async function POST(req: Request) {
           zone_or_district: "",
           remark: "",
           email: "",
-          custom_id: `JE-${count + (1).toString().padStart(4, "0")}`,
-          familyId: family.id, // now we use the actual created family ID
+          custom_id,
+          familyId: family.id,
         },
       });
       await prisma.member.update({
         where: { id: member.id },
         data: {
-          custom_id: `JE-${member.id.toString().padStart(4, "0")}`,
           familyId: family.id,
         },
       });
