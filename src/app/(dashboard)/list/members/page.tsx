@@ -187,7 +187,7 @@ const MemberListPage = async ({
               <div className="flex flex-col">
                 {item.founding_member && (
                   <span className="text-xs text-emerald-700 font-semibold mb-1">
-                    Founding Member
+                    Founder
                   </span>
                 )}
                 <h3 className={`font-medium text-gray-900`}>
