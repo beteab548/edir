@@ -170,7 +170,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
       } else {
         recurringEnd = addMonths(now, 11);
       }
-
       const months = generateMonthlyDates(recurringStart, recurringEnd);
       const existingMonths = new Set(
         schedulesForThis.map((s) =>
