@@ -1265,8 +1265,8 @@ export const paymentActionforAutomatic = async (
       paidAmount: paymentAmount,
       paymentMethod,
       documentReference: paymentReceipt || "-",
-      simulate: true,
-      simulationMonths: 1,
+      // simulate: true,
+      // simulationMonths: 0,
     });
     return { success: true, error: false };
   } catch (error) {
