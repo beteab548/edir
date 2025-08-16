@@ -243,17 +243,18 @@ export const createFamily = async (
             }
           }
         }
+        if (principalMember.status === "Active") {
+          if (contributionsToCreate.length > 0) {
+            await tx.contribution.createMany({ data: contributionsToCreate });
+          }
 
-        if (contributionsToCreate.length > 0) {
-          await tx.contribution.createMany({ data: contributionsToCreate });
+          // --- STEP 7: Generate Initial Payment Schedules (No changes needed here) ---
+          await generateInitialSchedulesForMember(
+            principalMember.id,
+            tx,
+            effectiveDate
+          );
         }
-
-        // --- STEP 7: Generate Initial Payment Schedules (No changes needed here) ---
-        await generateInitialSchedulesForMember(
-          principalMember.id,
-          tx,
-          effectiveDate
-        );
 
         return principalMember;
       },
