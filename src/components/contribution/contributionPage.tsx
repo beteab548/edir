@@ -36,21 +36,24 @@ export default function ContributionPage() {
   }
   return (
     <div className="min-h-screen p-4 space-y-4">
-      <div className="flex justify-between mb-4">
-        {/* Left side */}
-        <div className="flex">
-          <RefreshButton />
-        </div>
+    <div className="flex justify-between items-start mb-4">
+  {/* Left side */}
+  <div className="flex">
+    <RefreshButton />
+  </div>
 
-        {/* Right side */}
-        <button
-          className={`flex items-center px-4  rounded-md text-white font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700`}
-          onClick={() => setShowAdd((prev) => !prev)}
-        >
-          <FiPlus className="w-5 h-5" />
-          Add New Contribution
-        </button>
-      </div>
+  {/* Right side */}
+  <div className="flex-shrink-0"> {/* Prevent right button from stretching */}
+    <button
+      className="flex items-center px-4 py-2 rounded-md text-white font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700"
+      onClick={() => setShowAdd((prev) => !prev)}
+    >
+      <FiPlus className="w-5 h-5" />
+      Add New Contribution
+    </button>
+  </div>
+</div>
+
 
       {showAdd && (
         <CreateNewContribution

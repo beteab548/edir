@@ -7,27 +7,58 @@ export default function RefreshButton() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [timer, setTimer] = useState(0);
-  const ESTIMATED_TIME = 90; 
+  const [progressMessage, setProgressMessage] = useState("");
+
+  const ESTIMATED_TIME = 90;
+
+  // Messages to rotate through
+  const progressMessages = [
+    "🔄 Fetching active members…",
+    "📅 Generating missing contribution schedules…",
+    "💰 Updating member balances…",
+    "⚠️ Calculating penalties for overdue contributions…",
+    "📝 Committing new schedules, balances, and penalties…",
+    "💳 Applying unallocated balances to penalties and contributions…",
+    "✅ Almost done! Finalizing updates…",
+  ];
+
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (loading) {
-      setTimer(ESTIMATED_TIME);
-      interval = setInterval(() => {
-        setTimer((prev) => {
-          if (prev <= 1) {
-            clearInterval(interval);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => clearInterval(interval);
+    if (!loading) return;
+
+    setTimer(ESTIMATED_TIME);
+    let messageIndex = 0;
+
+    // Countdown timer
+    const timerInterval = setInterval(() => {
+      setTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(timerInterval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Message rotation
+    const messageInterval = setInterval(() => {
+      setProgressMessage(progressMessages[messageIndex]);
+      if (messageIndex < progressMessages.length - 1) {
+        messageIndex += 1; // move to next message
+      } else {
+        clearInterval(messageInterval); // stop on last message
+      }
+    }, 10000); // rotate every ~13 seconds
+
+    return () => {
+      clearInterval(timerInterval);
+      clearInterval(messageInterval);
+    };
   }, [loading]);
 
   const handleRefresh = async () => {
     setLoading(true);
     setMessage("");
+    setProgressMessage(progressMessages[0]);
 
     try {
       const res = await fetch("/api/refresh", { method: "POST" });
@@ -45,8 +76,10 @@ export default function RefreshButton() {
       setMessage("❌ Something went wrong");
     } finally {
       setLoading(false);
+      // Keep the last progress message visible instead of clearing it
     }
   };
+
   return (
     <div className="flex flex-col items-center gap-2">
       <button
@@ -73,10 +106,11 @@ export default function RefreshButton() {
               <path
                 className="opacity-75"
                 fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 
+                1.135 5.824 3 7.938l3-2.647z"
               ></path>
             </svg>
-            Refreshing...
+            {progressMessage || "Refreshing..."}
           </>
         ) : (
           "Refresh Schedules & Penalties"

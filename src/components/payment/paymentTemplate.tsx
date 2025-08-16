@@ -531,7 +531,7 @@ export default function ContributionTemplate({
             </h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="bg-gray-50">
                 <tr>
                   <TableHeader>ID</TableHeader>
@@ -1052,7 +1052,7 @@ function TableCell({
   onclick?: ReactEventHandler;
 }) {
   return (
-    <td className="px-6 py-4 whitespace-nowrap" onClick={onclick}>
+    <td className="px-4 py-4 whitespace-nowrap" onClick={onclick}>
       {children}
     </td>
   );
