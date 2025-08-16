@@ -4,6 +4,7 @@ import CreateNewContribution from "./createNewContribution";
 import ConfigureExistingContribution from "./ConfigureExistingContribution";
 import { Member } from "@prisma/client";
 import { FiPlus } from "react-icons/fi";
+import RefreshButton from "../ui/refresh";
 
 export default function ContributionPage() {
   const [showAdd, setShowAdd] = useState(false);
@@ -35,9 +36,15 @@ export default function ContributionPage() {
   }
   return (
     <div className="min-h-screen p-4 space-y-4">
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between mb-4">
+        {/* Left side */}
+        <div className="flex">
+          <RefreshButton />
+        </div>
+
+        {/* Right side */}
         <button
-          className={`flex items-center px-4 py-2 rounded-md text-white font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700`}
+          className={`flex items-center px-4  rounded-md text-white font-semibold transition-colors bg-indigo-600 hover:bg-indigo-700`}
           onClick={() => setShowAdd((prev) => !prev)}
         >
           <FiPlus className="w-5 h-5" />

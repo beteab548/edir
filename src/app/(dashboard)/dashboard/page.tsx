@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 import { currentUser } from "@clerk/nextjs/server";
-import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import PenaltyChart from "@/components/penaltyBarChart";
 import MemberDistribution from "@/components/MembersCountChart";
 import FinanceChart from "@/components/ContributionChart";
@@ -47,7 +46,6 @@ const AdminPage = async () => {
     if (!user) redirect("/sign-in");
 
     const role = user?.publicMetadata?.role as string;
-    await generateContributionSchedulesForAllActiveMembers();
 
     const isSecretary = role === "secretary";
     const isChairman = role === "chairman";

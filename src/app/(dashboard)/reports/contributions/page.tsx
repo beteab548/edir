@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 import FilterBar from "@/components/report/FilterBar";
 import ReportShell from "@/components/report/ReportShell";
 import { getFilteredContributions } from "@/lib/report";
-import { generateContributionSchedulesForAllActiveMembers } from "@/lib/services/generateSchedulesForAllMembers";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
@@ -32,13 +31,7 @@ export default async function ContributionReportPage({
       return redirect("/unauthorized");
     }
     // Generate contribution schedules with error handling
-    try {
-      await generateContributionSchedulesForAllActiveMembers();
-    } catch (scheduleError) {
-      console.error("Error generating schedules:", scheduleError);
-      // Continue execution even if schedule generation fails
-    }
-
+   
     // Get filtered contributions with error handling
     let contributions = [];
     try {
