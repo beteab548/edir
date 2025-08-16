@@ -496,7 +496,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
             const endDate = endOfMonth(
               addMonths(addYears(startOfYear(new Date(currentYear, 0)), 1), 5)
             );
-            console.log(startDate, endDate);
             const schedules = await tx.contributionSchedule.findMany({
               where: {
                 member_id: bal.member_id,
@@ -510,7 +509,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
                 month: "asc",
               },
             });
-            console.log("schedules", schedules);
             const totalDue = schedules.reduce((sum, schedule) => {
               return (
                 sum +
@@ -518,7 +516,6 @@ export async function generateContributionSchedulesForAllActiveMembers(
                   Number(schedule.paid_amount))
               );
             }, 0);
-            console.log("total due", totalDue);
 
             await tx.paymentRecord.update({
               where: { id: paymentRecord.id },

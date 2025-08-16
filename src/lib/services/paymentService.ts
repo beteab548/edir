@@ -1,6 +1,16 @@
 import prisma from "@/lib/prisma";
 import { Decimal } from "@prisma/client/runtime/library";
-import { addMonths, startOfMonth, isBefore, endOfDay, isAfter, subMonths, endOfMonth, startOfYear, addYears } from "date-fns";
+import {
+  addMonths,
+  startOfMonth,
+  isBefore,
+  endOfDay,
+  isAfter,
+  subMonths,
+  endOfMonth,
+  startOfYear,
+  addYears,
+} from "date-fns";
 
 class PaymentProcessingError extends Error {
   constructor(message: string) {
@@ -43,7 +53,7 @@ interface PaymentResult {
   simulatedMonths?: number;
   simulationDate?: Date;
   remainingBalance: Decimal;
-  excessAmount: Decimal; 
+  excessAmount: Decimal;
 }
 
 export async function applyCatchUpPayment({
@@ -417,35 +427,30 @@ export async function applyCatchUpPayment({
           },
         });
         const currentYear = new Date().getFullYear();
-         const startDate = subMonths(
-              addYears(startOfYear(new Date(currentYear, 0)), 0),
-              -6
-            ); 
-            const endDate = endOfMonth(
-              addMonths(addYears(startOfYear(new Date(currentYear, 0)), 1), 5)
-            );
-            console.log(startDate, endDate);
-            const schedules = await tx.contributionSchedule.findMany({
-              where: {
-                member_id: memberId,
-                contribution_id: contribution.id,
-                month: {
-                  gte: startDate, // Greater than or equal to July of the current year
-                  lt: endDate, // Less than July of the next year
-                },
-              },
-              orderBy: {
-                month: "asc",
-              },
-            });
-            console.log("schedules", schedules);
-            const totalDue = schedules.reduce((sum, schedule) => {
-              return (
-                sum +
-                (Number(schedule.expected_amount) -
-                  Number(schedule.paid_amount))
-              );
-            }, 0);
+        const startDate = subMonths(
+          addYears(startOfYear(new Date(currentYear, 0)), 0),
+          -6
+        );
+        const endDate = endOfMonth(
+          addMonths(addYears(startOfYear(new Date(currentYear, 0)), 1), 5)
+        );
+        const schedules = await tx.contributionSchedule.findMany({
+          where: {
+            member_id: memberId,
+            contribution_id: contribution.id,
+            month: {
+              gte: startDate, // Greater than or equal to July of the current year
+              lt: endDate, // Less than July of the next year
+            },
+          },
+          orderBy: {
+            month: "asc",
+          },
+        });
+        const totalDue = schedules.reduce((sum, schedule) => {
+          return (
+            sum +
+            (Number(schedule.expected_amount) - Number(schedule.paid_amount))          );        }, 0);
             console.log("total due", totalDue);
 
         const remainingBalance = updatedBalance?.amount ?? new Decimal(0); // Get the remaining balance
@@ -460,10 +465,9 @@ export async function applyCatchUpPayment({
             remaining_balance: totalDue, // <---- Add this line
           },
         });
-
         if (
           contribution.contributionType.name === "Registration" &&
-          remainingBalance.eq(0) &&
+          totalDue==0 &&
           !simulate
         ) {
           await tx.member.update({
@@ -471,7 +475,6 @@ export async function applyCatchUpPayment({
             data: { member_type: "Existing" },
           });
         }
-
         return {
           payments,
           isSimulated: simulate,
