@@ -38,6 +38,7 @@ interface ApplyCatchUpPaymentParams {
   contributionId: number;
   paidAmount: number;
   paymentMethod?: string;
+  payment_date?: Date;
   documentReference?: string;
   simulate?: boolean;
   simulationMonths?: number;
@@ -61,6 +62,7 @@ export async function applyCatchUpPayment({
   contributionId,
   paidAmount,
   paymentMethod = "Cash",
+  payment_date ,
   documentReference = "-",
   simulate = false,
   simulationMonths = 0,
@@ -119,13 +121,12 @@ export async function applyCatchUpPayment({
         let currentMonthStart = startOfMonth(currentDate);
 
         let remainingPayment = new Decimal(paidAmount);
-
         // Create paymentRecord with excess_balance: 0 initially
         const paymentRecord = await tx.paymentRecord.create({
           data: {
             member_id: memberId,
             contribution_Type_id: contributionId,
-            payment_date: new Date(),
+            payment_date: payment_date ?? new Date(),
             payment_method: paymentMethod,
             document_reference: documentReference,
             total_paid_amount: initialPayment,
@@ -450,8 +451,9 @@ export async function applyCatchUpPayment({
         const totalDue = schedules.reduce((sum, schedule) => {
           return (
             sum +
-            (Number(schedule.expected_amount) - Number(schedule.paid_amount))          );        }, 0);
-            console.log("total due", totalDue);
+            (Number(schedule.expected_amount) - Number(schedule.paid_amount))
+          );
+        }, 0);
 
         const remainingBalance = updatedBalance?.amount ?? new Decimal(0); // Get the remaining balance
         const newUnallocatedAmount =
@@ -467,7 +469,7 @@ export async function applyCatchUpPayment({
         });
         if (
           contribution.contributionType.name === "Registration" &&
-          totalDue==0 &&
+          totalDue == 0 &&
           !simulate
         ) {
           await tx.member.update({

@@ -1225,6 +1225,7 @@ export const paymentActionforAutomatic = async (
     const currentMemberId = Number(data.member_id);
     const paymentAmount = Number(data.paid_amount);
     const paymentReceipt = data.receipt;
+    const paymentDate= data.payment_date;
     const paymentMethod = data.payment_method || "Cash";
 
     const contributionExists = await prisma.contributionType.findUnique({
@@ -1265,6 +1266,7 @@ export const paymentActionforAutomatic = async (
       contributionId: currentContributionId,
       paidAmount: paymentAmount,
       paymentMethod,
+      payment_date:paymentDate,
       documentReference: paymentReceipt || "-",
       // simulate: true,
       // simulationMonths: 0,
